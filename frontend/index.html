@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kinolu Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Kinolu Color Transfer (Demo)</h1>
+    <p>Reference -> Target, 2D strength, optional micro edits. Calls POST /api/transfer</p>
+    <p id="capInfo"></p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Inputs</h2>
+      <div class="inputs">
+        <label>Reference Image
+          <input id="refInput" type="file" accept="image/*" />
+        </label>
+        <label>Target Image
+          <input id="srcInput" type="file" accept="image/*" />
+        </label>
+        <label>Method
+          <select id="method">
+            <option value="auto_best">Auto Best (Scored, Recommended)</option>
+            <option value="hybrid_auto">Hybrid Auto</option>
+            <option value="reinhard_lab" selected>Reinhard (Lab, jrosebr1, Default)</option>
+            <option value="reinhard">Reinhard (colortrans)</option>
+            <option value="lhm">LHM (colortrans)</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="cinematicEnhance" checked />
+          Cinematic Film Boost
+        </label>
+        <label>Cinematic Strength
+          <input type="range" id="cinematic_strength" min="0" max="100" value="72" />
+          <span id="cinematic_strengthVal">72</span>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="skinProtect" />
+          Skin protect
+        </label>
+        <label>Skin Protect Strength
+          <input type="range" id="skin_strength" min="0" max="100" value="70" />
+          <span id="skin_strengthVal">70</span>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="semanticRegions" checked />
+          Semantic Regions
+        </label>
+      </div>
+      <div class="previews">
+        <figure>
+          <figcaption>Reference</figcaption>
+          <img id="refPreview" alt="reference preview" />
+        </figure>
+        <figure>
+          <figcaption>Target</figcaption>
+          <img id="srcPreview" alt="target preview" />
+        </figure>
+        <figure>
+          <figcaption>Result</figcaption>
+          <img id="resultPreview" alt="result preview" />
+        </figure>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>2D Strength Pad</h2>
+      <div class="pad-row">
+        <canvas id="pad" width="240" height="240"></canvas>
+        <div class="pad-values">
+          <label class="checkbox">
+            <input type="checkbox" id="autoXY" checked />
+            Auto XY (analyze and place point)
+          </label>
+          <label>Color Strength <input id="colorStrength" type="number" min="0" max="100" value="88" />%</label>
+          <label>Tone Strength <input id="toneStrength" type="number" min="0" max="100" value="78" />%</label>
+          <small>Drag in the square or type values. X=Color, Y=Tone.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>RGB Curves (可拖拽) / 曲线</h2>
+      <div class="curve-editor">
+        <div class="curve-stack">
+          <div class="curve-tabs" id="curveTabs">
+            <button type="button" class="curve-tab active" data-curve-channel="master">Master</button>
+            <button type="button" class="curve-tab" data-curve-channel="r">R</button>
+            <button type="button" class="curve-tab" data-curve-channel="g">G</button>
+            <button type="button" class="curve-tab" data-curve-channel="b">B</button>
+          </div>
+          <canvas id="curveCanvas" width="420" height="240"></canvas>
+          <div class="curve-actions">
+            <button type="button" id="curveResetChannel">Reset Channel</button>
+            <button type="button" id="curveResetAll">Reset All</button>
+            <small>Click line to add a point, drag to move, double-click point to remove. Endpoints stay fixed.</small>
+          </div>
+        </div>
+        <input type="hidden" id="curve_points" value="" />
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Micro Edits (optional) / 基础调色</h2>
+      <div class="sliders">
+        <label>Saturation <input type="range" id="sat" min="-50" max="50" value="0" /><span id="satVal">0</span></label>
+        <label>Vibrance <input type="range" id="vib" min="-50" max="50" value="0" /><span id="vibVal">0</span></label>
+        <label>Temperature (mired) <input type="range" id="temp" min="-40" max="40" value="0" /><span id="tempVal">0</span></label>
+        <label>Tint <input type="range" id="tint" min="-40" max="40" value="0" /><span id="tintVal">0</span></label>
+        <label>Contrast <input type="range" id="contrast" min="-40" max="40" value="0" /><span id="contrastVal">0</span></label>
+        <label>Highlights <input type="range" id="highlights" min="-50" max="50" value="0" /><span id="highlightsVal">0</span></label>
+        <label>Shadows <input type="range" id="shadows" min="-50" max="50" value="0" /><span id="shadowsVal">0</span></label>
+        <label>Grain <input type="range" id="grain" min="0" max="40" value="0" /><span id="grainVal">0</span></label>
+        <label>Sharpen <input type="range" id="sharpen" min="0" max="40" value="0" /><span id="sharpenVal">0</span></label>
+        <label>HSL Hue (色相) <input type="range" id="hue" min="-180" max="180" value="0" /><span id="hueVal">0</span></label>
+        <label>HSL Saturation (饱和度) <input type="range" id="hsl_sat" min="-100" max="100" value="0" /><span id="hsl_satVal">0</span></label>
+        <label>HSL Lightness (明度) <input type="range" id="hsl_light" min="-100" max="100" value="0" /><span id="hsl_lightVal">0</span></label>
+      </div>
+      <h3>HSL 7-way (Lightroom style)</h3>
+      <div id="hsl7Grid" class="hsl7-grid"></div>
+      <input type="hidden" id="hsl7_json" value="" />
+      <p>If you cannot see these controls, hard refresh the page (Cmd+Shift+R).</p>
+    </section>
+
+    <section class="panel actions">
+      <button id="generate">Generate</button>
+      <a id="download" href="#" download="result.jpg" class="disabled">Download</a>
+      <span id="status"></span>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+colortrans>=1.1,<=1.1.0
+-e third_party/color_transfer
+opencv-python-headless>=4.9.0.80
+mediapipe>=0.10.14
+colour-science>=0.4.4
+numpy>=1.24
+requests>=2.31.0
+Pillow>=10.0
+fastapi>=0.110.0
+uvicorn>=0.29.0
+python-multipart>=0.0.9
+scikit-image>=0.21.0
+timm>=1.0.20
+git+https://github.com/ChaoningZhang/MobileSAM.git#egg=mobile-sam
+pidng>=4.0.9

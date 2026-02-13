@@ -1,0 +1,22 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+
+# Runtime/output artifacts
+out/
+logs/
+models/
+
+# Large local datasets and user assets
+datasets/
+CB/
+backup/
+
+# Frontend temp
+frontend/.cache/
