@@ -46,7 +46,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Fetch a permissive-license image seed set from Openverse and build a local evaluation manifest."
     )
-    p.add_argument("--out-root", default="datasets/openverse_seed", help="Output root directory")
+    p.add_argument(
+        "--out-root",
+        default="archive/local_assets_20260213/datasets/openverse_seed",
+        help="Output root directory",
+    )
     p.add_argument("--reference-count", type=int, default=20, help="How many reference images to fetch")
     p.add_argument("--target-count", type=int, default=40, help="How many target images to fetch")
     p.add_argument("--pair-count", type=int, default=40, help="How many rows in manifest (reference-source pairs)")

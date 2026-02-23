@@ -11,12 +11,34 @@ env/
 # Runtime/output artifacts
 out/
 logs/
-models/
+models/*.pt
+data/presets/
 
 # Large local datasets and user assets
 datasets/
 CB/
 backup/
+archive/
 
 # Frontend temp
 frontend/.cache/
+
+# Next.js workspace artifacts
+kinolu-next/node_modules/
+kinolu-next/.next/
+kinolu-next/.turbo/
+kinolu-next/.vercel/
+kinolu-next/out/
+
+# IDE
+.vscode/
+
+# OS
+Thumbs.db
+*.swp
+
+# Ref images (large)
+ref/
+
+# Prototypes (archived)
+prototypes/

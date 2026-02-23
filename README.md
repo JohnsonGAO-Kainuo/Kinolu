@@ -1,5 +1,41 @@
 # Kinolu Demo (Local)
 
+## MVP Status (Current)
+
+This repo is now a usable local MVP:
+
+- Reference -> target color transfer (multi-method + `auto_best`)
+- Auto XY recommendation + manual XY override
+- Basic edit surface (curve + HSL + film boost)
+- Export bundle (`.cube` / `.xmp` / optional test `.dng`)
+
+Gap to production quality is mainly model/quality iteration, not base pipeline availability.
+
+## Workspace Layout (After Cleanup)
+
+- Runtime core:
+  - `backend/`
+  - `frontend/`
+  - `third_party/`
+  - `models/`
+- Product docs:
+  - `README.md`
+  - `prd draft.md`
+- Experiment inputs:
+  - `archive/local_assets_20260213/CB/` (local benchmark assets)
+  - `archive/local_assets_20260213/datasets/` (local benchmark assets)
+- Experiment scripts:
+  - `tools/`
+- Outputs:
+  - Active results in `out/`
+  - Historical runs in `out/_archive_20260213/`
+- Legacy backup:
+  - `archive/backup_legacy_20260213/`
+  - `archive/vendor_legacy_20260213/`
+
+> `archive/` is local-only and ignored by Git by default.
+> If you want to run dataset scripts, pass the archived dataset paths explicitly.
+
 ## Run
 
 ```bash
@@ -11,16 +47,20 @@ python3 -m uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
 Open:
 
 - `http://127.0.0.1:8000`
+- Next.js app (separate terminal):
+  - `cd kinolu-next && npm run dev`
+  - open `http://localhost:3000`
 
 ## Notes
 
 - Do not open `frontend/index.html` directly via `file://`.
 - The page sends image form data to `POST /api/transfer`.
 - Built-in methods:
-  - `reinhard_lab` (jrosebr1 default; most stable on current Colorby-like benchmark)
-  - `auto_best` (runs all built-in methods and auto-picks best score)
-  - `hybrid_auto` (blends open-source algorithms and auto-selects best fit)
-  - `reinhard`, `lhm` (colortrans)
+  - Default runtime is **stable-only**: `reinhard_lab` (jrosebr1 base + Kinolu pipeline tweaks).
+  - To re-enable multi-method experiments, set `KINOLU_STABLE_ONLY=0` before starting backend.
+- Frontend MVP mode:
+  - UI is simplified to a fixed pipeline: `reinhard_lab` + built-in cinematic enhancement.
+  - Users focus on XY placement and basic edits; method switching is hidden from UI.
 - XY workflow:
   - `Auto XY` (default on): backend analyzes source/reference + portrait risk and recommends Color/Tone strengths.
   - Manual defaults (when `Auto XY` is off): `Color=88`, `Tone=78` (tuned on current Colorby benchmark set).
@@ -42,6 +82,16 @@ Open:
   - `MediaPipe`: Apache-2.0
   - `colour-science`: BSD-3-Clause
   - `PiDNG (pidng)`: MIT (dist LICENSE file)
+
+## Preset + LUT API (Current)
+
+- `GET /api/presets`: list saved presets
+- `POST /api/presets/import-cube`: import third-party `.cube` and save as preset
+- `POST /api/presets/from-transfer`: save current look (source + styled image) as generated preset
+- `POST /api/presets/apply`: apply a saved preset LUT to an image
+- `PATCH /api/presets/{id}` / `DELETE /api/presets/{id}`
+- `GET /api/presets/{id}/cube`: download preset `.cube`
+- `POST /api/export/lut`: export current source+styled pair as `.cube` (without saving preset)
 
 ## MobileSAM (Optional but recommended)
 
@@ -73,7 +123,7 @@ python3 tools/compare_methods.py \
 
 ## Systematic Quality Evaluation
 
-Prepare a CSV manifest like `datasets/manifest.sample.csv`, then run:
+Prepare a CSV manifest (for example under `archive/local_assets_20260213/datasets/`), then run:
 
 ```bash
 cd /Users/johnson/Desktop/开发/Web/Kinolu
@@ -97,14 +147,14 @@ Fetch a permissive-license seed set from Openverse and auto-build a local manife
 ```bash
 cd /Users/johnson/Desktop/开发/Web/Kinolu
 python3 tools/fetch_openverse_seed.py \
-  --out-root datasets/openverse_stocksnap_photo_v2 \
+  --out-root archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2 \
   --reference-count 12 \
   --target-count 24 \
   --pair-count 24 \
   --licenses cc0 \
   --sources stocksnap \
-  --reference-queries-file datasets/queries/reference_photography.txt \
-  --target-queries-file datasets/queries/target_neutral.txt \
+  --reference-queries-file archive/local_assets_20260213/datasets/queries/reference_photography.txt \
+  --target-queries-file archive/local_assets_20260213/datasets/queries/target_neutral.txt \
   --min-width 900 \
   --min-height 600 \
   --pages-per-query 3 \
@@ -113,16 +163,16 @@ python3 tools/fetch_openverse_seed.py \
 
 Outputs:
 
-- `datasets/openverse_stocksnap_photo_v2/references.csv`
-- `datasets/openverse_stocksnap_photo_v2/targets.csv`
-- `datasets/openverse_stocksnap_photo_v2/manifest.csv`
+- `archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/references.csv`
+- `archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/targets.csv`
+- `archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/manifest.csv`
 
 Then evaluate directly:
 
 ```bash
 cd /Users/johnson/Desktop/开发/Web/Kinolu
 python3 tools/evaluate_dataset.py \
-  --manifest datasets/openverse_stocksnap_photo_v2/manifest.csv \
+  --manifest archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/manifest.csv \
   --methods auto_best,hybrid_auto,reinhard_lab,reinhard,lhm \
   --out-dir out/eval_stocksnap_v2 \
   --save-images
@@ -133,9 +183,9 @@ For full pair cross product (`reference_count x target_count`), build cartesian 
 ```bash
 cd /Users/johnson/Desktop/开发/Web/Kinolu
 python3 tools/build_cartesian_manifest.py \
-  --references-csv datasets/openverse_stocksnap_photo_v2/references.csv \
-  --targets-csv datasets/openverse_stocksnap_photo_v2/targets.csv \
-  --out-csv datasets/openverse_stocksnap_photo_v2/manifest.cartesian.csv
+  --references-csv archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/references.csv \
+  --targets-csv archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/targets.csv \
+  --out-csv archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/manifest.cartesian.csv
 ```
 
 Example: run all `12 x 24 = 288` pairs with `reinhard_lab`:
@@ -143,7 +193,7 @@ Example: run all `12 x 24 = 288` pairs with `reinhard_lab`:
 ```bash
 cd /Users/johnson/Desktop/开发/Web/Kinolu
 python3 tools/evaluate_dataset.py \
-  --manifest datasets/openverse_stocksnap_photo_v2/manifest.cartesian.csv \
+  --manifest archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/manifest.cartesian.csv \
   --methods reinhard_lab \
   --out-dir out/eval_stocksnap_v2_cartesian_reinhard \
   --save-images
@@ -157,29 +207,29 @@ Saved filenames include both pair id and source mapping:
 
 1) Fill `colorby_output` column in:
 
-- `datasets/openverse_stocksnap_photo_v2/colorby_compare_template.csv`
-- `datasets/openverse_stocksnap_photo_v2/colorby_compare_template.cartesian.csv` (for full 288-pair run)
+- `archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/colorby_compare_template.csv`
+- `archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/colorby_compare_template.cartesian.csv` (for full 288-pair run)
 
 2) Run:
 
 ```bash
 cd /Users/johnson/Desktop/开发/Web/Kinolu
 python3 tools/compare_with_colorby.py \
-  --pairs-csv datasets/openverse_stocksnap_photo_v2/colorby_compare_template.csv \
+  --pairs-csv archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/colorby_compare_template.csv \
   --our-column our_reinhard_lab \
   --out-dir out/compare_colorby_stocksnap_v2
 ```
 
 ## Analyze Exported Colorby Folder (e.g. 6x9 batches)
 
-If you exported grouped Colorby results in `CB/refXX_target...`, run:
+If you exported grouped Colorby results in `archive/local_assets_20260213/CB/refXX_target...`, run:
 
 ```bash
 cd /Users/johnson/Desktop/开发/Web/Kinolu
 python3 tools/analyze_colorby_cb_folder.py \
-  --cb-root CB \
-  --references-csv datasets/openverse_stocksnap_photo_v2/references.csv \
-  --targets-csv datasets/openverse_stocksnap_photo_v2/targets.csv \
+  --cb-root archive/local_assets_20260213/CB \
+  --references-csv archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/references.csv \
+  --targets-csv archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/targets.csv \
   --ref-count 6 \
   --target-count 9 \
   --out-dir out/analyze_colorby_cb_v1

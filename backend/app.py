@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import uuid
 
 import cv2
+import colour
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel
 
 from backend.processing import (
     EditParams,
@@ -18,10 +20,20 @@ from backend.processing import (
     run_transfer_with_meta,
     runtime_capabilities,
 )
+from backend.preset_store import (
+    apply_preset_to_image,
+    create_preset_from_cube_bytes,
+    create_preset_from_images,
+    delete_preset,
+    get_preset_cube_path,
+    list_presets,
+    rename_preset,
+)
+from backend.lut_utils import fit_lut_from_pair
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-FRONTEND_DIR = BASE_DIR / "frontend"
+EXPORT_DIR = BASE_DIR / "out" / "exports"
 
 app = FastAPI(title="Kinolu Demo API")
 app.add_middleware(
@@ -34,6 +46,7 @@ app.add_middleware(
 
 
 def _decode_upload(data: bytes, label: str) -> np.ndarray:
+    # 把上传的二进制图片解码成 OpenCV 的 BGR 矩阵。
     arr = np.frombuffer(data, dtype=np.uint8)
     image = cv2.imdecode(arr, cv2.IMREAD_COLOR)
     if image is None:
@@ -42,6 +55,9 @@ def _decode_upload(data: bytes, label: str) -> np.ndarray:
 
 
 def _parse_curve_points(raw: str):
+    # 前端曲线参数兼容两种格式：
+    # 1) 旧版：单一 master 点列
+    # 2) 新版：master/r/g/b 四组点列
     if not raw:
         return {"master": None, "r": None, "g": None, "b": None}
     try:
@@ -90,6 +106,10 @@ def _parse_hsl7_json(raw: str):
     return data
 
 
+class PresetRenameRequest(BaseModel):
+    name: str
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True}
@@ -98,6 +118,128 @@ def health():
 @app.get("/api/capabilities")
 def capabilities():
     return runtime_capabilities()
+
+
+@app.get("/api/presets")
+def presets_list():
+    return {"items": list_presets()}
+
+
+@app.post("/api/presets/import-cube")
+async def preset_import_cube(
+    cube_file: UploadFile = File(...),
+    name: str = Form("Imported CUBE"),
+):
+    data = await cube_file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="CUBE file is required")
+    try:
+        item = create_preset_from_cube_bytes(name=name, cube_bytes=data, source_type="imported_cube")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Import CUBE failed: {exc}") from exc
+    return item
+
+
+@app.post("/api/presets/from-transfer")
+async def preset_from_transfer(
+    source: UploadFile = File(...),
+    styled: UploadFile = File(...),
+    name: str = Form("Generated Look"),
+    cube_size: int = Form(33),
+):
+    src_bytes = await source.read()
+    styled_bytes = await styled.read()
+    if not src_bytes or not styled_bytes:
+        raise HTTPException(status_code=400, detail="source and styled images are required")
+    source_bgr = _decode_upload(src_bytes, "source")
+    styled_bgr = _decode_upload(styled_bytes, "styled")
+    try:
+        item = create_preset_from_images(
+            name=name,
+            source_bgr=source_bgr,
+            styled_bgr=styled_bgr,
+            cube_size=max(16, min(int(cube_size), 65)),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Create preset failed: {exc}") from exc
+    return item
+
+
+@app.post("/api/presets/apply")
+async def preset_apply(
+    preset_id: str = Form(...),
+    source: UploadFile = File(...),
+):
+    src_bytes = await source.read()
+    if not src_bytes:
+        raise HTTPException(status_code=400, detail="source image is required")
+    source_bgr = _decode_upload(src_bytes, "source")
+    try:
+        out = apply_preset_to_image(source_bgr, preset_id=preset_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Apply preset failed: {exc}") from exc
+
+    ok, encoded = cv2.imencode(".jpg", out, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+    if not ok:
+        raise HTTPException(status_code=500, detail="JPEG encoding failed")
+    return Response(content=encoded.tobytes(), media_type="image/jpeg")
+
+
+@app.patch("/api/presets/{preset_id}")
+def preset_rename(preset_id: str, body: PresetRenameRequest):
+    item = rename_preset(preset_id, body.name)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Preset not found")
+    return item
+
+
+@app.delete("/api/presets/{preset_id}")
+def preset_delete(preset_id: str):
+    if not delete_preset(preset_id):
+        raise HTTPException(status_code=404, detail="Preset not found")
+    return {"ok": True}
+
+
+@app.get("/api/presets/{preset_id}/cube")
+def preset_download_cube(preset_id: str):
+    cube_path = get_preset_cube_path(preset_id)
+    if cube_path is None:
+        raise HTTPException(status_code=404, detail="Preset cube not found")
+    return FileResponse(
+        path=str(cube_path),
+        media_type="application/octet-stream",
+        filename=f"{preset_id}.cube",
+    )
+
+
+@app.post("/api/export/lut")
+async def export_lut(
+    source: UploadFile = File(...),
+    styled: UploadFile = File(...),
+    cube_size: int = Form(33),
+):
+    src_bytes = await source.read()
+    styled_bytes = await styled.read()
+    if not src_bytes or not styled_bytes:
+        raise HTTPException(status_code=400, detail="source and styled images are required")
+    source_bgr = _decode_upload(src_bytes, "source")
+    styled_bgr = _decode_upload(styled_bytes, "styled")
+    cube_size = max(16, min(int(cube_size), 65))
+    try:
+        lut = fit_lut_from_pair(source_bgr, styled_bgr, cube_size=cube_size)
+        EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+        cube_name = f"kinolu_export_{uuid.uuid4().hex[:10]}_{cube_size}.cube"
+        cube_path = EXPORT_DIR / cube_name
+        colour.write_LUT(lut, str(cube_path))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Export LUT failed: {exc}") from exc
+    return FileResponse(
+        path=str(cube_path),
+        media_type="application/octet-stream",
+        filename="look.cube",
+    )
 
 
 @app.post("/api/transfer")
@@ -129,6 +271,8 @@ async def transfer(
     hsl_light: float = Form(0.0),
     hsl7_json: str = Form(""),
 ):
+    # 入口主流程：
+    # 上传图 -> 仿色 -> XY 混合 -> 微调 -> JPEG 返回
     ref_bytes = await reference.read()
     src_bytes = await source.read()
     if not ref_bytes or not src_bytes:
@@ -138,6 +282,7 @@ async def transfer(
     source_bgr = _decode_upload(src_bytes, "source")
 
     try:
+        # 第一步：执行仿色算法（可包含 auto_best 的候选打分选择）。
         transferred, transfer_meta = run_transfer_with_meta(
             method,
             source_bgr,
@@ -155,6 +300,7 @@ async def transfer(
     used_color_strength = float(color_strength)
     used_tone_strength = float(tone_strength)
     if bool(auto_xy):
+        # 第二步（可选）：根据图像内容自动推荐 XY 强度。
         used_color_strength, used_tone_strength, xy_meta = recommend_xy_strength(
             source_bgr=source_bgr,
             reference_bgr=reference_bgr,
@@ -162,6 +308,7 @@ async def transfer(
         )
         xy_mode = "auto"
 
+    # 第三步：把仿色结果按 XY 与语义区域策略混合回原图。
     blended = blend_xy_strength(
         source_bgr=source_bgr,
         transferred_bgr=transferred,
@@ -173,6 +320,7 @@ async def transfer(
     )
 
     curve_payload = _parse_curve_points(curve_points)
+    # 第四步：应用基础编辑参数（HSL、曲线、高光阴影、颗粒等）。
     edited = apply_micro_edits(
         blended,
         EditParams(
@@ -197,6 +345,7 @@ async def transfer(
         ),
     )
 
+    # 当前接口只回传 JPEG 预览；LUT/XMP/DNG 由 tools 目录脚本离线导出。
     ok, encoded = cv2.imencode(".jpg", edited, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
     if not ok:
         raise HTTPException(status_code=500, detail="JPEG encoding failed")
@@ -223,7 +372,3 @@ async def transfer(
             f"{x['method']}:{float(x['overall_score']):.4f}" for x in ranked
         )[:800]
     return Response(content=encoded.tobytes(), media_type="image/jpeg", headers=headers)
-
-
-if FRONTEND_DIR.exists():
-    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

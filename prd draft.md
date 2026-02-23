@@ -5,12 +5,21 @@
 - 产品叙事：`Dazz 的电影感审美 + ColorBy 的参考图匹配效率`。
 - 一期目标：不做 AI，不做复杂参数学习，先把“好看、够快、可导出”做稳定。
 - 核心价值：不仅生成效果图，还能导出可复用预设（LUT / XMP / Proxy DNG）。
+- 下阶段定位：从“修图工具”升级为“移动端电影感创作入口”（PWA + 拍照 + 预设库）。
 
 ## 2. 关键决策（本期定版）
 - 交互策略：只保留「一键套用」主路径，不让用户做多模式选择。
+- 首页入口策略：只保留两个并列主按钮，`Shoot`（拍照）与 `Edit`（调色）；用户先二选一，再进入对应流程。
 - `Fast / Adaptive` 不作为用户可见选项；如需适配，由系统内部自动处理。
+- 前端主路径固定单算法：`reinhard_lab`（不向用户展示算法选择）。
+- XY 控件采用 Kumo 风格的“中心吸附式二维拨盘”（保留数值显示与轻量吸附点）。
+- `Cinematic Film Boost` 作为内置风格层默认开启，仅保留强度调节。
+- 复古风格需明确分层：`Warm Gold / Soft Green / Neutral Matte` 三个 Vintage 家族（方向命名，不使用品牌商标命名）。
+- `Skin Protection` 当前不作为用户可见开关，后端能力保留用于后续策略迭代。
 - 素材库主来源：`Pexels API` + 运营精选（电影感/胶片风格/高反差夜景/低饱和人文等）。
 - 用户上传参考图始终可用，和平台素材同权。
+- 下阶段必须支持：PWA 拍照入口、平台预设保存、`.cube` 导入与复用。
+- 下阶段必须支持：批量导入目标图（队列处理）与可折叠编辑区（Tone/Color/Curves/HSL/Film Finish）。
 - 商业模式：`免费日额 + Pro 会员`，不做 credit。
 - Pro 统一价格：`$3/月`（按当地商店汇率自动换算展示）。
 - 不再使用 ColorTransferLib；核心引擎选 `colortrans + OpenCV`，优先保持 MIT/BSD/Apache 协议。
@@ -30,25 +39,44 @@
 - 摄影爱好者：参考胶片风格图，一键得到可用于 Lightroom 的预设。
 - 设计与品牌内容团队：同一风格批量套用，保持视觉一致。
 
-## 5. MVP 目标体验（4 步）
+## 5. MVP 目标体验（当前 Web 版）
 1. 选择参考图（平台精选 or Pexels or 用户上传）。
 2. 上传目标图，点击 `Generate`。
 3. 用二维强度控制微调：X 轴 `Color Strength`（色彩模仿强度 0-100%），Y 轴 `Tone Strength`（影调模仿强度 0-100%）；中心 = 参考图原样。支持拖拽 2D 拨盘或单独输入数值。
 4. 导出（会员可导出 `.cube / .xmp / Proxy DNG`）。
+
+### 5.0 首页分流（新增定版）
+1. 用户进入首页，只看到两个主入口：`Shoot` 与 `Edit`。
+2. 点 `Shoot`：进入相机拍照流，拍完自动进入生成与微调。
+3. 点 `Edit`：进入参考图 + 目标图的标准调色流。
+4. 两条路径最终都回到同一结果页、同一预设库、同一导出系统。
+
+### 5.1 下一阶段目标体验（PWA 拍照版）
+1. 用户在手机端打开 PWA，直接点击 `Shoot` 拍照。
+2. 拍照后直接进入仿色流程（选择参考图或选择平台预设）。
+3. 自动生成 + 自动放置 XY，用户仅做轻量微调。
+4. 一键保存为平台预设，并可导出 `.cube / .xmp / DNG`。
+
+### 5.2 下一阶段目标体验（批量导入版）
+1. 用户选择一个参考图或一个平台预设。
+2. 批量导入多张目标图（移动端建议 <=10，桌面 <=20）。
+3. 统一应用当前 XY 与电影感强度，启动队列处理。
+4. 查看每张进度与失败重试，最终支持单张或打包导出。
 
 ## 6. 核心功能需求（MoSCoW）
 
 ### MUST（一期必须）
 - **轻量色彩迁移引擎接入**
   - 后端使用 Python + FastAPI 封装轻量算法栈（`colortrans` + OpenCV）。
-  - 首批稳定算法白名单：`reinhard / pccm / lhm`。
-  - 不暴露算法名给用户，统一为“一键电影感复刻”。
+  - 用户可见主引擎固定为 `reinhard_lab`，内置电影感增强层。
+  - `hybrid_auto / reinhard / lhm / pccm` 仅用于离线评估与回归对比，不进入主 UI。
 - **肤色保护（人像友好）**
   - 集成 MediaPipe Selfie Segmentation 生成皮肤/人脸蒙版。
   - 皮肤区域降低仿色强度或保持原色，避免偏肤。
+  - 当前阶段该能力默认由系统策略控制，不作为用户可见按钮。
 - **一键套用与基础调节**
   - 参考图 -> 目标图一键生成效果。
-  - 提供双维强度调节：`Color Strength (X)` 与 `Tone Strength (Y)`，范围 0-100%，默认 100%/100%。
+  - 提供双维强度调节：`Color Strength (X)` 与 `Tone Strength (Y)`，范围 0-100%，默认由 Auto XY 推荐。
   - 提供原图/效果切换。
 - **素材库（Pexels + 精选）**
   - 接入 Pexels API 获取可商用素材缩略图。
@@ -61,8 +89,30 @@
   - 免费：导出预览图/JPG。
   - Pro：导出 `.cube / .xmp / Proxy DNG`。
 
+### 6.2 下一阶段 MUST（PWA + 预设平台）
+- **拍照入口**
+  - 支持手机端 PWA 调起相机拍照并作为目标图。
+  - 支持拍照后 `Retake / Use Photo` 双确认。
+- **预设平台化**
+  - 生成结果可保存为平台预设（名称、标签、缩略图、来源信息）。
+  - 支持个人预设列表、应用、重命名、删除。
+- **CUBE 导入复用**
+  - 支持用户导入 `.cube` 并保存到个人预设库。
+  - 导入后可直接用于拍照流和上传流。
+- **移动端优先**
+  - PWA 安装、离线壳、基础缓存、移动端触控优化。
+- **批量导入与队列处理**
+  - 支持多目标图批量导入，并复用同一参考图/预设。
+  - 提供队列状态（等待/处理中/完成/失败）与失败重试。
+- **编辑区完整化（默认折叠）**
+  - Tone：Exposure/Contrast/Highlights/Shadows。
+  - Color：Temperature/Tint/Saturation/Vibrance。
+  - Curves：RGB 曲线分通道。
+  - HSL：7 色（红橙黄绿青蓝紫）H/S/L。
+  - Film Finish：Grain/Vignette/Bloom(Halation)。
+
 ### SHOULD（二期）
-- 批量处理（同预设套多图，一次下载）。
+- 批量处理增强：断点续跑、失败自动重试策略、批量 ZIP 导出优化。
 - A/B 滑杆对比。
 - HaldCLUT PNG 导出。
 - 轻量编辑面板（可选）：曝光/对比/高光/阴影/颗粒/锐化的小面板，默认折叠；仅在用户需要微调时展开。
@@ -79,50 +129,66 @@
 - X=色彩混合系数（0-100%）：`output_chroma = src_chroma*(1-x) + transferred_chroma*x`。
 - Y=影调混合系数（0-100%）：`output_luma = src_luma*(1-y) + transferred_luma*y`，可附加 S 曲线以避免压暗。
 - 肤色保护：MediaPipe Selfie Segmentation 生成蒙版，对肤色区降低 x/y 权重。
-- 默认 100/100；二维拨盘与单独滑杆二选一交互，界面只呈现一种，减少决策。
+- 控件形式：Kumo 风格中心吸附式 XY，含中心死区与关键点轻吸附（25/50/75）。
+- 默认由 Auto XY 推荐落点；用户拖拽后显示实时 X/Y 数值。
+- 二维拨盘与单独滑杆二选一交互，界面只呈现一种，减少决策。
 
-## 7. UI 设计（极简，去模式负担）
-- 双栏布局：左侧参考图，右侧预览图。
-- 主区保留：`Generate`、`Color Strength`、`Tone Strength`（可用 2D 拨盘或独立滑杆）、`Show Original`、`Export`。
-- 不展示 `Fast/Adaptive`，不展示算法名。
-- 顶部显示今日免费额度（如 `Free: 7/10`）。
-- 导出菜单中对 Pro 功能显示锁标识（`.cube / .xmp / Proxy DNG`）。
-- 轻量编辑面板：默认折叠，内含 `Exposure / Contrast / Highlights / Shadows / Grain / Sharpen`，滑杆范围窄，便于小幅修正。
+## 7. UI 设计定版（给 Gemini / Figma Make）
+- 风格母版锁定：Figma `Camera Screen (Community)`（node `3:38`）作为唯一视觉基准。
+- 交互参考锁定：`ref/colorby/*`（结果页与调色流程）+ `ref/kumo/*`（拍照与导入流程）。
+- 视觉方向：移动端优先、简洁真实、低决策成本；避免蓝紫 AI 感配色与重拟物堆叠。
+- 组件约束：底部三键胶囊导航（左/中/右）全页面复用，中心键始终视觉最强。
+- 主路径固定：`导入 -> 生成 -> XY 微调 -> 保存/导出`，不增加模式分叉。
+- 首页形态固定：两个主按钮并列布局（左 `Shoot`、右 `Edit`），避免复杂菜单。
+- 主界面禁项：不显示算法下拉；不显示 `Skin Protection` 开关；不显示 `Cinematic` 开关（仅保留强度滑杆）。
+- 图标约束：禁止 emoji，统一使用真实图标（SVG 风格一致）。
+- 详见：`docs/GEMINI_UI_PROTOTYPE_PROMPTS.md` 与 `docs/FRONTEND_INTERACTION_SPEC.md`。
 
-### 7.1 UI 模拟草图（更新）
+### 7.1 页面生成顺序（必须一张一张）
+1. Camera Capture（先校准母版一致性）
+2. Home / Create
+3. Result + XY
+4. Preset Library
+5. Batch Import
+6. Export Sheet
+7. Editing Panel（展开态）
+8. Desktop Companion
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│ Kinolu                         Free Today: 7/10   [Upgrade]  │
-├────────────────────────┬─────────────────────────────────────┤
-│                        │                                     │
-│  Reference Image       │              Preview                │
-│  ┌────────────────┐    │   ┌─────────────────────┐           │
-│  │  Pexels/上传/精选 │    │   │                     │           │
-│  │  参考图区域       │    │   │   效果预览图         │           │
-│  └────────────────┘    │   └─────────────────────┘           │
-│                        │                                     │
-│ [Generate]             │ Color ●━━━━━━━━━━ 100%              │
-│                        │ Tone  ●━━━━━━━━━━ 100%              │
-│                        │ or 2D pad (X=color, Y=tone)         │
-│                        │ [Show Original] [Export ▾]          │
-│                        │ JPG / .cube(Pro) / .xmp(Pro) / DNG  │
-├────────────────────────┴─────────────────────────────────────┤
-│  Cinematic Library (Pexels + Curated)               [+ 上传] │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐              │
-│  │ Film │ │ Noir │ │ Warm │ │ Cool │ │ Grain│    ...       │
-│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘              │
-└──────────────────────────────────────────────────────────────┘
-```
+### 7.2 结果页交互定版（核心）
+- 结果页必须有：Before/After 切换、大预览区、XY 二维面板、Film Strength 滑杆、保存/导出按钮。
+- XY 定义固定：X=`Color Strength`，Y=`Tone Strength`。
+- XY 可视化固定：中心死区、可拖拽旋钮、象限提示、实时数值。
+- Auto XY 默认启用并显示落点提示；用户拖拽后进入手动态。
+
+### 7.3 复古风格系统（明确）
+- `Vintage Warm Gold`：暖高光、柔和黑位、轻颗粒、夜景友好。
+- `Vintage Soft Green`：青绿暗部、克制饱和、街景/人文友好。
+- `Neutral Matte Film`：低对比哑光、肤色自然、通用场景。
+- 每个家族必须包含：风格说明、适用场景、默认强度建议、示例图。
+
+### 7.4 AI 原型验收标准（生成即检查）
+- 是否严格沿用母版（圆角、边框、按钮、导航、字体层级）？
+- 是否只生成单页面（390x844），而不是拼图长图？
+- 是否无算法下拉、无 Skin 开关、无 Cinematic 开关？
+- 是否无 emoji，图标一致？
+- 是否可以直接映射到 `docs/FRONTEND_INTERACTION_SPEC.md` 的真实交互？
 
 ## 8. 技术架构（可直接实施）
 
 ### 8.1 架构分层
-- 前端：React + TypeScript（上传、预览、额度显示、导出）。
+- 前端：当前为轻量 Web Demo；下一阶段升级为移动优先 PWA（建议 React + TypeScript + camera flow）。
 - 后端：FastAPI（色彩迁移、导出、额度与会员鉴权）。
 - 算法引擎：以宽松协议组件为主（`dstein64/colortrans` + `opencv/opencv` + `colour-science/colour`）；MediaPipe 用于肤色/人脸分割蒙版。
 - 导出模块：LUT Exporter / XMP Exporter / DNG Exporter。
 - 后期轻量编辑：前端滑杆 -> 后端调用 OpenCV/NumPy 做曝光/对比/曲线/颗粒等简单滤镜，仍走 CPU。
+
+### 8.6 PWA 与拍照架构（新增）
+- PWA Manifest：支持安装、独立窗口、移动端图标。
+- Service Worker：缓存静态资源与离线壳。
+- Camera：`getUserMedia` 调起拍照，拍照结果直接进入仿色流程。
+- Preset API（新增）：`/api/presets`、`/api/presets/import-cube`、`/api/presets/{id}`。
+- Batch API（新增）：`/api/transfer/batch`、`/api/jobs/{id}`、`/api/jobs/{id}/retry-failed`、`/api/jobs/{id}/cancel`。
+- 数据模型：Preset 包含 `name/tags/source_type/preview_url/export_assets/created_at`。
 
 ### 8.2 素材库策略（Pexels）
 - Pexels 作为主素材 API；我们仅拉取缩略图供用户挑选参考，不提供原图下载，也不镜像图库。
@@ -159,15 +225,20 @@
 - 不引入 credit，不让用户理解复杂计费。
 
 ## 10. 开发里程碑
-- **M1（1-2 周）**
-  - 打通 Reference -> Generate -> 预览 -> JPG 导出。
-  - 上线免费日额 10 次。
-  - 集成 MediaPipe 肤色保护（基础版本：皮肤区域降低仿色强度）。
-- **M2（1-2 周）**
-  - 接入会员系统，解锁 `.cube / .xmp / Proxy DNG`。
-  - 接入 Pexels API 与主题精选库。
-- **M3（1-2 周）**
-  - 批量处理、A/B 对比、HaldCLUT。
+- **M1（已完成）**
+  - 打通 Reference -> Generate -> 预览 -> 导出链路（JPG + CUBE + XMP + DNG 实验）。
+  - 前端主路径简化为固定仿色引擎 + XY + 电影感强度。
+- **M2（下一周）**
+  - PWA 基础壳（Manifest + Service Worker + 移动端适配）。
+  - Camera 流程（Shoot -> Confirm -> Generate）。
+  - Preset 保存与列表管理（My Presets）。
+  - Batch Import MVP（队列 + 进度 + 失败重试）。
+  - 编辑区补全到 Tone/Color/Curves/HSL/Film Finish。
+- **M3（后续 1-2 周）**
+  - `.cube` 导入与预设复用闭环。
+  - 会员能力接入与导出权限分层。
+  - 批量处理与 A/B 对比优化。
+  - Vintage 三家族风格包与示例体系上线。
 
 ## 11. 测试计划
 - **功能冒烟**：每天验证上传、生成、强度调节、导出链路。
@@ -190,6 +261,7 @@
 - 免费用户额度机制稳定（10 次/日准确重置）。
 - Pro 订阅后可成功导出 `.cube / .xmp / Proxy DNG`。
 - 主要目标软件导入成功，效果与站内预览偏差可接受。
+- 批量导入在目标设备可稳定处理 >=10 张，且失败可重试。
 
 ## 14. 对外文案草案
 - 主 Slogan：`Cinematic Looks, One Click.`
@@ -201,12 +273,14 @@
 ### 15.1 已完成（可运行）
 - 后端 API：`/api/transfer`、`/api/capabilities`、`/api/health` 已打通。
 - 仿色方法：`hybrid_auto / reinhard_lab / reinhard / pccm / lhm` 均可运行。
+- 前端主流程：固定 `reinhard_lab + cinematic`，不向用户暴露算法选择。
 - 二维强度：已实现 X=Color Strength、Y=Tone Strength 分离混合。
-- 语义分区：已接入 `MediaPipe + MobileSAM(可选)`，并用于主体/天空/植被/肤色差异化强度。
+- 语义分区：已接入 `MediaPipe + MobileSAM(可选)`，用于主体/天空/植被/肤色差异化强度（当前肤色开关不在主 UI 暴露）。
 - 基础编辑：已提供 `Saturation / Vibrance / Temp / Tint / Contrast / Highlights / Shadows / Grain / Sharpen / HSL / 曲线`。
 - 导出链路：已可产出 `preview.jpg + look_33.cube + look.xmp + look.dng(实验) + 一致性报告`。
 - 数据集评估：已支持 CSV 清单批量跑分，自动输出 `results.json / summary.json / summary.md`。
 - 稳定性压测：已支持方法 × 分辨率 × 迭代批量压测，自动输出 `stress_results.json / stress_summary.md`。
+- 设计协作文档：已新增 `docs/FRONTEND_INTERACTION_SPEC.md` 与 `docs/GEMINI_UI_PROTOTYPE_PROMPTS.md`。
 
 ### 15.2 本地验证产物（已生成）
 - 评估报告：`out/eval_user_real_v1/summary.md`
@@ -218,3 +292,5 @@
 - DNG 专业度：当前为“流程验证型 DNG”（synthetic Bayer），需进一步验证 Lightroom/ACR 实际可编辑一致性。
 - 评分体系增强：增加更强的主观质量指标与目标榜单（如 portrait/landscape 分榜）。
 - 高分辨率吞吐：继续压测 20MP+ 场景并补充内存/耗时监控。
+- PWA 拍照链路：补齐相机权限、失败回退、移动端稳定性测试。
+- 预设平台能力：补齐保存/导入/应用/删除与权限控制闭环。

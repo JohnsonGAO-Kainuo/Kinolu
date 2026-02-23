@@ -29,10 +29,19 @@ _MOBILE_SAM_PREDICTOR = None
 _MOBILE_SAM_INIT_DONE = False
 _MOBILE_SAM_ERROR = ""
 
+# 为了稳定性，默认只开放 reinhard_lab。
+# 如需恢复多算法实验，可设置环境变量 KINOLU_STABLE_ONLY=0。
+STABLE_METHOD = "reinhard_lab"
+STABLE_ONLY = os.getenv("KINOLU_STABLE_ONLY", "1") != "0"
+
+# 当前对外主流程会用到的方法集合：
+# - auto_best: 在候选方法里自动打分选最优
+# - hybrid_auto: 在三种基础迁移里先做一次内部优选
+# - reinhard_lab/reinhard/lhm: 单一方法直出
 # Keep PCCM available for backward compatibility, but exclude it from default/public ranking
 # because it is unstable on many real-world photo pairs.
-AUTO_BEST_CANDIDATES = ("hybrid_auto", "reinhard_lab", "reinhard", "lhm")
-PUBLIC_METHODS = ("auto_best", "hybrid_auto", "reinhard_lab", "reinhard", "lhm")
+AUTO_BEST_CANDIDATES = (STABLE_METHOD,) if STABLE_ONLY else ("hybrid_auto", "reinhard_lab", "reinhard", "lhm")
+PUBLIC_METHODS = (STABLE_METHOD,) if STABLE_ONLY else ("auto_best", "hybrid_auto", "reinhard_lab", "reinhard", "lhm")
 HSL7_BANDS = ("red", "orange", "yellow", "green", "aqua", "blue", "purple")
 HSL7_CENTERS = {
     "red": 0.0,
@@ -45,7 +54,7 @@ HSL7_CENTERS = {
 }
 HSL7_BAND_WIDTH_DEG = 42.0
 
-# Learned from local Colorby benchmark batch (54 pairs in `CB/`).
+# Learned from local Colorby benchmark batch (54 pairs in `archive/local_assets_20260213/CB/`).
 # We use these as a gentle calibration prior, not a hard override.
 COLORBY_SIGNATURE = {
     "l_p5_shift": -0.02244,
@@ -174,6 +183,8 @@ def _transfer_with_colortrans(
 
 def _normalize_method(method: str) -> str:
     m = str(method or "").strip().lower()
+    if STABLE_ONLY:
+        return STABLE_METHOD
     aliases = {
         "auto-best": "auto_best",
         "autobest": "auto_best",
@@ -378,6 +389,9 @@ def _run_transfer_core(
     cinematic_enhance: bool = True,
     cinematic_strength: float = 72.0,
 ) -> np.ndarray:
+    # 核心仿色分发：
+    # 1) 先按 method 走底层仿色算法
+    # 2) 再可选叠加 cinematic 色调增强
     if method == "hybrid_auto":
         candidates = [
             lab_reinhard(reference_bgr, source_bgr, clip=True, preserve_paper=False),
@@ -416,6 +430,9 @@ def run_transfer_with_meta(
     cinematic_enhance: bool = True,
     cinematic_strength: float = 72.0,
 ) -> tuple[np.ndarray, dict]:
+    # 对外主入口：
+    # - 非 auto_best：直接返回单方法结果
+    # - auto_best：遍历候选方法，按质量指标打分后选最优
     method = _normalize_method(method)
     if method != "auto_best":
         output = _run_transfer_core(
@@ -590,6 +607,7 @@ def _face_priority_mask(image_bgr: np.ndarray) -> np.ndarray:
 
 
 def _skin_mask(image_bgr: np.ndarray) -> np.ndarray:
+    # 肤色保护遮罩：先颜色阈值粗检，再用人物/人脸分割做约束，避免背景误判为肤色。
     ycrcb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2YCrCb)
     hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
 
@@ -619,6 +637,8 @@ def _skin_mask(image_bgr: np.ndarray) -> np.ndarray:
 
 
 def semantic_region_masks(image_bgr: np.ndarray) -> dict:
+    # 语义区域估计（轻量启发式版本）：
+    # 输出人物/人脸/皮肤/天空/植被/建筑/背景，用于后续差异化混合与评分。
     h, w = image_bgr.shape[:2]
     hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
     gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
@@ -702,6 +722,10 @@ def compute_quality_metrics(
     reference_bgr: np.ndarray,
     source_masks: Optional[dict] = None,
 ) -> dict:
+    # 统一评分函数（数值越小越好）：
+    # - 风格贴近度（与参考图）
+    # - 人脸/皮肤漂移惩罚（与原图）
+    # - 亮度结构稳定性（SSIM）
     base = _score_style_fit(output_bgr, source_bgr, reference_bgr)
     masks = source_masks if source_masks is not None else semantic_region_masks(source_bgr)
 
@@ -744,6 +768,8 @@ def recommend_xy_strength(
     reference_bgr: np.ndarray,
     transferred_bgr: Optional[np.ndarray] = None,
 ) -> tuple[float, float, dict]:
+    # 自动推荐 XY 强度：
+    # X(色彩强度) / Y(明暗强度) 会根据源图和参考图差距、以及人像占比动态下调。
     src_lab = cv2.cvtColor(source_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
     ref_lab = cv2.cvtColor(reference_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
 
@@ -811,6 +837,10 @@ def blend_xy_strength(
     skin_strength: float = 70.0,
     semantic_regions: bool = True,
 ) -> np.ndarray:
+    # XY 混合主逻辑：
+    # - X 控制色彩通道(a/b)，Y 控制明度通道(L)
+    # - 可选按语义区域降低强度（人像、天空、植被）
+    # - 可选肤色保护，限制脸部/皮肤色偏
     x = np.clip(color_strength / 100.0, 0.0, 1.0)
     y = np.clip(tone_strength / 100.0, 0.0, 1.0)
 
@@ -1097,6 +1127,8 @@ def _apply_grain(image_bgr: np.ndarray, grain: float) -> np.ndarray:
 
 
 def apply_micro_edits(image_bgr: np.ndarray, edits: EditParams) -> np.ndarray:
+    # 微调流水线（顺序很重要）：
+    # 先做颜色类，再做曲线/明暗，最后做锐化与颗粒。
     out = image_bgr
     out = _apply_saturation_and_vibrance(out, edits.sat, edits.vib)
     out = _apply_hsl_colour_science(out, edits.hue, edits.hsl_sat, edits.hsl_light)

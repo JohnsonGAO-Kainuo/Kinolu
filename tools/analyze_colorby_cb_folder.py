@@ -38,9 +38,19 @@ class PairItem:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Map Colorby folder outputs and analyze/tune Kinolu against them.")
-    p.add_argument("--cb-root", default="CB", help="Folder containing refXX_targetY groups")
-    p.add_argument("--references-csv", default="datasets/openverse_stocksnap_photo_v2/references.csv")
-    p.add_argument("--targets-csv", default="datasets/openverse_stocksnap_photo_v2/targets.csv")
+    p.add_argument(
+        "--cb-root",
+        default="archive/local_assets_20260213/CB",
+        help="Folder containing refXX_targetY groups",
+    )
+    p.add_argument(
+        "--references-csv",
+        default="archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/references.csv",
+    )
+    p.add_argument(
+        "--targets-csv",
+        default="archive/local_assets_20260213/datasets/openverse_stocksnap_photo_v2/targets.csv",
+    )
     p.add_argument("--ref-count", type=int, default=6)
     p.add_argument("--target-count", type=int, default=9)
     p.add_argument("--methods", default="reinhard_lab,hybrid_auto,reinhard,lhm")
