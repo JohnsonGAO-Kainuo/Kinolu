@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ── Kinolu Design Tokens ──
+   Strictly monochrome: black / white / grey only.
+   No saturated accent colors.
+*/
+
+:root {
+  --k-bg: #000000;
+  --k-surface: #0f0f0f;
+  --k-surface-raised: #1a1a1a;
+  --k-border: #2a2a2a;
+  --k-border-light: #333333;
+  --k-text: #ffffff;
+  --k-text-secondary: #888888;
+  --k-text-muted: #555555;
+  --k-accent: #ffffff;
+
+  --k-safe-top: env(safe-area-inset-top, 0px);
+  --k-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --k-safe-left: env(safe-area-inset-left, 0px);
+  --k-safe-right: env(safe-area-inset-right, 0px);
+}
+
+@theme inline {
+  --color-k-bg: var(--k-bg);
+  --color-k-surface: var(--k-surface);
+  --color-k-raised: var(--k-surface-raised);
+  --color-k-border: var(--k-border);
+  --color-k-border-light: var(--k-border-light);
+  --color-k-text: var(--k-text);
+  --color-k-text-secondary: var(--k-text-secondary);
+  --color-k-muted: var(--k-text-muted);
+  --color-k-accent: var(--k-accent);
+}
+
+/* ── Reset ── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  background: var(--k-bg);
+  color: var(--k-text);
+  overflow: hidden;
+  overscroll-behavior: none;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  width: 100dvw;
+  height: 100dvh;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+/* ── Slider (Lightroom-style) ── */
+input[type="range"].k-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--k-border-light);
+  outline: none;
+  border-radius: 1px;
+}
+input[type="range"].k-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+input[type="range"].k-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  cursor: grab;
+  border: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Center-marked slider (for bipolar controls like temp, tint) */
+input[type="range"].k-slider-center {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    var(--k-border-light) 0%,
+    var(--k-border-light) 49.5%,
+    #666 49.5%,
+    #666 50.5%,
+    var(--k-border-light) 50.5%,
+    var(--k-border-light) 100%
+  );
+  outline: none;
+}
+input[type="range"].k-slider-center::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Safe-area paddings ── */
+.safe-top {
+  padding-top: max(20px, var(--k-safe-top));
+}
+.safe-bottom {
+  padding-bottom: max(10px, var(--k-safe-bottom));
+}
+
+/* ── Transitions ── */
+.k-transition {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}

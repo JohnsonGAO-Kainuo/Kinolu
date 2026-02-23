@@ -29,8 +29,8 @@ for i in $(seq 1 15); do
   sleep 1
 done
 
-# 2) Start Next.js frontend
-cd "$ROOT/kinolu-next"
+# 2) Start Next.js frontend (now in root)
+cd "$ROOT"
 npx next dev -p 3000 &
 FRONTEND_PID=$!
 sleep 2

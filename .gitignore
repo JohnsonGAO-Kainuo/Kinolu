@@ -23,7 +23,13 @@ archive/
 # Frontend temp
 frontend/.cache/
 
-# Next.js workspace artifacts
+# Next.js (root)
+node_modules/
+.next/
+.turbo/
+.vercel/
+
+# Next.js (legacy subfolder)
 kinolu-next/node_modules/
 kinolu-next/.next/
 kinolu-next/.turbo/
