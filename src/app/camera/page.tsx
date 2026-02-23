@@ -13,9 +13,11 @@ import {
 } from "@/components/icons";
 import { listPresets } from "@/lib/api";
 import type { PresetItem } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 export default function CameraPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -41,9 +43,9 @@ export default function CameraPage() {
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
       const msg =
-        err instanceof DOMException && err.name === "NotFoundError" ? "No camera found on this device"
-        : err instanceof DOMException && err.name === "NotAllowedError" ? "Camera permission denied"
-        : "Unable to access camera";
+        err instanceof DOMException && err.name === "NotFoundError" ? t("camera_noCameraFound")
+        : err instanceof DOMException && err.name === "NotAllowedError" ? t("camera_permissionDenied")
+        : t("camera_unableAccess");
       setCameraError(msg);
     }
   }, [facingMode]);
@@ -95,7 +97,7 @@ export default function CameraPage() {
           </svg>
           <p className="text-white/40 text-[13px] text-center">{cameraError}</p>
           <button onClick={() => router.push("/editor")} className="mt-2 px-5 py-2 border border-white/15 rounded-full text-[11px] text-white/60 tracking-[1.5px] hover:bg-white/5 transition-colors">
-            Go to Editor
+            {t("camera_goToEditor")}
           </button>
         </div>
       )}
@@ -146,7 +148,7 @@ export default function CameraPage() {
               className={`shrink-0 h-7 rounded-full px-3.5 text-[10px] tracking-[1px] border transition-all ${
                 activePresetId === "" ? "border-white/50 text-white bg-white/15 backdrop-blur-md" : "border-white/10 text-white/45 bg-black/25 backdrop-blur-md"
               }`}>
-              Original
+              {t("camera_original")}
             </button>
             {presets.map((p) => (
               <button key={p.id} onClick={() => setActivePresetId(p.id)}
@@ -159,7 +161,7 @@ export default function CameraPage() {
             {presets.length === 0 && (
               <button onClick={() => router.push("/presets")}
                 className="shrink-0 h-7 rounded-full px-3.5 text-[10px] tracking-[1px] border border-dashed border-white/15 text-white/30 bg-black/25 backdrop-blur-md">
-                + Create preset in Editor
+                {t("camera_createPreset")}
               </button>
             )}
           </div>
@@ -199,8 +201,8 @@ export default function CameraPage() {
       {capturedUrl && (
         <div className="absolute inset-0 z-30 bg-black flex flex-col">
           <div className="flex items-center justify-between px-5 h-[44px] safe-top">
-            <button onClick={() => setCapturedUrl(null)} className="text-white/70 text-[13px] font-medium tracking-wider">Retake</button>
-            <button onClick={goEditorWithCapture} className="text-white text-[13px] font-semibold tracking-wider">Use Photo →</button>
+            <button onClick={() => setCapturedUrl(null)} className="text-white/70 text-[13px] font-medium tracking-wider">{t("camera_retake")}</button>
+            <button onClick={goEditorWithCapture} className="text-white text-[13px] font-semibold tracking-wider">{t("camera_usePhoto")}</button>
           </div>
           <div className="flex-1 flex items-center justify-center p-4">
             <img src={capturedUrl} alt="Captured" className="max-w-full max-h-full object-contain rounded-sm" />

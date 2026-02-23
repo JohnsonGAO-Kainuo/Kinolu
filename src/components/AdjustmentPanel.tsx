@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback, useRef } from "react";
 import type { AdjustmentTool } from "@/lib/types";
+import type { TranslationKeys } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import {
   IconExposure,
   IconContrast,
@@ -34,7 +36,7 @@ type EditCategory = "light" | "color" | "effects" | "detail";
 
 interface ToolDef {
   key: AdjustmentTool;
-  label: string;
+  labelKey: TranslationKeys;
   icon: React.FC<{ size?: number; className?: string }>;
   min: number;
   max: number;
@@ -45,61 +47,63 @@ interface ToolDef {
 /* ── Lightroom-style tool definitions per category ── */
 const CATEGORY_TOOLS: Record<EditCategory, ToolDef[]> = {
   light: [
-    { key: "exposure", label: "Exposure", icon: IconExposure, min: -100, max: 100 },
-    { key: "contrast", label: "Contrast", icon: IconContrast, min: -100, max: 100 },
-    { key: "highlights", label: "Highlights", icon: IconHighlights, min: -100, max: 100 },
-    { key: "shadows", label: "Shadows", icon: IconShadows, min: -100, max: 100 },
-    { key: "whites", label: "Whites", icon: IconWhites, min: -100, max: 100 },
-    { key: "blacks", label: "Blacks", icon: IconBlacks, min: -100, max: 100 },
+    { key: "exposure", labelKey: "adj_exposure", icon: IconExposure, min: -100, max: 100 },
+    { key: "contrast", labelKey: "adj_contrast", icon: IconContrast, min: -100, max: 100 },
+    { key: "highlights", labelKey: "adj_highlights", icon: IconHighlights, min: -100, max: 100 },
+    { key: "shadows", labelKey: "adj_shadows", icon: IconShadows, min: -100, max: 100 },
+    { key: "whites", labelKey: "adj_whites", icon: IconWhites, min: -100, max: 100 },
+    { key: "blacks", labelKey: "adj_blacks", icon: IconBlacks, min: -100, max: 100 },
   ],
   color: [
     {
-      key: "warmth", label: "Temperature", icon: IconWarmth, min: -100, max: 100,
+      key: "warmth", labelKey: "adj_temperature", icon: IconWarmth, min: -100, max: 100,
       gradient: "linear-gradient(to right, #3b82f6, #94a3b8, #f59e0b)",
     },
     {
-      key: "tint", label: "Tint", icon: IconTint, min: -100, max: 100,
+      key: "tint", labelKey: "adj_tint", icon: IconTint, min: -100, max: 100,
       gradient: "linear-gradient(to right, #22c55e, #94a3b8, #d946ef)",
     },
     {
-      key: "vibrance", label: "Vibrance", icon: IconVibrance, min: -100, max: 100,
+      key: "vibrance", labelKey: "adj_vibrance", icon: IconVibrance, min: -100, max: 100,
       gradient: "linear-gradient(to right, #64748b, #8b5cf6)",
     },
     {
-      key: "saturation", label: "Saturation", icon: IconSaturation, min: -100, max: 100,
+      key: "saturation", labelKey: "adj_saturation", icon: IconSaturation, min: -100, max: 100,
       gradient: "linear-gradient(to right, #94a3b8, #ef4444)",
     },
   ],
   effects: [
-    { key: "texture", label: "Texture", icon: IconTexture, min: -100, max: 100 },
-    { key: "clarity", label: "Clarity", icon: IconClarity, min: -100, max: 100 },
-    { key: "dehaze", label: "Dehaze", icon: IconDehaze, min: -100, max: 100 },
-    { key: "grain", label: "Grain", icon: IconGrain, min: 0, max: 100 },
-    { key: "vignette", label: "Vignette", icon: IconVignette, min: -100, max: 100 },
-    { key: "bloom", label: "Bloom", icon: IconBloom, min: 0, max: 100 },
+    { key: "texture", labelKey: "adj_texture", icon: IconTexture, min: -100, max: 100 },
+    { key: "clarity", labelKey: "adj_clarity", icon: IconClarity, min: -100, max: 100 },
+    { key: "dehaze", labelKey: "adj_dehaze", icon: IconDehaze, min: -100, max: 100 },
+    { key: "grain", labelKey: "adj_grain", icon: IconGrain, min: 0, max: 100 },
+    { key: "vignette", labelKey: "adj_vignette", icon: IconVignette, min: -100, max: 100 },
+    { key: "bloom", labelKey: "adj_bloom", icon: IconBloom, min: 0, max: 100 },
   ],
   detail: [
-    { key: "sharpen", label: "Sharpening", icon: IconSharpen, min: 0, max: 100 },
-    { key: "noise", label: "Noise Reduction", icon: IconNoise, min: 0, max: 100 },
+    { key: "sharpen", labelKey: "adj_sharpening", icon: IconSharpen, min: 0, max: 100 },
+    { key: "noise", labelKey: "adj_noiseReduction", icon: IconNoise, min: 0, max: 100 },
   ],
 };
 
-const CATEGORIES: { key: EditCategory; label: string }[] = [
-  { key: "light", label: "Light" },
-  { key: "color", label: "Color" },
-  { key: "effects", label: "Effects" },
-  { key: "detail", label: "Detail" },
+const CATEGORIES: { key: EditCategory; labelKey: TranslationKeys }[] = [
+  { key: "light", labelKey: "adj_light" },
+  { key: "color", labelKey: "adj_color" },
+  { key: "effects", labelKey: "adj_effects" },
+  { key: "detail", labelKey: "adj_detail" },
 ];
 
 /* ── Single slider row — memoized for performance ── */
 const SliderRow = React.memo(function SliderRow({
   tool,
+  label,
   value,
   isActive,
   onSelect,
   onChange,
 }: {
   tool: ToolDef;
+  label: string;
   value: number;
   isActive: boolean;
   onSelect: () => void;
@@ -164,7 +168,7 @@ const SliderRow = React.memo(function SliderRow({
             isActive ? "text-white font-medium" : "text-white/55"
           }`}
         >
-          {tool.label}
+          {label}
         </span>
         <span className="text-[11px] text-white/40 font-mono tabular-nums min-w-[32px] text-right">
           {isBipolar && value > 0 ? "+" : ""}
@@ -225,6 +229,7 @@ export default function AdjustmentPanel({
   onSelectTool,
   onChangeValue,
 }: AdjustmentPanelProps) {
+  const { t } = useI18n();
   const [activeCategory, setActiveCategory] = useState<EditCategory>("light");
   const categoryTools = CATEGORY_TOOLS[activeCategory];
 
@@ -251,7 +256,7 @@ export default function AdjustmentPanel({
                   : "text-white/30 hover:text-white/55"
               }`}
             >
-              {cat.label}
+              {t(cat.labelKey)}
               {hasChanges && !isActive && (
                 <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-white/50" />
               )}
@@ -262,14 +267,15 @@ export default function AdjustmentPanel({
 
       {/* Slider list */}
       <div className="flex flex-col gap-0">
-        {categoryTools.map((t) => (
+        {categoryTools.map((tl) => (
           <SliderRow
-            key={t.key}
-            tool={t}
-            value={values[t.key]}
-            isActive={t.key === activeTool}
-            onSelect={() => onSelectTool(t.key)}
-            onChange={(v) => onChangeValue(t.key, v)}
+            key={tl.key}
+            tool={tl}
+            label={t(tl.labelKey)}
+            value={values[tl.key]}
+            isActive={tl.key === activeTool}
+            onSelect={() => onSelectTool(tl.key)}
+            onChange={(v) => onChangeValue(tl.key, v)}
           />
         ))}
       </div>
@@ -278,11 +284,11 @@ export default function AdjustmentPanel({
       <div className="flex justify-center pt-1.5 pb-1">
         <button
           onClick={() =>
-            categoryTools.forEach((t) => onChangeValue(t.key, 0))
+            categoryTools.forEach((tl) => onChangeValue(tl.key, 0))
           }
           className="text-[10px] text-white/25 tracking-[1.5px] uppercase hover:text-white/55 transition-colors"
         >
-          Reset {CATEGORIES.find((c) => c.key === activeCategory)?.label}
+          {t("adj_resetCategory", { category: t(CATEGORIES.find((c) => c.key === activeCategory)?.labelKey ?? "adj_light") })}
         </button>
       </div>
     </div>

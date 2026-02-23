@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n, LOCALE_LABELS, type Locale } from "@/lib/i18n";
 
 interface SidebarProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface SidebarProps {
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const router = useRouter();
   const overlayRef = useRef<HTMLDivElement>(null);
+  const { t, locale, setLocale } = useI18n();
 
   useEffect(() => {
     if (open) {
@@ -55,44 +57,65 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         {/* Header */}
         <div className="h-[60px] safe-top flex items-center px-6">
           <span className="text-[14px] font-bold tracking-[4px] text-white/90 uppercase">
-            Kinolu
+            {t("appName")}
           </span>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-2 overflow-y-auto">
           <div className="text-[9px] tracking-[2px] text-white/25 uppercase px-3 mb-2">
-            Navigate
+            {t("sidebar_navigate")}
           </div>
 
-          <SidebarItem label="Editor" desc="Import & grade photos" onClick={() => navigate("/editor")} />
-          <SidebarItem label="Camera" desc="Shoot with style" onClick={() => navigate("/camera")} />
-          <SidebarItem label="Library" desc="Presets & LUT collection" onClick={() => navigate("/presets")} />
+          <SidebarItem label={t("sidebar_editor")} desc={t("sidebar_editorDesc")} onClick={() => navigate("/editor")} />
+          <SidebarItem label={t("sidebar_camera")} desc={t("sidebar_cameraDesc")} onClick={() => navigate("/camera")} />
+          <SidebarItem label={t("sidebar_library")} desc={t("sidebar_libraryDesc")} onClick={() => navigate("/presets")} />
 
           <div className="my-4 mx-3 h-px bg-white/[0.06]" />
 
           <div className="text-[9px] tracking-[2px] text-white/25 uppercase px-3 mb-2">
-            Account
+            {t("sidebar_account")}
           </div>
 
-          <SidebarItem label="Profile" desc="Sign in to sync presets" onClick={() => navigate("/profile")} />
-          <SidebarItem label="Subscription" desc="Plans & billing" onClick={() => navigate("/subscription")} />
+          <SidebarItem label={t("sidebar_profile")} desc={t("sidebar_profileDesc")} onClick={() => navigate("/profile")} />
+          <SidebarItem label={t("sidebar_subscription")} desc={t("sidebar_subscriptionDesc")} onClick={() => navigate("/subscription")} />
 
           <div className="my-4 mx-3 h-px bg-white/[0.06]" />
 
           <div className="text-[9px] tracking-[2px] text-white/25 uppercase px-3 mb-2">
-            About
+            {t("sidebar_about")}
           </div>
 
-          <SidebarItem label="Privacy Policy" onClick={() => navigate("/privacy")} />
-          <SidebarItem label="Terms of Service" onClick={() => navigate("/terms")} />
-          <SidebarItem label="Feedback" desc="Help us improve" onClick={() => navigate("/feedback")} />
+          <SidebarItem label={t("sidebar_privacy")} onClick={() => navigate("/privacy")} />
+          <SidebarItem label={t("sidebar_terms")} onClick={() => navigate("/terms")} />
+          <SidebarItem label={t("sidebar_feedback")} desc={t("sidebar_feedbackDesc")} onClick={() => navigate("/feedback")} />
+
+          {/* Language Switcher */}
+          <div className="my-4 mx-3 h-px bg-white/[0.06]" />
+          <div className="text-[9px] tracking-[2px] text-white/25 uppercase px-3 mb-2">
+            {t("sidebar_language")}
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1">
+            {LOCALE_LABELS.map((l) => (
+              <button
+                key={l.key}
+                onClick={() => setLocale(l.key as Locale)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                  locale === l.key
+                    ? "bg-white/10 text-white"
+                    : "text-white/35 hover:text-white/60 hover:bg-white/[0.04]"
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
         </nav>
 
         {/* Footer */}
         <div className="shrink-0 px-6 py-4 border-t border-white/[0.04]">
           <span className="text-[10px] text-white/20 tracking-[1px]">
-            v0.1.0 · Made with ♡
+            {t("sidebar_version")}
           </span>
         </div>
       </div>

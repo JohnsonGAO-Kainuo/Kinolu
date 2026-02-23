@@ -2,6 +2,7 @@
 
 import React, { useRef, useCallback, useEffect, useState } from "react";
 import type { CurvePoint, CurveChannels } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 type Channel = "rgb" | "r" | "g" | "b";
 
@@ -90,6 +91,7 @@ export default function CurveEditor({ curves, onChange }: CurveEditorProps) {
   const [channel, setChannel] = useState<Channel>("rgb");
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [size, setSize] = useState(280);
+  const { t } = useI18n();
 
   const points = curves[channel];
 
@@ -358,7 +360,7 @@ export default function CurveEditor({ curves, onChange }: CurveEditorProps) {
         onClick={resetChannel}
         className="text-[10px] text-k-text-secondary tracking-wider uppercase hover:text-white transition-colors"
       >
-        Reset {channel.toUpperCase()}
+        {t("curves_reset", { channel: channel.toUpperCase() })}
       </button>
     </div>
   );

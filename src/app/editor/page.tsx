@@ -24,6 +24,7 @@ import AdjustmentPanel from "@/components/AdjustmentPanel";
 import CurveEditor from "@/components/CurveEditor";
 import HSLPanel from "@/components/HSLPanel";
 import EditorTabBar from "@/components/EditorTabBar";
+import { useI18n } from "@/lib/i18n";
 
 const TOOL_TO_PARAM: Record<AdjustmentTool, keyof EditParams> = {
   exposure: "exposure", contrast: "contrast",
@@ -81,6 +82,7 @@ function useHistory<T>(initial: T) {
 
 export default function EditorPage() {
   const router = useRouter();
+  const { t } = useI18n();
 
   const history = useHistory<EditParams>(DEFAULT_EDIT_PARAMS);
   const params = history.current;
@@ -179,8 +181,8 @@ export default function EditorPage() {
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setRenderTick((t) => t + 1);
-      showToast("Preset applied");
-    } catch (err) { setErrorMsg(`Preset failed: ${err}`); setTimeout(() => setErrorMsg(null), 4000); }
+      showToast(t("editor_presetApplied"));
+    } catch (err) { setErrorMsg(`${t("editor_presetFailed")}: ${err}`); setTimeout(() => setErrorMsg(null), 4000); }
     finally { setProcessing(false); }
   }, [loadImageToData, showToast]);
 
@@ -257,7 +259,7 @@ export default function EditorPage() {
       const errStr = String(err);
       const isNetworkErr = err instanceof TypeError && errStr.includes("Failed to fetch");
       const is404 = errStr.includes("404");
-      setErrorMsg(isNetworkErr || is404 ? "Backend server not available. Run start.sh locally to use Transfer." : `Transfer failed: ${err}`);
+      setErrorMsg(isNetworkErr || is404 ? t("editor_backendNotAvailable") : `${t("editor_transferFailed")}: ${err}`);
       setTimeout(() => setErrorMsg(null), 5000);
     } finally { setProcessing(false); }
   }, [activeRefIdx, params, loadImageToData]);
@@ -283,7 +285,7 @@ export default function EditorPage() {
   }, []);
 
   const handleReset = useCallback(() => {
-    if (!window.confirm("Reset all adjustments to default?")) return;
+    if (!window.confirm(t("editor_resetConfirm"))) return;
     history.reset(DEFAULT_EDIT_PARAMS);
     baseImageData.current = transferredImageData.current || sourceImageData.current;
     setRenderTick((t) => t + 1);
@@ -294,7 +296,7 @@ export default function EditorPage() {
     const blob = await getCurrentCanvasBlob(); if (!blob) return;
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
     a.download = `kinolu_${Date.now()}.jpg`; a.click();
-    showToast("Image saved");
+    showToast(t("editor_imageSaved"));
   }, [getCurrentCanvasBlob, showToast]);
 
   const handleShare = useCallback(async () => {
@@ -306,8 +308,8 @@ export default function EditorPage() {
   }, [getCurrentCanvasBlob, handleDownload]);
 
   const handleSavePreset = useCallback(async () => {
-    if (!sourceFileRef.current) { showToast("Import a photo first"); return; }
-    if (!hasTransferred) { showToast("Apply a transfer first"); return; }
+    if (!sourceFileRef.current) { showToast(t("editor_importPhotoFirst")); return; }
+    if (!hasTransferred) { showToast(t("editor_applyTransferFirst")); return; }
     const blob = await getCurrentCanvasBlob(); if (!blob) return;
     const name = window.prompt("Preset name", `Look ${new Date().toLocaleDateString()}`)?.trim();
     if (!name) return;
@@ -315,21 +317,21 @@ export default function EditorPage() {
     try {
       await createPresetFromTransfer(sourceFileRef.current, blob, name);
       showToast(`Preset "${name}" saved`);
-    } catch (err) { setErrorMsg(`Save failed — is the backend running? ${err}`); }
+    } catch (err) { setErrorMsg(`${t("editor_saveFailed")} ${err}`); }
     finally { setSavingPreset(false); }
   }, [getCurrentCanvasBlob, showToast, hasTransferred]);
 
   const handleExportLut = useCallback(async () => {
-    if (!sourceFileRef.current) { showToast("Import a photo first"); return; }
-    if (!hasTransferred) { showToast("Apply a transfer first"); return; }
+    if (!sourceFileRef.current) { showToast(t("editor_importPhotoFirst")); return; }
+    if (!hasTransferred) { showToast(t("editor_applyTransferFirst")); return; }
     const blob = await getCurrentCanvasBlob(); if (!blob) return;
     setExportingLut(true);
     try {
       const cube = await exportLutFromTransfer(sourceFileRef.current, blob, 33);
       const a = document.createElement("a"); a.href = URL.createObjectURL(cube);
       a.download = `kinolu_${Date.now()}.cube`; a.click();
-      showToast("LUT exported as .cube");
-    } catch (err) { setErrorMsg(`LUT export failed — is the backend running? ${err}`); }
+      showToast(t("editor_lutExported"));
+    } catch (err) { setErrorMsg(`${t("editor_lutExportFailed")} ${err}`); }
     finally { setExportingLut(false); }
   }, [getCurrentCanvasBlob, showToast, hasTransferred]);
 
@@ -356,11 +358,11 @@ export default function EditorPage() {
         <div className="flex items-center gap-0.5">
           <button onClick={handleSavePreset} disabled={savingPreset}
             className={`px-2.5 py-1 text-[10px] tracking-[1.5px] uppercase transition-colors ${hasTransferred ? "text-white/60 hover:text-white" : "text-white/20"} disabled:opacity-30`}>
-            {savingPreset ? "…" : "Save"}
+            {savingPreset ? "…" : t("editor_save")}
           </button>
           <button onClick={handleExportLut} disabled={exportingLut}
             className={`px-2.5 py-1 text-[10px] tracking-[1.5px] uppercase transition-colors ${hasTransferred ? "text-white/60 hover:text-white" : "text-white/20"} disabled:opacity-30`}>
-            {exportingLut ? "…" : "LUT"}
+            {exportingLut ? "…" : t("editor_lut")}
           </button>
           <button onClick={handleDownload} disabled={!hasImage} className={`w-8 h-8 flex items-center justify-center transition-colors ${hasImage ? "text-white/50 hover:text-white" : "text-white/15"}`}>
             <IconDownload size={17} />
@@ -391,14 +393,14 @@ export default function EditorPage() {
             {/* Step 2 hint — "add reference" (small floating pill) */}
             {step === 2 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full">
-                <span className="text-[10px] text-white/50 tracking-[1px]">Add a reference image below</span>
+                <span className="text-[10px] text-white/50 tracking-[1px]">{t("editor_addRefHint")}</span>
               </div>
             )}
 
             {/* Step 3 hint — "tap apply" */}
             {step === 3 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full">
-                <span className="text-[10px] text-white/50 tracking-[1px]">Tap Apply to transfer colors</span>
+                <span className="text-[10px] text-white/50 tracking-[1px]">{t("editor_tapApplyHint")}</span>
               </div>
             )}
 
@@ -413,7 +415,7 @@ export default function EditorPage() {
                   }}
                   className="px-2.5 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[10px] text-white/60 tracking-wider active:text-white transition-colors"
                 >
-                  Auto
+                  {t("editor_auto")}
                 </button>
               </div>
             )}
@@ -467,7 +469,7 @@ export default function EditorPage() {
             {/* Comparing badge */}
             {comparing && (
               <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-black/50 backdrop-blur-sm px-3 py-0.5 rounded-full">
-                <span className="text-[9px] text-white/70 tracking-[2px] uppercase">Original</span>
+                <span className="text-[9px] text-white/70 tracking-[2px] uppercase">{t("editor_original")}</span>
               </div>
             )}
           </>
@@ -479,12 +481,12 @@ export default function EditorPage() {
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-white/25">
                 <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
               </svg>
-              <span className="text-[10px] text-white/25 tracking-[1px]">Import</span>
+              <span className="text-[10px] text-white/25 tracking-[1px]">{t("editor_importPhoto")}</span>
             </button>
             <div className="flex flex-col items-center gap-1.5">
-              <span className="text-[13px] text-white/50 font-medium">Import a photo to start</span>
+              <span className="text-[13px] text-white/50 font-medium">{t("editor_importFirst")}</span>
               <span className="text-[10px] text-white/25 leading-relaxed text-center max-w-[220px]">
-                Then add a reference image whose colors you want to transfer
+                {t("editor_importHint")}
               </span>
             </div>
           </div>
@@ -495,7 +497,7 @@ export default function EditorPage() {
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
             <div className="flex flex-col items-center gap-2">
               <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              <span className="text-[10px] text-white/50 tracking-[2px]">Processing…</span>
+              <span className="text-[10px] text-white/50 tracking-[2px]">{t("editor_processing")}</span>
             </div>
           </div>
         )}
@@ -554,20 +556,20 @@ export default function EditorPage() {
                   {step === 1 && (
                     <button onClick={() => sourceInputRef.current?.click()}
                       className="flex-1 py-2.5 rounded-xl text-[11px] tracking-wider bg-white text-black font-semibold active:scale-[0.98] transition-all">
-                      Import Photo
+                      {t("editor_importPhoto")}
                     </button>
                   )}
                   {step === 2 && (
                     <button onClick={() => refInputRef.current?.click()}
                       className="flex-1 py-2.5 rounded-xl text-[11px] tracking-wider bg-white text-black font-semibold active:scale-[0.98] transition-all">
-                      Add Reference
+                      {t("editor_addReference")}
                     </button>
                   )}
                   {step >= 3 && (
                     <>
                       <button onClick={runTransfer} disabled={!canProcess}
                         className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all disabled:opacity-40">
-                        {processing ? "Processing…" : hasTransferred ? "Re-apply" : "Apply"}
+                        {processing ? t("editor_processing") : hasTransferred ? t("editor_reApply") : t("editor_apply")}
                       </button>
                     </>
                   )}
@@ -582,7 +584,7 @@ export default function EditorPage() {
                 {/* Aspect ratio pills */}
                 <div className="flex items-center gap-1.5 flex-wrap justify-center">
                   {[
-                    { label: "Free", value: "free" },
+                    { label: t("crop_free"), value: "free" },
                     { label: "1:1", value: "1:1" },
                     { label: "4:3", value: "4:3" },
                     { label: "16:9", value: "16:9" },
@@ -624,7 +626,7 @@ export default function EditorPage() {
                         <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-white/40 tracking-wider font-medium">Flip H</span>
+                    <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipH")}</span>
                   </button>
                   <button
                     onClick={() => setCropFlipV((f) => !f)}
@@ -635,7 +637,7 @@ export default function EditorPage() {
                         <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-white/40 tracking-wider font-medium">Flip V</span>
+                    <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipV")}</span>
                   </button>
                   <button
                     onClick={() => { setCropRotation(0); setCropFlipH(false); setCropFlipV(false); setCropAspect("free"); }}
@@ -644,7 +646,7 @@ export default function EditorPage() {
                     <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
                       <IconReset size={18} className="text-white/40" />
                     </div>
-                    <span className="text-[10px] text-white/40 tracking-wider font-medium">Reset</span>
+                    <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_reset")}</span>
                   </button>
                 </div>
               </div>

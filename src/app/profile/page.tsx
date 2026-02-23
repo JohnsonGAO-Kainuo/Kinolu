@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
+import { useI18n } from "@/lib/i18n";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { t } = useI18n();
 
   return (
     <div className="flex flex-col w-full h-full bg-black">
@@ -12,7 +14,7 @@ export default function ProfilePage() {
         <button onClick={() => { if (window.history.length > 1) router.back(); else router.push("/"); }} className="w-8 h-8 flex items-center justify-center text-white/60">
           <IconBack size={20} />
         </button>
-        <span className="text-[12px] font-semibold tracking-[2.5px] uppercase text-white/70">Profile</span>
+        <span className="text-[12px] font-semibold tracking-[2.5px] uppercase text-white/70">{t("profile_title")}</span>
         <div className="w-8" />
       </header>
 
@@ -24,15 +26,15 @@ export default function ProfilePage() {
           </svg>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <h2 className="text-[16px] font-semibold text-white/80">Sign in to sync</h2>
+          <h2 className="text-[16px] font-semibold text-white/80">{t("profile_signInToSync")}</h2>
           <p className="text-[11px] text-white/40 text-center max-w-[260px]">
-            Save your presets to the cloud and access them across all your devices
+            {t("profile_signInDesc")}
           </p>
         </div>
         <button className="mt-4 px-6 py-2.5 bg-white text-black rounded-xl text-[12px] font-semibold tracking-[1px]">
-          Sign In
+          {t("profile_signIn")}
         </button>
-        <span className="text-[10px] text-white/25 mt-2">Coming soon</span>
+        <span className="text-[10px] text-white/25 mt-2">{t("comingSoon")}</span>
       </div>
     </div>
   );

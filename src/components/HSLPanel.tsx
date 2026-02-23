@@ -3,6 +3,13 @@
 import React, { useState } from "react";
 import type { HSL7Data, HSL7Key } from "@/lib/types";
 import { HSL_COLORS } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKeys } from "@/lib/i18n";
+
+const HSL_LABEL_KEYS: Record<HSL7Key, TranslationKeys> = {
+  red: "hsl_red", orange: "hsl_orange", yellow: "hsl_yellow",
+  green: "hsl_green", aqua: "hsl_aqua", blue: "hsl_blue", purple: "hsl_purple",
+};
 
 interface HSLPanelProps {
   hsl7: HSL7Data;
@@ -10,6 +17,7 @@ interface HSLPanelProps {
 }
 
 export default function HSLPanel({ hsl7, onChange }: HSLPanelProps) {
+  const { t } = useI18n();
   const [activeKey, setActiveKey] = useState<HSL7Key>("red");
   const band = hsl7[activeKey];
 
@@ -20,10 +28,10 @@ export default function HSLPanel({ hsl7, onChange }: HSLPanelProps) {
     });
   };
 
-  const sliders: { key: "hue" | "sat" | "light"; label: string; min: number; max: number }[] = [
-    { key: "hue", label: "Hue", min: -180, max: 180 },
-    { key: "sat", label: "Saturation", min: -100, max: 100 },
-    { key: "light", label: "Luminance", min: -100, max: 100 },
+  const sliders: { key: "hue" | "sat" | "light"; labelKey: TranslationKeys; min: number; max: number }[] = [
+    { key: "hue", labelKey: "hsl_hue", min: -180, max: 180 },
+    { key: "sat", labelKey: "hsl_saturation", min: -100, max: 100 },
+    { key: "light", labelKey: "hsl_luminance", min: -100, max: 100 },
   ];
 
   return (
@@ -59,7 +67,7 @@ export default function HSLPanel({ hsl7, onChange }: HSLPanelProps) {
                   : "text-k-text-secondary"
               }`}
             >
-              {color.label.slice(0, 3)}
+              {t(HSL_LABEL_KEYS[color.key]).slice(0, 3)}
             </span>
           </button>
         ))}
@@ -71,7 +79,7 @@ export default function HSLPanel({ hsl7, onChange }: HSLPanelProps) {
           <div key={s.key} className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
               <span className="text-[11px] text-k-text-secondary font-medium uppercase tracking-wider">
-                {s.label}
+                {t(s.labelKey)}
               </span>
               <span className="text-[11px] text-k-text-secondary font-mono w-10 text-right">
                 {band[s.key] > 0 ? "+" : ""}
@@ -100,7 +108,7 @@ export default function HSLPanel({ hsl7, onChange }: HSLPanelProps) {
         }
         className="text-[10px] text-k-text-secondary tracking-wider uppercase self-center hover:text-white transition-colors"
       >
-        Reset {HSL_COLORS.find((c) => c.key === activeKey)?.label}
+        {t("hsl_reset", { color: t(HSL_LABEL_KEYS[activeKey]) })}
       </button>
     </div>
   );

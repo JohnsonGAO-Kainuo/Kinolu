@@ -2,6 +2,8 @@
 
 import React from "react";
 import type { EditorTab } from "@/lib/types";
+import type { TranslationKeys } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import {
   IconTransfer,
   IconSliders,
@@ -15,15 +17,16 @@ interface EditorTabBarProps {
   onSelect: (tab: EditorTab) => void;
 }
 
-const TABS: { key: EditorTab; label: string; icon: React.FC<{ size?: number; className?: string }> }[] = [
-  { key: "transfer", label: "Transfer", icon: IconTransfer },
-  { key: "edit", label: "Edit", icon: IconSliders },
-  { key: "curves", label: "Curves", icon: IconCurves },
-  { key: "hsl", label: "HSL", icon: IconHSL },
-  { key: "crop", label: "Crop", icon: IconCrop },
+const TABS: { key: EditorTab; labelKey: TranslationKeys; icon: React.FC<{ size?: number; className?: string }> }[] = [
+  { key: "transfer", labelKey: "tab_transfer", icon: IconTransfer },
+  { key: "edit", labelKey: "tab_edit", icon: IconSliders },
+  { key: "curves", labelKey: "tab_curves", icon: IconCurves },
+  { key: "hsl", labelKey: "tab_hsl", icon: IconHSL },
+  { key: "crop", labelKey: "tab_crop", icon: IconCrop },
 ];
 
 export default function EditorTabBar({ active, onSelect }: EditorTabBarProps) {
+  const { t } = useI18n();
   return (
     <div className="flex h-[56px] items-center bg-[#0a0a0a] safe-bottom">
       {TABS.map((tab) => {
@@ -46,7 +49,7 @@ export default function EditorTabBar({ active, onSelect }: EditorTabBarProps) {
                 isActive ? "text-white" : "text-white/30"
               }`}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </span>
           </button>
         );

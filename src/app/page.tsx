@@ -5,28 +5,29 @@ import { useRouter } from "next/navigation";
 import { IconCamera, IconEdit, IconLibrary, IconMenu } from "@/components/icons";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import Sidebar from "@/components/Sidebar";
+import { useI18n } from "@/lib/i18n";
 
-const CARDS = [
+const CARD_DEFS = [
   {
     id: "camera",
-    label: "Camera",
-    desc: "Shoot with style",
+    labelKey: "home_camera" as const,
+    descKey: "home_cameraDesc" as const,
     href: "/camera",
     icon: IconCamera,
     bg: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "editor",
-    label: "Editor",
-    desc: "Import & grade",
+    labelKey: "home_editor" as const,
+    descKey: "home_editorDesc" as const,
     href: "/editor",
     icon: IconEdit,
     bg: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "library",
-    label: "Library",
-    desc: "Your collection",
+    labelKey: "home_library" as const,
+    descKey: "home_libraryDesc" as const,
     href: "/presets",
     icon: IconLibrary,
     bg: "https://images.unsplash.com/photo-1447703693928-9cd89c8d3ac5?q=80&w=1200&auto=format&fit=crop",
@@ -38,6 +39,7 @@ export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const { canInstall, promptInstall } = usePWAInstall();
+  const { t } = useI18n();
 
   return (
     <div className="relative w-full h-full flex flex-col">
@@ -57,7 +59,7 @@ export default function HomePage() {
         </span>
         {canInstall ? (
           <button onClick={promptInstall} className="pointer-events-auto text-[9px] tracking-[1.5px] text-white/50 border border-white/15 rounded-full px-2.5 py-1 hover:text-white/80 transition-colors">
-            INSTALL
+            {t("install")}
           </button>
         ) : (
           <div className="w-9" />
@@ -66,9 +68,11 @@ export default function HomePage() {
 
       {/* Accordion cards */}
       <div className="flex flex-col w-full h-full">
-        {CARDS.map((card, i) => {
+        {CARD_DEFS.map((card, i) => {
           const isActive = i === active;
           const Icon = card.icon;
+          const label = t(card.labelKey);
+          const desc = t(card.descKey);
 
           return (
             <div
@@ -112,10 +116,10 @@ export default function HomePage() {
                   className="flex flex-col items-center transition-all duration-500"
                   style={{ opacity: isActive ? 1 : 0, transform: isActive ? "translateY(0)" : "translateY(10px)" }}
                 >
-                  <h2 className="text-[28px] font-extrabold tracking-[2px] text-white drop-shadow-lg uppercase">{card.label}</h2>
-                  <p className="text-[11px] text-white/60 mt-0.5 tracking-[2px] uppercase">{card.desc}</p>
+                  <h2 className="text-[28px] font-extrabold tracking-[2px] text-white drop-shadow-lg uppercase">{label}</h2>
+                  <p className="text-[11px] text-white/60 mt-0.5 tracking-[2px] uppercase">{desc}</p>
                   <div className="mt-4 px-5 py-1.5 border border-white/25 rounded-full text-[10px] tracking-[2px] text-white/70 hover:bg-white/10 transition-colors uppercase">
-                    Open
+                    {t("open")}
                   </div>
                 </div>
 
@@ -124,7 +128,7 @@ export default function HomePage() {
                   className="absolute text-[11px] font-bold tracking-[3px] text-white/50 uppercase transition-all duration-500"
                   style={{ opacity: isActive ? 0 : 1, bottom: isActive ? "50%" : "14px" }}
                 >
-                  {card.label}
+                  {label}
                 </span>
               </div>
             </div>
