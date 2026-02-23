@@ -23,7 +23,7 @@ const TABS: { key: EditorTab; label: string; icon: React.FC<{ size?: number; cla
 
 export default function EditorTabBar({ active, onSelect }: EditorTabBarProps) {
   return (
-    <div className="flex h-[56px] items-center border-t border-k-border bg-black safe-bottom">
+    <div className="flex h-[52px] items-center border-t border-white/[0.06] bg-[#060606] safe-bottom">
       {TABS.map((tab) => {
         const isActive = tab.key === active;
         const Icon = tab.icon;
@@ -31,15 +31,15 @@ export default function EditorTabBar({ active, onSelect }: EditorTabBarProps) {
           <button
             key={tab.key}
             onClick={() => onSelect(tab.key)}
-            className="flex-1 flex flex-col items-center justify-center gap-1 transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors"
           >
             <Icon
-              size={20}
-              className={isActive ? "text-white" : "text-k-muted"}
+              size={18}
+              className={isActive ? "text-white" : "text-white/25"}
             />
             <span
-              className={`text-[10px] font-medium tracking-wider ${
-                isActive ? "text-white" : "text-k-muted"
+              className={`text-[9px] tracking-[1px] ${
+                isActive ? "text-white/80" : "text-white/25"
               }`}
             >
               {tab.label}

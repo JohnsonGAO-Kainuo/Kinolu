@@ -2,29 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconCamera, IconEdit, IconLibrary, IconUser } from "@/components/icons";
+import { IconCamera, IconEdit, IconLibrary } from "@/components/icons";
+import { usePWAInstall } from "@/lib/usePWAInstall";
 
 const CARDS = [
   {
     id: "camera",
-    label: "CAMERA",
-    desc: "Shoot & apply styles live",
+    label: "Camera",
+    desc: "Shoot with style",
     href: "/camera",
     icon: IconCamera,
     bg: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "editor",
-    label: "EDITOR",
-    desc: "Import & grade your photos",
+    label: "Editor",
+    desc: "Import & grade",
     href: "/editor",
     icon: IconEdit,
     bg: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "library",
-    label: "PRESETS",
-    desc: "Browse your style collection",
+    label: "Presets",
+    desc: "Your collection",
     href: "/presets",
     icon: IconLibrary,
     bg: "https://images.unsplash.com/photo-1447703693928-9cd89c8d3ac5?q=80&w=1200&auto=format&fit=crop",
@@ -34,18 +35,23 @@ const CARDS = [
 export default function HomePage() {
   const [active, setActive] = useState(0);
   const router = useRouter();
+  const { canInstall, promptInstall } = usePWAInstall();
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      {/* Top Bar */}
+      {/* Wordmark */}
       <div className="absolute top-0 left-0 w-full safe-top px-6 flex justify-between items-center z-50 pointer-events-none">
         <div className="w-6" />
-        <span className="text-[14px] font-bold tracking-[3px] text-white drop-shadow-lg">
+        <span className="text-[13px] font-bold tracking-[4px] text-white/90 drop-shadow-lg">
           KINOLU
         </span>
-        <button className="pointer-events-auto text-white/80 hover:text-white transition-colors drop-shadow-lg">
-          <IconUser size={22} />
-        </button>
+        {canInstall ? (
+          <button onClick={promptInstall} className="pointer-events-auto text-[9px] tracking-[1.5px] text-white/50 border border-white/15 rounded-full px-2.5 py-1 hover:text-white/80 transition-colors">
+            INSTALL
+          </button>
+        ) : (
+          <div className="w-6" />
+        )}
       </div>
 
       {/* Accordion cards */}
@@ -61,10 +67,9 @@ export default function HomePage() {
               className="relative overflow-hidden cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]"
               style={{
                 flex: isActive ? 3 : 1,
-                filter: isActive ? "brightness(1.05)" : "brightness(0.7)",
+                filter: isActive ? "brightness(1.05)" : "brightness(0.6)",
               }}
             >
-              {/* Background image */}
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700"
                 style={{
@@ -72,67 +77,42 @@ export default function HomePage() {
                   transform: isActive ? "scale(1.02)" : "scale(1)",
                 }}
               />
-
-              {/* Overlay gradient */}
               <div
                 className="absolute inset-0 transition-opacity duration-300"
                 style={{
                   background: isActive
-                    ? "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%)"
-                    : "rgba(0,0,0,0.45)",
+                    ? "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.5) 100%)"
+                    : "rgba(0,0,0,0.5)",
                 }}
               />
-
-              {/* Content */}
               <div
                 className="relative z-10 w-full h-full flex flex-col items-center justify-center"
-                onClick={(e) => {
-                  if (isActive) {
-                    e.stopPropagation();
-                    router.push(card.href);
-                  }
-                }}
+                onClick={(e) => { if (isActive) { e.stopPropagation(); router.push(card.href); } }}
               >
-                {/* Icon (shown when inactive) */}
+                {/* Icon — collapsed */}
                 <div
-                  className="transition-all duration-500"
-                  style={{
-                    opacity: isActive ? 0 : 0.6,
-                    transform: isActive ? "scale(0.5)" : "scale(1)",
-                    position: "absolute" as const,
-                  }}
+                  className="transition-all duration-500 absolute"
+                  style={{ opacity: isActive ? 0 : 0.5, transform: isActive ? "scale(0.5)" : "scale(1)" }}
                 >
-                  <Icon size={28} className="text-white" />
+                  <Icon size={26} className="text-white" />
                 </div>
 
-                {/* Title & description (visible when active) */}
+                {/* Content — expanded */}
                 <div
                   className="flex flex-col items-center transition-all duration-500"
-                  style={{
-                    opacity: isActive ? 1 : 0,
-                    transform: isActive
-                      ? "translateY(0)"
-                      : "translateY(10px)",
-                  }}
+                  style={{ opacity: isActive ? 1 : 0, transform: isActive ? "translateY(0)" : "translateY(10px)" }}
                 >
-                  <h2 className="text-[32px] font-extrabold tracking-[2px] text-white drop-shadow-lg">
-                    {card.label}
-                  </h2>
-                  <p className="text-[13px] text-white/70 mt-1 font-medium tracking-wider uppercase">
-                    {card.desc}
-                  </p>
-                  <div className="mt-4 px-6 py-2 border border-white/30 rounded-full text-[11px] font-semibold tracking-[2px] text-white/80 hover:bg-white/10 transition-colors uppercase">
-                    Tap to Enter
+                  <h2 className="text-[28px] font-extrabold tracking-[2px] text-white drop-shadow-lg uppercase">{card.label}</h2>
+                  <p className="text-[11px] text-white/60 mt-0.5 tracking-[2px] uppercase">{card.desc}</p>
+                  <div className="mt-4 px-5 py-1.5 border border-white/25 rounded-full text-[10px] tracking-[2px] text-white/70 hover:bg-white/10 transition-colors uppercase">
+                    Open
                   </div>
                 </div>
 
-                {/* Label always visible for inactive */}
+                {/* Label — collapsed */}
                 <span
-                  className="absolute text-[13px] font-bold tracking-[3px] text-white/60 uppercase transition-all duration-500"
-                  style={{
-                    opacity: isActive ? 0 : 1,
-                    bottom: isActive ? "50%" : "16px",
-                  }}
+                  className="absolute text-[11px] font-bold tracking-[3px] text-white/50 uppercase transition-all duration-500"
+                  style={{ opacity: isActive ? 0 : 1, bottom: isActive ? "50%" : "14px" }}
                 >
                   {card.label}
                 </span>

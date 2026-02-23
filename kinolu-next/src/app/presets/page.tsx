@@ -80,17 +80,17 @@ export default function PresetsPage() {
         onChange={onImportCube}
       />
 
-      <div className="flex items-center justify-between h-[50px] px-4 safe-top shrink-0 border-b border-k-border">
-        <button onClick={() => router.push("/")} className="flex items-center gap-1 text-white text-[14px] font-semibold">
+      <div className="flex items-center justify-between h-[44px] px-4 safe-top shrink-0">
+        <button onClick={() => router.push("/")} className="w-8 h-8 flex items-center justify-center text-white/60">
           <IconBack size={20} />
         </button>
-        <span className="text-[13px] font-semibold tracking-[2px] uppercase">Presets</span>
+        <span className="text-[12px] font-semibold tracking-[2.5px] uppercase text-white/70">Presets</span>
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-9 h-9 rounded-full bg-k-raised text-white/80 hover:text-white flex items-center justify-center"
+          className="w-8 h-8 rounded-full bg-white/[0.06] text-white/50 hover:text-white flex items-center justify-center"
           title="Import CUBE"
         >
-          <IconPlus size={18} />
+          <IconPlus size={16} />
         </button>
       </div>
 
@@ -102,7 +102,7 @@ export default function PresetsPage() {
         )}
 
         <section className="mt-4">
-          <div className="mb-2 text-[11px] tracking-[2px] uppercase text-k-muted">Generated</div>
+          <div className="mb-2 text-[10px] tracking-[2px] uppercase text-white/30">Generated</div>
           {loading ? (
             <div className="text-[12px] text-k-muted">Loading...</div>
           ) : generated.length === 0 ? (
@@ -110,31 +110,31 @@ export default function PresetsPage() {
           ) : (
             <div className="flex flex-col gap-2">
               {generated.map((item) => (
-                <div key={item.id} className="rounded-xl border border-k-border bg-k-surface px-3 py-3">
+                <div key={item.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-[13px] font-semibold text-white">{item.name}</div>
-                      <div className="text-[10px] text-k-muted">Generated • {new Date(item.updated_at).toLocaleString()}</div>
+                      <div className="truncate text-[12px] font-semibold text-white/90">{item.name}</div>
+                      <div className="text-[9px] text-white/30 mt-0.5">{new Date(item.updated_at).toLocaleString()}</div>
                     </div>
                     <button
                       onClick={() => openEditorWithPreset(item)}
-                      className="rounded-lg border border-white/20 px-3 py-1 text-[11px] tracking-wider text-white/85 hover:bg-white/10"
+                      className="rounded-lg border border-white/15 px-3 py-1 text-[10px] tracking-[1px] text-white/70 hover:bg-white/10 transition-colors"
                     >
                       APPLY
                     </button>
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex items-center gap-1.5">
                     <button
                       onClick={() => window.open(presetCubeDownloadUrl(item.id), "_blank")}
-                      className="inline-flex items-center gap-1 rounded-md border border-k-border px-2 py-1 text-[10px] text-k-text-secondary hover:text-white"
+                      className="inline-flex items-center gap-1 rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-white/40 hover:text-white/70 transition-colors"
                     >
-                      <IconLUT size={12} />
+                      <IconLUT size={10} />
                       CUBE
                     </button>
-                    <button onClick={() => onRename(item)} className="rounded-md border border-k-border px-2 py-1 text-[10px] text-k-text-secondary hover:text-white">
+                    <button onClick={() => onRename(item)} className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-white/40 hover:text-white/70 transition-colors">
                       Rename
                     </button>
-                    <button onClick={() => onDelete(item)} className="rounded-md border border-k-border px-2 py-1 text-[10px] text-red-300 hover:text-red-200">
+                    <button onClick={() => onDelete(item)} className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-red-400/60 hover:text-red-300 transition-colors">
                       Delete
                     </button>
                   </div>
@@ -145,13 +145,13 @@ export default function PresetsPage() {
         </section>
 
         <section className="mt-6">
-          <div className="mb-2 text-[11px] tracking-[2px] uppercase text-k-muted">Imported CUBE</div>
+          <div className="mb-2 text-[10px] tracking-[2px] uppercase text-white/30">Imported</div>
           {loading ? (
             <div className="text-[12px] text-k-muted">Loading...</div>
           ) : imported.length === 0 ? (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center justify-between py-4 px-5 bg-k-surface rounded-xl border border-k-border hover:border-white/20 transition-colors"
+              className="w-full flex items-center justify-between py-4 px-5 bg-white/[0.03] rounded-xl border border-white/[0.06] hover:border-white/15 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <IconLUT size={20} className="text-k-text-secondary" />
@@ -165,31 +165,31 @@ export default function PresetsPage() {
           ) : (
             <div className="flex flex-col gap-2">
               {imported.map((item) => (
-                <div key={item.id} className="rounded-xl border border-k-border bg-k-surface px-3 py-3">
+                <div key={item.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-[13px] font-semibold text-white">{item.name}</div>
-                      <div className="text-[10px] text-k-muted">Imported CUBE • {new Date(item.updated_at).toLocaleString()}</div>
+                      <div className="truncate text-[12px] font-semibold text-white/90">{item.name}</div>
+                      <div className="text-[9px] text-white/30 mt-0.5">CUBE • {new Date(item.updated_at).toLocaleString()}</div>
                     </div>
                     <button
                       onClick={() => openEditorWithPreset(item)}
-                      className="rounded-lg border border-white/20 px-3 py-1 text-[11px] tracking-wider text-white/85 hover:bg-white/10"
+                      className="rounded-lg border border-white/15 px-3 py-1 text-[10px] tracking-[1px] text-white/70 hover:bg-white/10 transition-colors"
                     >
                       APPLY
                     </button>
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex items-center gap-1.5">
                     <button
                       onClick={() => window.open(presetCubeDownloadUrl(item.id), "_blank")}
-                      className="inline-flex items-center gap-1 rounded-md border border-k-border px-2 py-1 text-[10px] text-k-text-secondary hover:text-white"
+                      className="inline-flex items-center gap-1 rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-white/40 hover:text-white/70 transition-colors"
                     >
-                      <IconLUT size={12} />
+                      <IconLUT size={10} />
                       CUBE
                     </button>
-                    <button onClick={() => onRename(item)} className="rounded-md border border-k-border px-2 py-1 text-[10px] text-k-text-secondary hover:text-white">
+                    <button onClick={() => onRename(item)} className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-white/40 hover:text-white/70 transition-colors">
                       Rename
                     </button>
-                    <button onClick={() => onDelete(item)} className="rounded-md border border-k-border px-2 py-1 text-[10px] text-red-300 hover:text-red-200">
+                    <button onClick={() => onDelete(item)} className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-red-400/60 hover:text-red-300 transition-colors">
                       Delete
                     </button>
                   </div>
