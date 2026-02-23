@@ -139,6 +139,10 @@ export function applyEdits(
   const tintShift = params.tint * 0.3;  // green-magenta shift
   const highlightAmt = params.highlights / 100;
   const shadowAmt = params.shadows / 100;
+  const whitesAmt = params.whites / 100;
+  const blacksAmt = params.blacks / 100;
+  const dehazeStr = params.dehaze / 100;
+  const clarityAmt = params.clarity / 100;
 
   // Vignette pre-calc
   const cx = width / 2, cy = height / 2;
@@ -161,6 +165,25 @@ export function applyEdits(
     let b = src[i + 2];
     const a = src[i + 3];
 
+    // ── 0. Dehaze (dark channel prior approximation) ──
+    if (dehazeStr !== 0) {
+      if (dehazeStr > 0) {
+        // Remove haze: subtract proportional to min-channel (dark channel)
+        const minC = Math.min(r, g, b);
+        const haze = minC / 255;
+        const correction = dehazeStr * haze * 60;
+        r -= correction;
+        g -= correction;
+        b -= correction;
+      } else {
+        // Add haze/fog: blend toward atmospheric gray
+        const blend = -dehazeStr * 0.4;
+        r += (200 - r) * blend;
+        g += (200 - g) * blend;
+        b += (200 - b) * blend;
+      }
+    }
+
     // ── 1. Exposure ──
     if (params.exposure !== 0) {
       r = Math.min(255, r * exposureMul);
@@ -173,6 +196,17 @@ export function applyEdits(
       r = 128 + (r - 128) * contrastFactor;
       g = 128 + (g - 128) * contrastFactor;
       b = 128 + (b - 128) * contrastFactor;
+    }
+
+    // ── 2b. Clarity (midtone local contrast) ──
+    if (clarityAmt !== 0) {
+      const lumC = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      // Bell curve: maximum at midtones, zero at extremes
+      const midW = 4 * lumC * (1 - lumC);
+      const cBoost = 1 + clarityAmt * midW * 0.5;
+      r = 128 + (r - 128) * cBoost;
+      g = 128 + (g - 128) * cBoost;
+      b = 128 + (b - 128) * cBoost;
     }
 
     // ── 3. Highlights / Shadows ──
@@ -193,6 +227,23 @@ export function applyEdits(
         r += shift;
         g += shift;
         b += shift;
+      }
+    }
+
+    // ── 3b. Whites / Blacks ──
+    if (whitesAmt !== 0 || blacksAmt !== 0) {
+      const lumWB = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      // Whites: affects brightest tones (lum > 0.6)
+      if (whitesAmt !== 0) {
+        const wW = Math.max(0, (lumWB - 0.6) * 2.5); // 0→1 ramp
+        const shift = whitesAmt * wW * 55;
+        r += shift; g += shift; b += shift;
+      }
+      // Blacks: affects darkest tones (lum < 0.4)
+      if (blacksAmt !== 0) {
+        const wB = Math.max(0, (0.4 - lumWB) * 2.5); // 0→1 ramp
+        const shift = blacksAmt * wB * 55;
+        r += shift; g += shift; b += shift;
       }
     }
 
@@ -270,7 +321,62 @@ export function applyEdits(
     out[i + 3] = a;
   }
 
-  // ── 10. Grain (post-process noise) ──
+  // ── 10. Noise Reduction (selective 3×3 weighted blur) ──
+  if (params.noise > 0) {
+    const nStr = params.noise / 100;
+    const blend = nStr * 0.6;
+    const tmp = new Uint8ClampedArray(out);
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          // Center-weighted 3×3 average: center=4, cross=2, corners=1
+          const ci = idx + c;
+          const avg =
+            tmp[ci] * 4 +
+            tmp[((y - 1) * width + x) * 4 + c] * 2 +
+            tmp[((y + 1) * width + x) * 4 + c] * 2 +
+            tmp[(y * width + x - 1) * 4 + c] * 2 +
+            tmp[(y * width + x + 1) * 4 + c] * 2 +
+            tmp[((y - 1) * width + x - 1) * 4 + c] +
+            tmp[((y - 1) * width + x + 1) * 4 + c] +
+            tmp[((y + 1) * width + x - 1) * 4 + c] +
+            tmp[((y + 1) * width + x + 1) * 4 + c];
+          out[idx + c] = Math.round(tmp[ci] * (1 - blend) + (avg / 16) * blend);
+        }
+      }
+    }
+  }
+
+  // ── 11. Texture (midtone detail enhancement via local contrast) ──
+  if (params.texture !== 0) {
+    const tStr = params.texture / 100;
+    const tmp2 = new Uint8ClampedArray(out);
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        const lum = tmp2[idx] * 0.299 + tmp2[idx + 1] * 0.587 + tmp2[idx + 2] * 0.114;
+        // 3×3 average luminance
+        let localL = 0;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++)
+            localL += tmp2[((y + dy) * width + (x + dx)) * 4] * 0.299
+              + tmp2[((y + dy) * width + (x + dx)) * 4 + 1] * 0.587
+              + tmp2[((y + dy) * width + (x + dx)) * 4 + 2] * 0.114;
+        localL /= 9;
+        const detail = lum - localL;
+        // Bell-curve midtone weight (preserves skin)
+        const lumN = lum / 255;
+        const midW = 4 * lumN * (1 - lumN);
+        const shift = detail * tStr * 0.6 * midW;
+        out[idx] = Math.max(0, Math.min(255, Math.round(tmp2[idx] + shift)));
+        out[idx + 1] = Math.max(0, Math.min(255, Math.round(tmp2[idx + 1] + shift)));
+        out[idx + 2] = Math.max(0, Math.min(255, Math.round(tmp2[idx + 2] + shift)));
+      }
+    }
+  }
+
+  // ── 12. Grain (post-process noise) ──
   if (params.grain > 0) {
     const amount = params.grain * 0.4; // max ~40 noise amplitude
     for (let i = 0; i < out.length; i += 4) {
@@ -281,7 +387,7 @@ export function applyEdits(
     }
   }
 
-  // ── 11. Sharpen (simple unsharp mask via 3x3 kernel) ──
+  // ── 13. Sharpen (simple unsharp mask via 3×3 kernel) ──
   if (params.sharpen > 0) {
     const str = params.sharpen / 100;
     const tmp = new Uint8ClampedArray(out);
