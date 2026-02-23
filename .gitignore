@@ -23,18 +23,11 @@ archive/
 # Frontend temp
 frontend/.cache/
 
-# Next.js (root)
+# Next.js
 node_modules/
 .next/
 .turbo/
 .vercel/
-
-# Next.js (legacy subfolder)
-kinolu-next/node_modules/
-kinolu-next/.next/
-kinolu-next/.turbo/
-kinolu-next/.vercel/
-kinolu-next/out/
 
 # IDE
 .vscode/
