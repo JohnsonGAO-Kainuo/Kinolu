@@ -232,9 +232,12 @@ export default function EditorPage() {
 
   useEffect(() => {
     const qp = new URLSearchParams(window.location.search).get("preset") || "";
+    const localLut = new URLSearchParams(window.location.search).get("localLut") || "";
     const sp = sessionStorage.getItem("kinolu_capture_preset_id") || "";
     const cap = sessionStorage.getItem("kinolu_captured");
-    if (qp) setPendingPresetId(qp); else if (sp) setPendingPresetId(sp);
+    if (localLut) setPendingPresetId(localLut);
+    else if (qp) setPendingPresetId(qp);
+    else if (sp) setPendingPresetId(sp);
     if (cap) { void loadSourceFromObjectUrl(cap, "captured.jpg").finally(() => sessionStorage.removeItem("kinolu_captured")); }
   }, [loadSourceFromObjectUrl]);
 
@@ -256,10 +259,7 @@ export default function EditorPage() {
       setRenderTick((t) => t + 1);
       if (params.auto_xy) setParams((p) => ({ ...p, color_strength: resp.autoX, tone_strength: resp.autoY }));
     } catch (err) {
-      const errStr = String(err);
-      const isNetworkErr = err instanceof TypeError && errStr.includes("Failed to fetch");
-      const is404 = errStr.includes("404");
-      setErrorMsg(isNetworkErr || is404 ? t("editor_backendNotAvailable") : `${t("editor_transferFailed")}: ${err}`);
+      setErrorMsg(`${t("editor_transferFailed")}: ${err}`);
       setTimeout(() => setErrorMsg(null), 5000);
     } finally { setProcessing(false); }
   }, [activeRefIdx, params, loadImageToData]);

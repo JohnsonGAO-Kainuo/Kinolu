@@ -6,6 +6,8 @@ import type {
   TransferResponse,
   Capabilities,
 } from "./types";
+import { clientTransfer, fitLutFromPair, lutDataToCubeBlob } from "./colorTransfer";
+import { importCubeFileLocal, applyLutToImage, getLocalLut } from "./lutStore";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -25,58 +27,65 @@ export async function transferImage(
   source: File,
   params: EditParams
 ): Promise<TransferResponse> {
-  const fd = new FormData();
-  fd.append("reference", reference);
-  fd.append("source", source);
+  // Try server first
+  try {
+    const fd = new FormData();
+    fd.append("reference", reference);
+    fd.append("source", source);
+    fd.append("method", params.method);
+    fd.append("color_strength", String(toPercent(params.color_strength)));
+    fd.append("tone_strength", String(toPercent(params.tone_strength)));
+    fd.append("auto_xy", toBackendBool(params.auto_xy));
+    fd.append("cinematic_enhance", toBackendBool(params.cinematic_enhance));
+    fd.append("cinematic_strength", String(toPercent(params.cinematic_strength)));
+    fd.append("skin_protect", toBackendBool(params.skin_protect));
+    fd.append("semantic_regions", toBackendBool(params.semantic_regions));
+    fd.append("skin_strength", "70");
 
-  // Transfer-related params only — micro edits are applied client-side
-  fd.append("method", params.method);
-  fd.append("color_strength", String(toPercent(params.color_strength)));
-  fd.append("tone_strength", String(toPercent(params.tone_strength)));
-  fd.append("auto_xy", toBackendBool(params.auto_xy));
-  fd.append("cinematic_enhance", toBackendBool(params.cinematic_enhance));
-  fd.append("cinematic_strength", String(toPercent(params.cinematic_strength)));
-  fd.append("skin_protect", toBackendBool(params.skin_protect));
-  fd.append("semantic_regions", toBackendBool(params.semantic_regions));
-  fd.append("skin_strength", "70");
+    const res = await fetch(`${API_BASE}/api/transfer`, {
+      method: "POST",
+      body: fd,
+    });
 
-  const res = await fetch(`${API_BASE}/api/transfer`, {
-    method: "POST",
-    body: fd,
-  });
+    if (!res.ok) throw new Error(`Server ${res.status}`);
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Transfer failed: ${res.status} – ${text}`);
+    const imageBlob = await res.blob();
+    const colorUsed = parseFloat(
+      res.headers.get("X-Kinolu-Color-Strength-Used") ||
+        res.headers.get("X-Kinolu-Auto-X") ||
+        "50"
+    );
+    const toneUsed = parseFloat(
+      res.headers.get("X-Kinolu-Tone-Strength-Used") ||
+        res.headers.get("X-Kinolu-Auto-Y") ||
+        "50"
+    );
+    const selectedMethod =
+      res.headers.get("X-Kinolu-Selected-Method") ||
+      res.headers.get("X-Kinolu-Method") ||
+      params.method;
+    const ranking =
+      res.headers.get("X-Kinolu-Auto-Ranking") ||
+      res.headers.get("X-Kinolu-Ranking") ||
+      "";
+
+    return {
+      imageBlob,
+      autoX: Math.max(0, Math.min(1, colorUsed / 100)),
+      autoY: Math.max(0, Math.min(1, toneUsed / 100)),
+      selectedMethod,
+      ranking,
+    };
+  } catch {
+    // ── Client-side fallback (Reinhard LAB) ──
+    return clientTransfer(
+      source,
+      reference,
+      params.color_strength,
+      params.tone_strength,
+      params.auto_xy,
+    );
   }
-
-  const imageBlob = await res.blob();
-  const colorUsed = parseFloat(
-    res.headers.get("X-Kinolu-Color-Strength-Used") ||
-      res.headers.get("X-Kinolu-Auto-X") ||
-      "50"
-  );
-  const toneUsed = parseFloat(
-    res.headers.get("X-Kinolu-Tone-Strength-Used") ||
-      res.headers.get("X-Kinolu-Auto-Y") ||
-      "50"
-  );
-  const selectedMethod =
-    res.headers.get("X-Kinolu-Selected-Method") ||
-    res.headers.get("X-Kinolu-Method") ||
-    params.method;
-  const ranking =
-    res.headers.get("X-Kinolu-Auto-Ranking") ||
-    res.headers.get("X-Kinolu-Ranking") ||
-    "";
-
-  return {
-    imageBlob,
-    autoX: Math.max(0, Math.min(1, colorUsed / 100)),
-    autoY: Math.max(0, Math.min(1, toneUsed / 100)),
-    selectedMethod,
-    ranking,
-  };
 }
 
 /* ─── Capabilities ─── */
@@ -121,30 +130,58 @@ export async function createPresetFromTransfer(
   styled: Blob,
   name: string
 ): Promise<PresetItem> {
-  const fd = new FormData();
-  fd.append("source", source);
-  fd.append("styled", new File([styled], "styled.jpg", { type: "image/jpeg" }));
-  fd.append("name", name || "Generated Look");
-  fd.append("cube_size", "33");
-
-  const res = await fetch(`${API_BASE}/api/presets/from-transfer`, {
-    method: "POST",
-    body: fd,
-  });
-  if (!res.ok) throw new Error(`Save preset failed: ${res.status}`);
-  return res.json();
+  // Try server
+  try {
+    const fd = new FormData();
+    fd.append("source", source);
+    fd.append("styled", new File([styled], "styled.jpg", { type: "image/jpeg" }));
+    fd.append("name", name || "Generated Look");
+    fd.append("cube_size", "33");
+    const res = await fetch(`${API_BASE}/api/presets/from-transfer`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) throw new Error(`Server ${res.status}`);
+    return res.json();
+  } catch {
+    // ── Client-side fallback: fit LUT + save to IndexedDB ──
+    const { size, data } = await fitLutFromPair(source, styled);
+    const cubeBlob = lutDataToCubeBlob(name || "Generated Look", size, data);
+    const cubeFile = new File([cubeBlob], `${name}.cube`, { type: "text/plain" });
+    const entry = await importCubeFileLocal(cubeFile);
+    return {
+      id: entry.id,
+      name: entry.name,
+      source_type: "generated",
+      cube_file: "",
+      created_at: entry.createdAt,
+      updated_at: entry.createdAt,
+    };
+  }
 }
 
 export async function applyPresetToImage(source: File, presetId: string): Promise<Blob> {
-  const fd = new FormData();
-  fd.append("source", source);
-  fd.append("preset_id", presetId);
-  const res = await fetch(`${API_BASE}/api/presets/apply`, {
-    method: "POST",
-    body: fd,
-  });
-  if (!res.ok) throw new Error(`Apply preset failed: ${res.status}`);
-  return res.blob();
+  // If it's a local LUT ID, use client-side application directly
+  if (presetId.startsWith("lut_")) {
+    return applyLutToImage(presetId, source);
+  }
+  // Try server
+  try {
+    const fd = new FormData();
+    fd.append("source", source);
+    fd.append("preset_id", presetId);
+    const res = await fetch(`${API_BASE}/api/presets/apply`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) throw new Error(`Server ${res.status}`);
+    return res.blob();
+  } catch {
+    // Try as local LUT fallback
+    const local = await getLocalLut(presetId);
+    if (local) return applyLutToImage(presetId, source);
+    throw new Error("Preset not found (backend unavailable)");
+  }
 }
 
 export async function renamePreset(presetId: string, name: string): Promise<PresetItem> {
@@ -167,14 +204,21 @@ export function presetCubeDownloadUrl(presetId: string): string {
 }
 
 export async function exportLutFromTransfer(source: File, styled: Blob, cubeSize = 33): Promise<Blob> {
-  const fd = new FormData();
-  fd.append("source", source);
-  fd.append("styled", new File([styled], "styled.jpg", { type: "image/jpeg" }));
-  fd.append("cube_size", String(cubeSize));
-  const res = await fetch(`${API_BASE}/api/export/lut`, {
-    method: "POST",
-    body: fd,
-  });
-  if (!res.ok) throw new Error(`Export LUT failed: ${res.status}`);
-  return res.blob();
+  // Try server
+  try {
+    const fd = new FormData();
+    fd.append("source", source);
+    fd.append("styled", new File([styled], "styled.jpg", { type: "image/jpeg" }));
+    fd.append("cube_size", String(cubeSize));
+    const res = await fetch(`${API_BASE}/api/export/lut`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) throw new Error(`Server ${res.status}`);
+    return res.blob();
+  } catch {
+    // ── Client-side fallback: fit LUT from pair ──
+    const { size, data } = await fitLutFromPair(source, styled, cubeSize);
+    return lutDataToCubeBlob(`kinolu_export_${Date.now()}`, size, data);
+  }
 }
