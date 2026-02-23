@@ -293,6 +293,14 @@ export default function EditorPage() {
     setParams((p) => ({ ...p, color_strength: x, tone_strength: y, auto_xy: false }));
   }, []);
 
+  /** Re-run transfer with new XY values (called on pointer-up from XYPad) */
+  const commitXY = useCallback((_x: number, _y: number) => {
+    const source = sourceFileRef.current;
+    const ref = refFilesRef.current[activeRefIdx];
+    if (!source || !ref) return;
+    void runTransfer();
+  }, [activeRefIdx, runTransfer]);
+
   /* ── Adjustments ── */
   const adjValues: Record<AdjustmentTool, number> = {
     exposure: params.exposure, contrast: params.contrast,
@@ -432,16 +440,25 @@ export default function EditorPage() {
 
             {/* XY Pad — floating over image, bottom-right (like ColorBy) — only after transfer */}
             {activeTab === "transfer" && hasTransferred && (
-              <div className="absolute bottom-3 right-3 z-10 flex items-end gap-2">
-                <XYPad x={params.color_strength} y={params.tone_strength} onChange={updateXY} compact />
+              <div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1.5">
+                <XYPad
+                  x={params.color_strength}
+                  y={params.tone_strength}
+                  onChange={updateXY}
+                  onCommit={commitXY}
+                  compact
+                  xLabel={t("xy_colorAxis")}
+                  yLabel={t("xy_toneAxis")}
+                  helpText={t("xy_helpText")}
+                />
                 <button
                   onClick={() => {
                     setParams((p) => ({ ...p, auto_xy: true, color_strength: 0.88, tone_strength: 0.78 }));
                     if (canProcess) runTransfer();
                   }}
-                  className="px-2.5 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[10px] text-white/60 tracking-wider active:text-white transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[10px] text-white/50 tracking-[1.5px] active:text-white transition-colors"
                 >
-                  {t("editor_auto")}
+                  {t("editor_autoXY")}
                 </button>
               </div>
             )}
