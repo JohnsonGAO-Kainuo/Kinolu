@@ -339,6 +339,76 @@ export function IconBloom(p: IconProps) {
   );
 }
 
+/* Whites — bright circle with plus */
+export function IconWhites(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" opacity={0.3} />
+    </svg>
+  );
+}
+
+/* Blacks — dark filled circle */
+export function IconBlacks(p: IconProps) {
+  return (
+    <svg {...s(p)} fill="none">
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/* Texture — crosshatch pattern */
+export function IconTexture(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <line x1="4" y1="10" x2="20" y2="10" />
+      <line x1="4" y1="14" x2="20" y2="14" />
+      <line x1="10" y1="4" x2="10" y2="20" />
+      <line x1="14" y1="4" x2="14" y2="20" />
+    </svg>
+  );
+}
+
+/* Clarity — aperture/diamond */
+export function IconClarity(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" fill="none" />
+    </svg>
+  );
+}
+
+/* Dehaze — fog/layers */
+export function IconDehaze(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <path d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </svg>
+  );
+}
+
+/* Noise — scattered dots */
+export function IconNoise(p: IconProps) {
+  return (
+    <svg {...s(p)} stroke="none">
+      <circle cx="6" cy="6" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="4" r="0.8" fill="currentColor" />
+      <circle cx="18" cy="7" r="1.2" fill="currentColor" />
+      <circle cx="4" cy="12" r="0.8" fill="currentColor" />
+      <circle cx="10" cy="11" r="1.2" fill="currentColor" />
+      <circle cx="16" cy="13" r="0.8" fill="currentColor" />
+      <circle cx="20" cy="11" r="1" fill="currentColor" />
+      <circle cx="7" cy="17" r="1.2" fill="currentColor" />
+      <circle cx="13" cy="18" r="0.8" fill="currentColor" />
+      <circle cx="18" cy="19" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 /* ── Camera Icons ── */
 
 export function IconFlash(p: IconProps) {

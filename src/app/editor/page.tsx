@@ -28,10 +28,13 @@ import EditorTabBar from "@/components/EditorTabBar";
 const TOOL_TO_PARAM: Record<AdjustmentTool, keyof EditParams> = {
   exposure: "exposure", contrast: "contrast",
   highlights: "highlights", shadows: "shadows",
-  saturation: "sat", vibrance: "vib",
+  whites: "whites", blacks: "blacks",
   warmth: "temp", tint: "tint",
-  grain: "grain", sharpen: "sharpen",
+  vibrance: "vib", saturation: "sat",
+  texture: "texture", clarity: "clarity",
+  dehaze: "dehaze", grain: "grain",
   vignette: "vignette", bloom: "bloom",
+  sharpen: "sharpen", noise: "noise",
 };
 
 export default function EditorPage() {
@@ -197,7 +200,10 @@ export default function EditorPage() {
       setRenderTick((t) => t + 1);
       if (params.auto_xy) setParams((p) => ({ ...p, color_strength: resp.autoX, tone_strength: resp.autoY }));
     } catch (err) {
-      setErrorMsg(err instanceof TypeError && String(err).includes("Failed to fetch") ? "Backend not reachable — run start.sh first" : `Transfer failed: ${err}`);
+      const errStr = String(err);
+      const isNetworkErr = err instanceof TypeError && errStr.includes("Failed to fetch");
+      const is404 = errStr.includes("404");
+      setErrorMsg(isNetworkErr || is404 ? "Backend server not available. Run start.sh locally to use Transfer." : `Transfer failed: ${err}`);
       setTimeout(() => setErrorMsg(null), 5000);
     } finally { setProcessing(false); }
   }, [activeRefIdx, params, loadImageToData]);
@@ -210,10 +216,13 @@ export default function EditorPage() {
   const adjValues: Record<AdjustmentTool, number> = {
     exposure: params.exposure, contrast: params.contrast,
     highlights: params.highlights, shadows: params.shadows,
-    saturation: params.sat, vibrance: params.vib,
+    whites: params.whites, blacks: params.blacks,
     warmth: params.temp, tint: params.tint,
-    grain: params.grain, sharpen: params.sharpen,
+    vibrance: params.vib, saturation: params.sat,
+    texture: params.texture, clarity: params.clarity,
+    dehaze: params.dehaze, grain: params.grain,
     vignette: params.vignette, bloom: params.bloom,
+    sharpen: params.sharpen, noise: params.noise,
   };
   const handleAdjChange = useCallback((tool: AdjustmentTool, value: number) => {
     setParams((p) => ({ ...p, [TOOL_TO_PARAM[tool]]: value }));
@@ -278,7 +287,7 @@ export default function EditorPage() {
   /* ═══════════ RENDER ═══════════ */
   return (
     <div className="flex flex-col w-full h-full bg-black">
-      <input ref={sourceInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleSourceUpload} />
+      <input ref={sourceInputRef} type="file" accept="image/*" className="hidden" onChange={handleSourceUpload} />
       <input ref={refInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleRefUpload} />
 
       {/* ── Header ── */}

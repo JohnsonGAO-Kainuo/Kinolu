@@ -314,12 +314,18 @@ export function hasActiveEdits(params: EditParams): boolean {
   if (params.contrast !== 0) return true;
   if (params.highlights !== 0) return true;
   if (params.shadows !== 0) return true;
+  if (params.whites !== 0) return true;
+  if (params.blacks !== 0) return true;
   if (params.sat !== 0) return true;
   if (params.vib !== 0) return true;
   if (params.temp !== 0) return true;
   if (params.tint !== 0) return true;
+  if (params.texture !== 0) return true;
+  if (params.clarity !== 0) return true;
+  if (params.dehaze !== 0) return true;
   if (params.grain !== 0) return true;
   if (params.sharpen !== 0) return true;
+  if (params.noise !== 0) return true;
   if (params.vignette !== 0) return true;
   if (params.bloom !== 0) return true;
 

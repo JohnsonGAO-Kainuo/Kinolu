@@ -11,19 +11,31 @@ export interface EditParams {
   skin_protect: boolean;
   semantic_regions: boolean;
 
-  // Micro edits
-  sat: number;
-  vib: number;
-  temp: number;
-  tint: number;
+  // Micro edits — Light
+  exposure: number;
   contrast: number;
   highlights: number;
   shadows: number;
+  whites: number;
+  blacks: number;
+
+  // Micro edits — Color
+  temp: number;
+  tint: number;
+  vib: number;
+  sat: number;
+
+  // Micro edits — Effects
+  texture: number;
+  clarity: number;
+  dehaze: number;
   grain: number;
-  sharpen: number;
-  exposure: number;
   vignette: number;
   bloom: number;
+
+  // Micro edits — Detail
+  sharpen: number;
+  noise: number;
 
   // Curves (per-channel)
   curve_points: CurveChannels;
@@ -95,14 +107,20 @@ export type AdjustmentTool =
   | "contrast"
   | "highlights"
   | "shadows"
-  | "saturation"
-  | "vibrance"
+  | "whites"
+  | "blacks"
   | "warmth"
   | "tint"
+  | "vibrance"
+  | "saturation"
+  | "texture"
+  | "clarity"
+  | "dehaze"
   | "grain"
-  | "sharpen"
   | "vignette"
-  | "bloom";
+  | "bloom"
+  | "sharpen"
+  | "noise";
 
 export type EditorTab = "transfer" | "edit" | "curves" | "hsl" | "crop";
 
@@ -116,18 +134,27 @@ export const DEFAULT_EDIT_PARAMS: EditParams = {
   skin_protect: true,
   semantic_regions: true,
 
-  sat: 0,
-  vib: 0,
-  temp: 0,
-  tint: 0,
+  exposure: 0,
   contrast: 0,
   highlights: 0,
   shadows: 0,
+  whites: 0,
+  blacks: 0,
+
+  temp: 0,
+  tint: 0,
+  vib: 0,
+  sat: 0,
+
+  texture: 0,
+  clarity: 0,
+  dehaze: 0,
   grain: 0,
-  sharpen: 0,
-  exposure: 0,
   vignette: 0,
   bloom: 0,
+
+  sharpen: 0,
+  noise: 0,
 
   curve_points: {
     rgb: [
