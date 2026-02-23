@@ -40,35 +40,31 @@ const TOOL_TO_PARAM: Record<AdjustmentTool, keyof EditParams> = {
   sharpen: "sharpen", noise: "noise",
 };
 
-/* ── Undo/Redo history hook ── */
+/* ── Undo/Redo history hook (atomic state to prevent race conditions) ── */
 function useHistory<T>(initial: T) {
-  const [stack, setStack] = useState<T[]>([initial]);
-  const [idx, setIdx] = useState(0);
+  const [state, setState] = useState({ stack: [initial] as T[], idx: 0 });
 
-  const current = stack[idx];
+  const current = state.stack[state.idx] ?? initial;
 
   const push = useCallback((val: T) => {
-    setStack((s) => {
-      const trimmed = s.slice(0, idx + 1);
+    setState((prev) => {
+      const trimmed = prev.stack.slice(0, prev.idx + 1);
       const next = [...trimmed, val];
-      // Limit to 30 entries
       if (next.length > 30) next.shift();
-      return next;
+      return { stack: next, idx: next.length - 1 };
     });
-    setIdx((i) => Math.min(i + 1, 29));
-  }, [idx]);
+  }, []);
 
   const undo = useCallback(() => {
-    setIdx((i) => Math.max(0, i - 1));
+    setState((prev) => ({ ...prev, idx: Math.max(0, prev.idx - 1) }));
   }, []);
 
   const redo = useCallback(() => {
-    setIdx((i) => Math.min(stack.length - 1, i + 1));
-  }, [stack.length]);
+    setState((prev) => ({ ...prev, idx: Math.min(prev.stack.length - 1, prev.idx + 1) }));
+  }, []);
 
   const reset = useCallback((val: T) => {
-    setStack([val]);
-    setIdx(0);
+    setState({ stack: [val], idx: 0 });
   }, []);
 
   return {
@@ -77,8 +73,8 @@ function useHistory<T>(initial: T) {
     undo,
     redo,
     reset,
-    canUndo: idx > 0,
-    canRedo: idx < stack.length - 1,
+    canUndo: state.idx > 0,
+    canRedo: state.idx < state.stack.length - 1,
   };
 }
 

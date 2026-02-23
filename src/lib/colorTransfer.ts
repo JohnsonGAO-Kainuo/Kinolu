@@ -501,14 +501,63 @@ export async function clientTransfer(
     ? computeRegionMasks(srcFull).catch(() => null)
     : Promise.resolve(null);
 
-  // Auto XY heuristic (enhanced with face awareness)
+  // ── Auto XY strength recommendation ──
+  // Ported from backend's recommend_xy_strength():
+  //   Continuous LAB gap analysis + semantic mask weighting
   let autoX = colorStrength;
   let autoY = toneStrength;
   if (autoXY) {
-    const chromaDist = Math.abs(srcStats.aMean - refStats.aMean) + Math.abs(srcStats.bMean - refStats.bMean);
-    const lumaDist = Math.abs(srcStats.lMean - refStats.lMean);
-    autoX = chromaDist > 60 ? 0.65 : chromaDist > 30 ? 0.78 : 0.90;
-    autoY = lumaDist > 40 ? 0.60 : lumaDist > 20 ? 0.72 : 0.85;
+    // LAB mean & std differences
+    const meanDiffL = Math.abs(srcStats.lMean - refStats.lMean);
+    const meanDiffA = Math.abs(srcStats.aMean - refStats.aMean);
+    const meanDiffB = Math.abs(srcStats.bMean - refStats.bMean);
+    const stdDiffL = Math.abs(srcStats.lStd - refStats.lStd);
+    const stdDiffA = Math.abs(srcStats.aStd - refStats.aStd);
+    const stdDiffB = Math.abs(srcStats.bStd - refStats.bStd);
+
+    // Chroma gap (a+b channels): how different the color palettes are
+    const chromaGap = Math.min(1.8,
+      ((meanDiffA + meanDiffB) / 2 / 48.0) + 0.35 * ((stdDiffA + stdDiffB) / 2 / 48.0)
+    );
+    // Tone gap (L channel): how different the brightness is
+    const toneGap = Math.min(1.8,
+      meanDiffL / 52.0 + 0.35 * stdDiffL / 52.0
+    );
+
+    // Base recommendation: larger gap → slightly lower default blend
+    let recColor = 96.0 - 24.0 * Math.min(chromaGap, 1.2);
+    let recTone  = 96.0 - 18.0 * Math.min(toneGap, 1.2);
+
+    // Semantic-aware adjustment (if masks are being computed)
+    if (semanticRegions) {
+      try {
+        // Use the small image for fast mask estimation
+        const quickMasks = await computeRegionMasks(
+          new ImageData(new Uint8ClampedArray(srcSmall.data), srcSmall.width, srcSmall.height)
+        );
+        const n = srcSmall.width * srcSmall.height;
+        let faceCount = 0, skinCount = 0, personCount = 0;
+        for (let i = 0; i < n; i++) {
+          if (quickMasks.face[i] > 0.25) faceCount++;
+          if (quickMasks.skin[i] > 0.25) skinCount++;
+          if (quickMasks.person[i] > 0.25) personCount++;
+        }
+        const faceRatio = faceCount / n;
+        const skinRatio = skinCount / n;
+        const subjectRatio = personCount / n;
+
+        // Portrait-heavy frames: reduce to avoid over-transfer on faces
+        recColor -= 18.0 * Math.min(faceRatio / 0.15, 1.0) * Math.min(chromaGap, 1.0);
+        recColor -= 8.0  * Math.min(skinRatio / 0.25, 1.0) * Math.min(chromaGap, 1.0);
+        recTone  -= 8.0  * Math.min(subjectRatio / 0.45, 1.0) * Math.min(toneGap, 1.0);
+      } catch { /* ignore mask errors for auto XY */ }
+    }
+
+    // Clamp to safe range [45, 98] then normalize to [0, 1]
+    recColor = Math.max(45, Math.min(98, recColor));
+    recTone  = Math.max(45, Math.min(98, recTone));
+    autoX = recColor / 100;
+    autoY = recTone  / 100;
   }
 
   // Build LUT and apply
