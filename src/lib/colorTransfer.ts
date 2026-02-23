@@ -208,6 +208,172 @@ function applyLutToImageData(px: Uint8ClampedArray, lut: Float32Array, cubeSize:
   }
 }
 
+/* ══════════════ Chroma Histogram Matching ══════════════ */
+
+/**
+ * Match the histogram of the a/b channels (LAB) from source to reference.
+ * This is the client-side equivalent of backend's `_refine_chroma_hist`.
+ * Pure JS implementation — no scikit-image needed.
+ */
+function refineChromaHistogram(img: ImageData, refData: ImageData, amount = 0.18) {
+  const srcPx = img.data;
+  const refPx = refData.data;
+  const n = srcPx.length / 4;
+  const nRef = refPx.length / 4;
+
+  // Convert both to LAB a/b channels and build histograms
+  const BINS = 256;
+  const srcHistA = new Uint32Array(BINS);
+  const srcHistB = new Uint32Array(BINS);
+  const refHistA = new Uint32Array(BINS);
+  const refHistB = new Uint32Array(BINS);
+
+  // Source LAB
+  const srcA = new Uint8Array(n);
+  const srcB = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const off = i * 4;
+    const [, a, b] = rgb2lab(srcPx[off], srcPx[off + 1], srcPx[off + 2]);
+    const ai = Math.max(0, Math.min(255, Math.round(a)));
+    const bi = Math.max(0, Math.min(255, Math.round(b)));
+    srcA[i] = ai;
+    srcB[i] = bi;
+    srcHistA[ai]++;
+    srcHistB[bi]++;
+  }
+
+  // Reference LAB
+  for (let i = 0; i < nRef; i++) {
+    const off = i * 4;
+    const [, a, b] = rgb2lab(refPx[off], refPx[off + 1], refPx[off + 2]);
+    refHistA[Math.max(0, Math.min(255, Math.round(a)))]++;
+    refHistB[Math.max(0, Math.min(255, Math.round(b)))]++;
+  }
+
+  // Build CDF and mapping for each channel
+  function buildMapping(srcHist: Uint32Array, refHist: Uint32Array, srcN: number, refN: number): Uint8Array {
+    const mapping = new Uint8Array(BINS);
+    const srcCdf = new Float64Array(BINS);
+    const refCdf = new Float64Array(BINS);
+
+    let cumS = 0, cumR = 0;
+    for (let i = 0; i < BINS; i++) {
+      cumS += srcHist[i];
+      cumR += refHist[i];
+      srcCdf[i] = cumS / srcN;
+      refCdf[i] = cumR / refN;
+    }
+
+    for (let i = 0; i < BINS; i++) {
+      let best = 0;
+      let bestDiff = Infinity;
+      for (let j = 0; j < BINS; j++) {
+        const diff = Math.abs(srcCdf[i] - refCdf[j]);
+        if (diff < bestDiff) { bestDiff = diff; best = j; }
+      }
+      mapping[i] = best;
+    }
+    return mapping;
+  }
+
+  const mapA = buildMapping(srcHistA, refHistA, n, nRef);
+  const mapB = buildMapping(srcHistB, refHistB, n, nRef);
+
+  // Apply mapping with blend amount
+  for (let i = 0; i < n; i++) {
+    const off = i * 4;
+    const [l, a, b] = rgb2lab(srcPx[off], srcPx[off + 1], srcPx[off + 2]);
+    const newA = a + (mapA[srcA[i]] - a) * amount;
+    const newB = b + (mapB[srcB[i]] - b) * amount;
+    const [r, g, bv] = lab2rgb(l, newA, newB);
+    srcPx[off] = r;
+    srcPx[off + 1] = g;
+    srcPx[off + 2] = bv;
+  }
+}
+
+/* ══════════════ Segmentation-Aware Blending ══════════════ */
+
+import type { RegionMasks } from "./segmentation";
+
+/**
+ * Apply per-region strength modulation + skin protection.
+ * This is the client-side equivalent of backend's `blend_xy_strength`.
+ *
+ * - Subject regions: full strength
+ * - Sky/vegetation: slightly reduced to prevent over-transfer
+ * - Face/skin: chroma drift limiting (skin protection)
+ */
+function applyRegionAwareBlending(
+  img: ImageData,
+  original: ImageData,
+  masks: RegionMasks,
+  skinProtect: boolean,
+) {
+  const px = img.data;
+  const origPx = original.data;
+  const n = px.length / 4;
+
+  for (let i = 0; i < n; i++) {
+    const off = i * 4;
+
+    // Region weights: how much of the transfer to keep
+    const person = masks.person[i];
+    const sky = masks.sky[i];
+    const veg = masks.vegetation[i];
+    const face = masks.face[i];
+    const skin = masks.skin[i];
+
+    // Sky: reduce transfer to 70%
+    // Vegetation: reduce to 80%
+    // Background: reduce to 85%
+    const bgWeight = 0.85;
+    const skyWeight = 0.70;
+    const vegWeight = 0.80;
+
+    const regionBlend = person > 0.5
+      ? 1.0
+      : sky > 0.3
+        ? skyWeight + (1 - skyWeight) * (1 - sky)
+        : veg > 0.3
+          ? vegWeight + (1 - vegWeight) * (1 - veg)
+          : bgWeight;
+
+    // Blend between original and transferred based on region
+    if (regionBlend < 1.0) {
+      px[off] = origPx[off] + (px[off] - origPx[off]) * regionBlend;
+      px[off + 1] = origPx[off + 1] + (px[off + 1] - origPx[off + 1]) * regionBlend;
+      px[off + 2] = origPx[off + 2] + (px[off + 2] - origPx[off + 2]) * regionBlend;
+    }
+
+    // ── Skin protection: limit chroma drift on face/skin ──
+    if (skinProtect && (face > 0.3 || skin > 0.5)) {
+      const skinW = Math.max(face, skin);
+      const maxChromaDrift = 12; // Max allowed chroma change on skin
+
+      // Compute chroma drift
+      const [, origA, origB] = rgb2lab(origPx[off], origPx[off + 1], origPx[off + 2]);
+      const [newL, newA, newB] = rgb2lab(px[off], px[off + 1], px[off + 2]);
+      const dA = newA - origA;
+      const dB = newB - origB;
+      const chromaDist = Math.sqrt(dA * dA + dB * dB);
+
+      if (chromaDist > maxChromaDrift) {
+        const scale = maxChromaDrift / chromaDist;
+        const clampedA = origA + dA * scale;
+        const clampedB = origB + dB * scale;
+        // Blend toward clamped based on skin confidence
+        const finalA = newA + (clampedA - newA) * skinW;
+        const finalB = newB + (clampedB - newB) * skinW;
+        const [r, g, b] = lab2rgb(newL, finalA, finalB);
+        px[off] = r;
+        px[off + 1] = g;
+        px[off + 2] = b;
+      }
+    }
+  }
+}
+
 /* ══════════════ Cinematic Tone Enhancement ══════════════ */
 
 /**
@@ -294,6 +460,7 @@ function applyCinematicTone(img: ImageData, refStats: LabStats, strength = 0.35)
 /* ══════════════ Public: Client-Side Transfer ══════════════ */
 
 import type { TransferResponse } from "./types";
+import { computeRegionMasks } from "./segmentation";
 
 /**
  * Perform Reinhard LAB color transfer entirely in the browser.
@@ -301,6 +468,9 @@ import type { TransferResponse } from "./types";
  * 1. Downsample source + reference to compute LAB statistics
  * 2. Build a 33³ 3D LUT encoding the Reinhard transfer + XY blend
  * 3. Apply the LUT to the full-resolution source via trilinear interpolation
+ * 4. Refine chroma via histogram matching
+ * 5. Apply cinematic tone enhancement
+ * 6. Segmentation-aware blending + skin protection
  */
 export async function clientTransfer(
   sourceBlob: Blob,
@@ -308,6 +478,8 @@ export async function clientTransfer(
   colorStrength: number,
   toneStrength: number,
   autoXY: boolean,
+  skinProtect = true,
+  semanticRegions = true,
 ): Promise<TransferResponse> {
   // Decode images: small for stats, full for output
   const [srcSmall, refSmall, srcFull] = await Promise.all([
@@ -316,10 +488,20 @@ export async function clientTransfer(
     blobToImageData(sourceBlob),
   ]);
 
+  // Keep a copy of original for region blending
+  const originalFull = semanticRegions
+    ? new ImageData(new Uint8ClampedArray(srcFull.data), srcFull.width, srcFull.height)
+    : null;
+
   const srcStats = computeLabStats(srcSmall);
   const refStats = computeLabStats(refSmall);
 
-  // Auto XY heuristic
+  // Compute semantic masks in parallel (non-blocking)
+  const masksPromise = semanticRegions
+    ? computeRegionMasks(srcFull).catch(() => null)
+    : Promise.resolve(null);
+
+  // Auto XY heuristic (enhanced with face awareness)
   let autoX = colorStrength;
   let autoY = toneStrength;
   if (autoXY) {
@@ -334,9 +516,19 @@ export async function clientTransfer(
   const lut = buildReinhardLut(srcStats, refStats, cubeSize, autoX, autoY);
   applyLutToImageData(srcFull.data, lut, cubeSize);
 
-  // ── Cinematic tone enhancement (simplified) ──
-  // Film-like toe/shoulder + chroma density matching toward reference
+  // ── Chroma histogram refinement ──
+  // Match a/b channel histograms toward reference (amount=0.18)
+  const refFull = await blobToImageData(referenceBlob, Math.max(srcFull.width, srcFull.height));
+  refineChromaHistogram(srcFull, refFull, 0.18);
+
+  // ── Cinematic tone enhancement ──
   applyCinematicTone(srcFull, refStats);
+
+  // ── Segmentation-aware blending + skin protection ──
+  const masks = await masksPromise;
+  if (masks && originalFull) {
+    applyRegionAwareBlending(srcFull, originalFull, masks, skinProtect);
+  }
 
   const imageBlob = await imageDataToBlob(srcFull);
 

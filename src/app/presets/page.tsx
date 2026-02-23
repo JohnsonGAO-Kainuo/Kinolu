@@ -30,11 +30,26 @@ export default function PresetsPage() {
   // Local LUTs (IndexedDB, always works)
   const [localLuts, setLocalLuts] = useState<Omit<LutEntry, "data">[]>([]);
   const [localLoading, setLocalLoading] = useState(true);
+  // Thumbnail URLs for generated presets
+  const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
 
   const refreshLocal = useCallback(async () => {
     setLocalLoading(true);
     try {
-      setLocalLuts(await listLocalLuts());
+      const luts = await listLocalLuts();
+      setLocalLuts(luts);
+      // Build thumbnail URLs
+      const urls: Record<string, string> = {};
+      for (const lut of luts) {
+        if (lut.thumbnail) {
+          urls[lut.id] = URL.createObjectURL(lut.thumbnail);
+        }
+      }
+      setThumbUrls((prev) => {
+        // Revoke old URLs
+        Object.values(prev).forEach((u) => URL.revokeObjectURL(u));
+        return urls;
+      });
     } catch {
       /* ignore */
     } finally {
@@ -198,7 +213,9 @@ export default function PresetsPage() {
 
         {/* ─── Local LUTs (always available) ─── */}
         <section className="mt-4">
-          <div className="mb-2 text-[10px] tracking-[2px] uppercase text-white/30">{t("lib_importLut")}</div>
+          <div className="mb-2 text-[10px] tracking-[2px] uppercase text-white/30">
+            {t("lib_title")}
+          </div>
           {localLoading ? (
             <div className="text-[12px] text-k-muted">{t("loading")}</div>
           ) : localLuts.length === 0 ? (
@@ -216,38 +233,52 @@ export default function PresetsPage() {
               <IconChevronRight size={18} className="text-k-muted" />
             </button>
           ) : (
-            <div className="flex flex-col gap-2">
-              {localLuts.map((entry) => (
-                <div key={entry.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-[12px] font-semibold text-white/90">{entry.name}</div>
-                      <div className="text-[9px] text-white/30 mt-0.5">CUBE {entry.size}³ • {new Date(entry.createdAt).toLocaleString()}</div>
+            <div className="flex flex-col gap-3">
+              {/* Grid of preset cards with thumbnails */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {localLuts.map((entry) => (
+                  <div key={entry.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+                    {/* Thumbnail / placeholder */}
+                    <button onClick={() => openEditorWithLocalLut(entry)} className="w-full aspect-[4/3] bg-black/40 flex items-center justify-center overflow-hidden">
+                      {thumbUrls[entry.id] ? (
+                        <img src={thumbUrls[entry.id]} alt={entry.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-1.5">
+                          <IconLUT size={24} className="text-white/15" />
+                          <span className="text-[8px] text-white/20 tracking-wider">CUBE {entry.size}³</span>
+                        </div>
+                      )}
+                    </button>
+                    {/* Info row */}
+                    <div className="px-2.5 py-2">
+                      <div className="truncate text-[11px] font-semibold text-white/90">{entry.name}</div>
+                      <div className="text-[8px] text-white/30 mt-0.5">
+                        {entry.sourceType === "generated" ? "✨ Generated" : `CUBE ${entry.size}³`} · {new Date(entry.createdAt).toLocaleDateString()}
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-1">
+                        <button
+                          onClick={() => openEditorWithLocalLut(entry)}
+                          className="flex-1 rounded-md bg-white/[0.08] py-1 text-[9px] text-white/70 hover:bg-white/15 transition-colors text-center tracking-wider"
+                        >
+                          {t("lib_apply")}
+                        </button>
+                        <button
+                          onClick={() => onExportLocal(entry)}
+                          className="rounded-md border border-white/[0.06] px-1.5 py-1 text-[8px] text-white/40 hover:text-white/70 transition-colors"
+                        >
+                          <IconLUT size={9} />
+                        </button>
+                        <button onClick={() => onRenameLocal(entry)} className="rounded-md border border-white/[0.06] px-1.5 py-1 text-[8px] text-white/40 hover:text-white/70 transition-colors">
+                          ✏️
+                        </button>
+                        <button onClick={() => onDeleteLocal(entry)} className="rounded-md border border-white/[0.06] px-1.5 py-1 text-[8px] text-red-400/60 hover:text-red-300 transition-colors">
+                          ✕
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => openEditorWithLocalLut(entry)}
-                      className="rounded-lg border border-white/15 px-3 py-1 text-[10px] tracking-[1px] text-white/70 hover:bg-white/10 transition-colors"
-                    >
-                      {t("lib_apply")}
-                    </button>
                   </div>
-                  <div className="mt-2 flex items-center gap-1.5">
-                    <button
-                      onClick={() => onExportLocal(entry)}
-                      className="inline-flex items-center gap-1 rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-white/40 hover:text-white/70 transition-colors"
-                    >
-                      <IconLUT size={10} />
-                      {t("lib_cube")}
-                    </button>
-                    <button onClick={() => onRenameLocal(entry)} className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-white/40 hover:text-white/70 transition-colors">
-                      {t("rename")}
-                    </button>
-                    <button onClick={() => onDeleteLocal(entry)} className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-red-400/60 hover:text-red-300 transition-colors">
-                      {t("delete")}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
               {/* Add more button */}
               <button
                 onClick={() => lutInputRef.current?.click()}

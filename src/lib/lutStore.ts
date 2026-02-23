@@ -10,6 +10,10 @@ export interface LutEntry {
   size: number; // LUT_3D_SIZE
   data: Float32Array; // flattened R,G,B triplets  (size^3 * 3)
   createdAt: string;
+  /** JPEG thumbnail blob for library display */
+  thumbnail?: Blob;
+  /** Source type: 'generated' (from transfer) | 'imported' (cube file) */
+  sourceType?: "generated" | "imported";
 }
 
 /* ─── IndexedDB helpers ─── */
@@ -46,9 +50,11 @@ export async function listLocalLuts(): Promise<Omit<LutEntry, "data">[]> {
     const store = txStore(db, "readonly");
     const req = store.getAll();
     req.onsuccess = () => {
-      // Return metadata only (skip heavy Float32Array)
+      // Return metadata + thumbnail (skip heavy Float32Array)
       const entries: Omit<LutEntry, "data">[] = (req.result as LutEntry[]).map(
-        ({ id, name, size, createdAt }) => ({ id, name, size, createdAt })
+        ({ id, name, size, createdAt, thumbnail, sourceType }) => ({
+          id, name, size, createdAt, thumbnail, sourceType,
+        })
       );
       entries.sort(
         (a, b) =>
@@ -140,19 +146,24 @@ export function parseCubeFile(text: string): { size: number; data: Float32Array;
   return { size, data: new Float32Array(values), title };
 }
 
-export async function importCubeFileLocal(file: File): Promise<Omit<LutEntry, "data">> {
+export async function importCubeFileLocal(
+  file: File,
+  options?: { thumbnail?: Blob; sourceType?: "generated" | "imported" },
+): Promise<Omit<LutEntry, "data">> {
   const text = await file.text();
   const { size, data, title } = parseCubeFile(text);
   const id = `lut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const name = title || file.name.replace(/\.cube$/i, "") || "Imported LUT";
   const createdAt = new Date().toISOString();
+  const thumbnail = options?.thumbnail;
+  const sourceType = options?.sourceType || "imported";
 
-  const entry: LutEntry = { id, name, size, data, createdAt };
+  const entry: LutEntry = { id, name, size, data, createdAt, thumbnail, sourceType };
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const store = txStore(db, "readwrite");
     const req = store.put(entry);
-    req.onsuccess = () => resolve({ id, name, size, createdAt });
+    req.onsuccess = () => resolve({ id, name, size, createdAt, thumbnail, sourceType });
     req.onerror = () => reject(req.error);
   });
 }

@@ -11,6 +11,8 @@ import {
   transferImage,
 } from "@/lib/api";
 import { applyEdits, hasActiveEdits } from "@/lib/imageProcessor";
+import { saveRefImage, listRefImages, deleteRefImage } from "@/lib/refStore";
+import { preloadSegmentationModels } from "@/lib/segmentation";
 import {
   IconBack,
   IconShare,
@@ -170,6 +172,29 @@ export default function EditorPage() {
 
   useEffect(() => { if (baseImageData.current) renderPreview(); }, [params, renderPreview, renderTick]);
 
+  /* ── Preload segmentation models (warm up GPU) ── */
+  useEffect(() => { void preloadSegmentationModels(); }, []);
+
+  /* ── Restore saved reference images ── */
+  useEffect(() => {
+    void (async () => {
+      try {
+        const saved = await listRefImages();
+        if (saved.length > 0 && refImages.length === 0) {
+          const urls: string[] = [];
+          const files: File[] = [];
+          for (const entry of saved) {
+            urls.push(URL.createObjectURL(entry.blob));
+            files.push(new File([entry.blob], entry.name, { type: entry.blob.type || "image/jpeg" }));
+          }
+          refFilesRef.current = files;
+          setRefImages(urls);
+          setActiveRefIdx(0);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Preset apply ── */
   const runApplyPreset = useCallback(async (presetId: string) => {
     const source = sourceFileRef.current;
@@ -204,6 +229,10 @@ export default function EditorPage() {
     refFilesRef.current = [...refFilesRef.current, ...arr];
     setRefImages((prev) => [...prev, ...arr.map((f) => URL.createObjectURL(f))]);
     if (refImages.length === 0) setActiveRefIdx(0);
+    // Persist references to IndexedDB
+    for (const f of arr) {
+      void saveRefImage(f.name, f);
+    }
   }, [refImages.length]);
 
   const removeRef = useCallback((idx: number) => {
@@ -315,7 +344,8 @@ export default function EditorPage() {
     if (!name) return;
     setSavingPreset(true);
     try {
-      await createPresetFromTransfer(sourceFileRef.current, blob, name);
+      // Pass current canvas as thumbnail for the preset library
+      await createPresetFromTransfer(sourceFileRef.current, blob, name, blob);
       showToast(`Preset "${name}" saved`);
     } catch (err) { setErrorMsg(`${t("editor_saveFailed")} ${err}`); }
     finally { setSavingPreset(false); }

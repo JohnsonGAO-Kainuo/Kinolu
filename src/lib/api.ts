@@ -11,6 +11,20 @@ import { importCubeFileLocal, applyLutToImage, getLocalLut } from "./lutStore";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
+/** Generate a small JPEG thumbnail from a Blob */
+async function generateThumbnail(blob: Blob, maxDim = 200): Promise<Blob> {
+  const bmp = await createImageBitmap(blob);
+  const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+  const w = Math.round(bmp.width * scale);
+  const h = Math.round(bmp.height * scale);
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  c.getContext("2d")!.drawImage(bmp, 0, 0, w, h);
+  return new Promise((ok, fail) =>
+    c.toBlob((b) => (b ? ok(b) : fail(new Error("thumb failed"))), "image/jpeg", 0.7)
+  );
+}
+
 function toPercent(value: number): number {
   // UI 层是 0..1，后端是 0..100；兼容两种输入。
   if (!Number.isFinite(value)) return 0;
@@ -77,13 +91,15 @@ export async function transferImage(
       ranking,
     };
   } catch {
-    // ── Client-side fallback (Reinhard LAB) ──
+    // ── Client-side fallback (Reinhard LAB + segmentation) ──
     return clientTransfer(
       source,
       reference,
       params.color_strength,
       params.tone_strength,
       params.auto_xy,
+      params.skin_protect,
+      params.semantic_regions,
     );
   }
 }
@@ -128,7 +144,8 @@ export async function importCubePreset(file: File, name?: string): Promise<Prese
 export async function createPresetFromTransfer(
   source: File,
   styled: Blob,
-  name: string
+  name: string,
+  thumbnail?: Blob,
 ): Promise<PresetItem> {
   // Try server
   try {
@@ -148,7 +165,9 @@ export async function createPresetFromTransfer(
     const { size, data } = await fitLutFromPair(source, styled);
     const cubeBlob = lutDataToCubeBlob(name || "Generated Look", size, data);
     const cubeFile = new File([cubeBlob], `${name}.cube`, { type: "text/plain" });
-    const entry = await importCubeFileLocal(cubeFile);
+    // Generate thumbnail from the styled blob if not provided
+    const thumb = thumbnail || await generateThumbnail(styled);
+    const entry = await importCubeFileLocal(cubeFile, { thumbnail: thumb, sourceType: "generated" });
     return {
       id: entry.id,
       name: entry.name,
