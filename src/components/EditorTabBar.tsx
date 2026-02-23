@@ -7,6 +7,7 @@ import {
   IconSliders,
   IconCurves,
   IconHSL,
+  IconCrop,
 } from "./icons";
 
 interface EditorTabBarProps {
@@ -19,6 +20,7 @@ const TABS: { key: EditorTab; label: string; icon: React.FC<{ size?: number; cla
   { key: "edit", label: "Edit", icon: IconSliders },
   { key: "curves", label: "Curves", icon: IconCurves },
   { key: "hsl", label: "HSL", icon: IconHSL },
+  { key: "crop", label: "Crop", icon: IconCrop },
 ];
 
 export default function EditorTabBar({ active, onSelect }: EditorTabBarProps) {

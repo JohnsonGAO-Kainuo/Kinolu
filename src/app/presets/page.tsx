@@ -81,7 +81,7 @@ export default function PresetsPage() {
       />
 
       <div className="flex items-center justify-between h-[44px] px-4 safe-top shrink-0">
-        <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center text-white/60 active:text-white">
+        <button onClick={() => { if (window.history.length > 1) router.back(); else router.push("/"); }} className="w-8 h-8 flex items-center justify-center text-white/60 active:text-white">
           <IconBack size={20} />
         </button>
         <span className="text-[12px] font-semibold tracking-[2.5px] uppercase text-white/70">Library</span>

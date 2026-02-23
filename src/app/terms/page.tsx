@@ -9,7 +9,7 @@ export default function TermsPage() {
   return (
     <div className="flex flex-col w-full h-full bg-black">
       <header className="flex items-center justify-between h-[44px] px-4 safe-top">
-        <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center text-white/60">
+        <button onClick={() => { if (window.history.length > 1) router.back(); else router.push("/"); }} className="w-8 h-8 flex items-center justify-center text-white/60">
           <IconBack size={20} />
         </button>
         <span className="text-[12px] font-semibold tracking-[2.5px] uppercase text-white/70">Terms of Service</span>

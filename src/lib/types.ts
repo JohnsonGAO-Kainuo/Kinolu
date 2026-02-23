@@ -104,7 +104,7 @@ export type AdjustmentTool =
   | "vignette"
   | "bloom";
 
-export type EditorTab = "transfer" | "edit" | "curves" | "hsl";
+export type EditorTab = "transfer" | "edit" | "curves" | "hsl" | "crop";
 
 export const DEFAULT_EDIT_PARAMS: EditParams = {
   method: "reinhard_lab",

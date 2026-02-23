@@ -120,7 +120,7 @@ export default function CameraPage() {
 
         {/* Top bar — minimal floating controls */}
         <div className="flex items-center justify-between px-4 pt-1 pointer-events-auto">
-          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/90">
+          <button onClick={() => { if (window.history.length > 1) router.back(); else router.push("/"); }} className="w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/90">
             <IconBack size={18} />
           </button>
           <div className="flex items-center gap-2">

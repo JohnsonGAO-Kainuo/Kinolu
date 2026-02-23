@@ -1,24 +1,24 @@
 "use client";
 
-import React, { useRef, useCallback, useState } from "react";
+import React, { useRef, useCallback, useState, useMemo } from "react";
 
 interface XYPadProps {
-  /** 0‒1, default 0.5 */
   x: number;
   y: number;
   onChange: (x: number, y: number) => void;
-  labelX?: string;
-  labelY?: string;
   disabled?: boolean;
+  /** Render as compact floating thumbnail (for overlay on image) */
+  compact?: boolean;
 }
+
+const GRID = 10; // 10×10 dot grid
 
 export default function XYPad({
   x,
   y,
   onChange,
-  labelX = "COLOR",
-  labelY = "TONE",
   disabled = false,
+  compact = false,
 }: XYPadProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -38,6 +38,7 @@ export default function XYPad({
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       setDragging(true);
       update(e.clientX, e.clientY);
@@ -54,91 +55,88 @@ export default function XYPad({
   );
 
   const onPointerUp = useCallback(() => setDragging(false), []);
+  const onDoubleClick = useCallback(() => onChange(0.5, 0.5), [onChange]);
 
-  const onDoubleClick = useCallback(() => {
-    onChange(0.5, 0.5);
-  }, [onChange]);
+  /* Build dot grid */
+  const dots = useMemo(() => {
+    const arr: { cx: number; cy: number; dist: number }[] = [];
+    for (let row = 0; row < GRID; row++) {
+      for (let col = 0; col < GRID; col++) {
+        const cx = (col + 0.5) / GRID;
+        const cy = (row + 0.5) / GRID;
+        const dx = cx - x;
+        const dy = cy - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        arr.push({ cx, cy, dist });
+      }
+    }
+    return arr;
+  }, [x, y]);
 
-  const xPct = Math.round(x * 100);
-  const yPct = Math.round(y * 100);
+  const size = compact ? 110 : 140;
 
   return (
-    <div className="w-full px-5">
-      {/* Compact XY pad — 2:1 ratio */}
-      <div className="relative w-full mx-auto" style={{ maxWidth: 360 }}>
+    <div
+      ref={containerRef}
+      className="relative select-none rounded-2xl overflow-hidden"
+      style={{
+        width: size,
+        height: size,
+        background: "rgba(20,20,20,0.85)",
+        backdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        touchAction: "none",
+        cursor: dragging ? "grabbing" : "grab",
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onDoubleClick={onDoubleClick}
+    >
+      {/* Dot grid — dots glow near the handle position */}
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="absolute inset-0 pointer-events-none"
+      >
+        {dots.map((d, i) => {
+          const proximity = Math.max(0, 1 - d.dist * 2.5);
+          const opacity = 0.15 + proximity * 0.65;
+          const r = compact ? 1.6 : 2;
+          const radius = r + proximity * 1.2;
+          return (
+            <circle
+              key={i}
+              cx={d.cx * size}
+              cy={d.cy * size}
+              r={radius}
+              fill="white"
+              opacity={opacity}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Handle dot — larger, bright */}
+      <div
+        className="absolute pointer-events-none z-10"
+        style={{
+          left: `${x * 100}%`,
+          top: `${y * 100}%`,
+          transform: `translate(-50%, -50%) scale(${dragging ? 1.3 : 1})`,
+          transition: dragging ? "none" : "transform 0.15s ease",
+        }}
+      >
         <div
-          ref={containerRef}
-          className="relative w-full rounded-xl overflow-hidden select-none"
+          className="w-3.5 h-3.5 rounded-full bg-white"
           style={{
-            aspectRatio: "2 / 1",
-            background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.2) 100%)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            touchAction: "none",
+            boxShadow: "0 0 8px rgba(255,255,255,0.6), 0 0 20px rgba(255,255,255,0.2)",
           }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onDoubleClick={onDoubleClick}
-        >
-          {/* Subtle grid */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage: `
-                linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)
-              `,
-              backgroundSize: "25% 50%",
-            }}
-          />
-
-          {/* Center crosshair */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-0 right-0 h-px bg-white/[0.03]" />
-            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/[0.03]" />
-          </div>
-
-          {/* Handle */}
-          <div
-            className="absolute pointer-events-none z-10"
-            style={{
-              left: `${x * 100}%`,
-              top: `${y * 100}%`,
-              transform: `translate(-50%, -50%) scale(${dragging ? 1.2 : 1})`,
-              transition: dragging ? "none" : "all 0.2s ease",
-            }}
-          >
-            {/* Crosshair lines through handle */}
-            <div className="absolute top-1/2 -left-[200px] w-[400px] h-px bg-white/10 pointer-events-none" />
-            <div className="absolute left-1/2 -top-[200px] h-[400px] w-px bg-white/10 pointer-events-none" />
-
-            <div
-              className="w-6 h-6 rounded-full border border-white/70 flex items-center justify-center"
-              style={{
-                background: "rgba(0,0,0,0.4)",
-                backdropFilter: "blur(4px)",
-                boxShadow: "0 1px 8px rgba(0,0,0,0.5)",
-              }}
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-white" style={{ boxShadow: "0 0 4px rgba(255,255,255,0.5)" }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Value readout — minimal */}
-        <div className="flex items-center justify-center gap-5 mt-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] tracking-[1.5px] text-white/25 uppercase">{labelX}</span>
-            <span className="text-[11px] font-mono text-white/60 tabular-nums w-8 text-right">{xPct}</span>
-          </div>
-          <div className="w-px h-3 bg-white/10" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] tracking-[1.5px] text-white/25 uppercase">{labelY}</span>
-            <span className="text-[11px] font-mono text-white/60 tabular-nums w-8 text-right">{yPct}</span>
-          </div>
-        </div>
+        />
       </div>
     </div>
   );
 }
+

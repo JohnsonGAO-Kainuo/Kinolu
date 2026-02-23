@@ -283,7 +283,10 @@ export default function EditorPage() {
 
       {/* ── Header ── */}
       <header className="flex items-center justify-between h-[44px] px-4 safe-top shrink-0 z-10">
-        <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center text-white/60 active:text-white">
+        <button onClick={() => {
+            if (window.history.length > 1) router.back();
+            else router.push("/");
+          }} className="w-8 h-8 flex items-center justify-center text-white/60 active:text-white">
           <IconBack size={20} />
         </button>
         <div className="flex items-center gap-0.5">
@@ -314,30 +317,7 @@ export default function EditorPage() {
               {comparing && sourceUrl && <img src={sourceUrl} alt="Original" className="max-w-full max-h-full object-contain rounded-sm" draggable={false} />}
             </div>
 
-            {/* Ref thumbnails — overlapping circles, top-right */}
-            <div className="absolute top-3 right-3 flex items-center z-10">
-              {refImages.length > 0 && (
-                <div className="flex -space-x-2.5 mr-1.5">
-                  {refImages.map((src, i) => (
-                    <button key={i} onClick={() => setActiveRefIdx(i)} onDoubleClick={() => removeRef(i)}
-                      className={`relative w-10 h-10 rounded-full overflow-hidden border-2 transition-all duration-200 ${
-                        i === activeRefIdx
-                          ? "border-white/80 scale-110 z-10 shadow-[0_0_12px_rgba(255,255,255,0.15)]"
-                          : "border-black/90 hover:border-white/30"
-                      }`}>
-                      <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button onClick={() => refInputRef.current?.click()}
-                className="w-8 h-8 rounded-full border border-dashed border-white/20 bg-black/40 backdrop-blur-md flex items-center justify-center hover:border-white/40 transition-colors"
-                title="Add reference image">
-                <IconPlus size={11} className="text-white/50" />
-              </button>
-            </div>
-
-            {/* Step 2 hint — "add reference" (small floating pill, not a button) */}
+            {/* Step 2 hint — "add reference" (small floating pill) */}
             {step === 2 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full">
                 <span className="text-[10px] text-white/50 tracking-[1px]">Add a reference image below</span>
@@ -348,6 +328,22 @@ export default function EditorPage() {
             {step === 3 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full">
                 <span className="text-[10px] text-white/50 tracking-[1px]">Tap Apply to transfer colors</span>
+              </div>
+            )}
+
+            {/* XY Pad — floating over image, bottom-right (like ColorBy) */}
+            {activeTab === "transfer" && hasImage && (
+              <div className="absolute bottom-3 right-3 z-10 flex items-end gap-2">
+                <XYPad x={params.color_strength} y={params.tone_strength} onChange={updateXY} compact />
+                <button
+                  onClick={() => {
+                    setParams((p) => ({ ...p, auto_xy: true, color_strength: 0.88, tone_strength: 0.78 }));
+                    if (canProcess) runTransfer();
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[10px] text-white/60 tracking-wider active:text-white transition-colors"
+                >
+                  Auto
+                </button>
               </div>
             )}
 
@@ -423,9 +419,34 @@ export default function EditorPage() {
         <div className="overflow-y-auto" style={{ maxHeight: "calc(40vh - 52px)" }}>
           <div className="py-2">
             {activeTab === "transfer" && (
-              <div className="flex flex-col gap-3">
-                <XYPad x={params.color_strength} y={params.tone_strength} onChange={updateXY} />
-                <div className="flex items-center gap-2 px-5 pb-1">
+              <div className="flex flex-col gap-2 px-5 py-1">
+                {/* Reference thumbnails strip */}
+                {refImages.length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto py-1 -mx-1 px-1 no-scrollbar">
+                    {refImages.map((src, i) => (
+                      <button key={i} onClick={() => setActiveRefIdx(i)} onDoubleClick={() => removeRef(i)}
+                        className={`relative shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                          i === activeRefIdx
+                            ? "border-white/70 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                            : "border-white/10 hover:border-white/25"
+                        }`}>
+                        <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
+                        {i === activeRefIdx && (
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent h-4 flex items-end justify-center pb-0.5">
+                            <div className="w-1 h-1 rounded-full bg-white" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                    <button onClick={() => refInputRef.current?.click()}
+                      className="shrink-0 w-14 h-14 rounded-lg border border-dashed border-white/15 flex items-center justify-center hover:border-white/30 transition-colors">
+                      <IconPlus size={12} className="text-white/30" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-2 pb-1">
                   {step === 1 && (
                     <button onClick={() => sourceInputRef.current?.click()}
                       className="flex-1 py-2.5 rounded-xl text-[11px] tracking-wider bg-white text-black font-semibold active:scale-[0.98] transition-all">
@@ -440,10 +461,6 @@ export default function EditorPage() {
                   )}
                   {step >= 3 && (
                     <>
-                      <button onClick={() => refInputRef.current?.click()}
-                        className="py-2.5 px-4 rounded-xl text-[11px] tracking-wider bg-white/[0.06] border border-white/[0.08] text-white/50 hover:text-white/80 transition-colors">
-                        + Ref
-                      </button>
                       <button onClick={runTransfer} disabled={!canProcess}
                         className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all disabled:opacity-40">
                         {processing ? "Processing…" : hasTransferred ? "Re-apply" : "Apply"}
@@ -456,6 +473,56 @@ export default function EditorPage() {
             {activeTab === "edit" && <AdjustmentPanel values={adjValues} activeTool={activeTool} onSelectTool={setActiveTool} onChangeValue={handleAdjChange} />}
             {activeTab === "curves" && <CurveEditor curves={params.curve_points} onChange={(c) => setParams((p) => ({ ...p, curve_points: c }))} />}
             {activeTab === "hsl" && <HSLPanel hsl7={params.hsl7} onChange={(h) => setParams((p) => ({ ...p, hsl7: h }))} />}
+            {activeTab === "crop" && (
+              <div className="flex flex-col items-center gap-4 px-5 py-3">
+                {/* Aspect ratio pills */}
+                <div className="flex items-center gap-2">
+                  {[
+                    { label: "Free", value: "free" },
+                    { label: "1:1", value: "1:1" },
+                    { label: "4:3", value: "4:3" },
+                    { label: "16:9", value: "16:9" },
+                    { label: "3:2", value: "3:2" },
+                    { label: "9:16", value: "9:16" },
+                  ].map((r) => (
+                    <button
+                      key={r.value}
+                      className="px-3 py-1.5 rounded-full text-[10px] tracking-[0.5px] text-white/40 bg-white/[0.04] border border-white/[0.06] hover:text-white/70 hover:bg-white/[0.08] transition-colors"
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Rotate + Flip */}
+                <div className="flex items-center gap-4">
+                  <button className="flex flex-col items-center gap-1 group">
+                    <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/50">
+                        <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                      </svg>
+                    </div>
+                    <span className="text-[9px] text-white/30 tracking-wider">Rotate</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-1 group">
+                    <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/50">
+                        <line x1="12" y1="2" x2="12" y2="22" /><polyline points="5 12 2 9 5 6" /><polyline points="19 6 22 9 19 12" /><path d="M2 9h20" />
+                      </svg>
+                    </div>
+                    <span className="text-[9px] text-white/30 tracking-wider">Flip H</span>
+                  </button>
+                  <button className="flex flex-col items-center gap-1 group">
+                    <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/50 rotate-90">
+                        <line x1="12" y1="2" x2="12" y2="22" /><polyline points="5 12 2 9 5 6" /><polyline points="19 6 22 9 19 12" /><path d="M2 9h20" />
+                      </svg>
+                    </div>
+                    <span className="text-[9px] text-white/30 tracking-wider">Flip V</span>
+                  </button>
+                </div>
+                <span className="text-[10px] text-white/20 tracking-wider">Crop preview coming soon</span>
+              </div>
+            )}
           </div>
         </div>
         <EditorTabBar active={activeTab} onSelect={setActiveTab} />
