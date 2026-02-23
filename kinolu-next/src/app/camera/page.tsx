@@ -9,6 +9,7 @@ import {
   IconGrid,
   IconFlip,
   IconImage,
+  IconLibrary,
 } from "@/components/icons";
 import { listPresets } from "@/lib/api";
 import type { PresetItem } from "@/lib/types";
@@ -123,6 +124,9 @@ export default function CameraPage() {
             <IconBack size={18} />
           </button>
           <div className="flex items-center gap-2">
+            <button onClick={() => router.push("/presets")} className="w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/50" title="Presets">
+              <IconLibrary size={15} />
+            </button>
             <button onClick={() => setFlash(!flash)} className={`w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${flash ? "text-yellow-300" : "text-white/50"}`}>
               {flash ? <IconFlash size={16} /> : <IconFlashOff size={16} />}
             </button>
@@ -135,27 +139,31 @@ export default function CameraPage() {
         {/* Spacer — pushes bottom area down */}
         <div className="flex-1" />
 
-        {/* Preset strip */}
-        {presets.length > 0 && (
-          <div className="pointer-events-auto px-4 pb-3">
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-              <button onClick={() => setActivePresetId("")}
+        {/* Preset strip — always visible */}
+        <div className="pointer-events-auto px-4 pb-3">
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+            <button onClick={() => setActivePresetId("")}
+              className={`shrink-0 h-7 rounded-full px-3.5 text-[10px] tracking-[1px] border transition-all ${
+                activePresetId === "" ? "border-white/50 text-white bg-white/15 backdrop-blur-md" : "border-white/10 text-white/45 bg-black/25 backdrop-blur-md"
+              }`}>
+              Original
+            </button>
+            {presets.map((p) => (
+              <button key={p.id} onClick={() => setActivePresetId(p.id)}
                 className={`shrink-0 h-7 rounded-full px-3.5 text-[10px] tracking-[1px] border transition-all ${
-                  activePresetId === "" ? "border-white/50 text-white bg-white/15 backdrop-blur-md" : "border-white/10 text-white/45 bg-black/25 backdrop-blur-md"
+                  activePresetId === p.id ? "border-white/50 text-white bg-white/15 backdrop-blur-md" : "border-white/10 text-white/45 bg-black/25 backdrop-blur-md"
                 }`}>
-                Original
+                {p.name}
               </button>
-              {presets.map((p) => (
-                <button key={p.id} onClick={() => setActivePresetId(p.id)}
-                  className={`shrink-0 h-7 rounded-full px-3.5 text-[10px] tracking-[1px] border transition-all ${
-                    activePresetId === p.id ? "border-white/50 text-white bg-white/15 backdrop-blur-md" : "border-white/10 text-white/45 bg-black/25 backdrop-blur-md"
-                  }`}>
-                  {p.name}
-                </button>
-              ))}
-            </div>
+            ))}
+            {presets.length === 0 && (
+              <button onClick={() => router.push("/presets")}
+                className="shrink-0 h-7 rounded-full px-3.5 text-[10px] tracking-[1px] border border-dashed border-white/15 text-white/30 bg-black/25 backdrop-blur-md">
+                + Create preset in Editor
+              </button>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Zoom pill */}
         <div className="flex justify-center pb-3 pointer-events-auto">
