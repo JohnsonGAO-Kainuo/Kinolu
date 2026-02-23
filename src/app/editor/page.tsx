@@ -37,10 +37,58 @@ const TOOL_TO_PARAM: Record<AdjustmentTool, keyof EditParams> = {
   sharpen: "sharpen", noise: "noise",
 };
 
+/* ── Undo/Redo history hook ── */
+function useHistory<T>(initial: T) {
+  const [stack, setStack] = useState<T[]>([initial]);
+  const [idx, setIdx] = useState(0);
+
+  const current = stack[idx];
+
+  const push = useCallback((val: T) => {
+    setStack((s) => {
+      const trimmed = s.slice(0, idx + 1);
+      const next = [...trimmed, val];
+      // Limit to 30 entries
+      if (next.length > 30) next.shift();
+      return next;
+    });
+    setIdx((i) => Math.min(i + 1, 29));
+  }, [idx]);
+
+  const undo = useCallback(() => {
+    setIdx((i) => Math.max(0, i - 1));
+  }, []);
+
+  const redo = useCallback(() => {
+    setIdx((i) => Math.min(stack.length - 1, i + 1));
+  }, [stack.length]);
+
+  const reset = useCallback((val: T) => {
+    setStack([val]);
+    setIdx(0);
+  }, []);
+
+  return {
+    current,
+    push,
+    undo,
+    redo,
+    reset,
+    canUndo: idx > 0,
+    canRedo: idx < stack.length - 1,
+  };
+}
+
 export default function EditorPage() {
   const router = useRouter();
 
-  const [params, setParams] = useState<EditParams>(DEFAULT_EDIT_PARAMS);
+  const history = useHistory<EditParams>(DEFAULT_EDIT_PARAMS);
+  const params = history.current;
+  const setParams = useCallback((updater: EditParams | ((p: EditParams) => EditParams)) => {
+    const next = typeof updater === "function" ? updater(history.current) : updater;
+    history.push(next);
+  }, [history]);
+
   const [activeTab, setActiveTab] = useState<EditorTab>("transfer");
   const [activeTool, setActiveTool] = useState<AdjustmentTool>("exposure");
   const [processing, setProcessing] = useState(false);
@@ -56,6 +104,12 @@ export default function EditorPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasTransferred, setHasTransferred] = useState(false);
   const [renderTick, setRenderTick] = useState(0);
+
+  /* Crop state */
+  const [cropRotation, setCropRotation] = useState(0); // degrees: 0, 90, 180, 270
+  const [cropFlipH, setCropFlipH] = useState(false);
+  const [cropFlipV, setCropFlipV] = useState(false);
+  const [cropAspect, setCropAspect] = useState("free");
 
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const sourceImageData = useRef<ImageData | null>(null);
@@ -229,10 +283,11 @@ export default function EditorPage() {
   }, []);
 
   const handleReset = useCallback(() => {
-    setParams(DEFAULT_EDIT_PARAMS);
+    if (!window.confirm("Reset all adjustments to default?")) return;
+    history.reset(DEFAULT_EDIT_PARAMS);
     baseImageData.current = transferredImageData.current || sourceImageData.current;
     setRenderTick((t) => t + 1);
-  }, []);
+  }, [history]);
 
   /* ── Export ── */
   const handleDownload = useCallback(async () => {
@@ -322,7 +377,14 @@ export default function EditorPage() {
           <>
             {/* Image display */}
             <div className="absolute inset-0 flex items-center justify-center px-3 py-2">
-              <canvas ref={displayCanvasRef} className={`max-w-full max-h-full object-contain rounded-sm ${comparing ? "hidden" : ""}`} />
+              <canvas
+                ref={displayCanvasRef}
+                className={`max-w-full max-h-full object-contain rounded-sm ${comparing ? "hidden" : ""}`}
+                style={{
+                  transform: `rotate(${cropRotation}deg) scaleX(${cropFlipH ? -1 : 1}) scaleY(${cropFlipV ? -1 : 1})`,
+                  transition: "transform 0.3s ease",
+                }}
+              />
               {comparing && sourceUrl && <img src={sourceUrl} alt="Original" className="max-w-full max-h-full object-contain rounded-sm" draggable={false} />}
             </div>
 
@@ -340,8 +402,8 @@ export default function EditorPage() {
               </div>
             )}
 
-            {/* XY Pad — floating over image, bottom-right (like ColorBy) */}
-            {activeTab === "transfer" && hasImage && (
+            {/* XY Pad — floating over image, bottom-right (like ColorBy) — only after transfer */}
+            {activeTab === "transfer" && hasTransferred && (
               <div className="absolute bottom-3 right-3 z-10 flex items-end gap-2">
                 <XYPad x={params.color_strength} y={params.tone_strength} onChange={updateXY} compact />
                 <button
@@ -356,16 +418,49 @@ export default function EditorPage() {
               </div>
             )}
 
-            {/* Compare + Reset — bottom-left floating */}
-            <div className="absolute bottom-2 left-2 flex gap-1.5 z-10">
+            {/* ── Bottom-left floating toolbar: Compare + Undo + Redo + Reset ── */}
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10">
+              {/* Compare (hold) */}
               {hasTransferred && (
-                <button onPointerDown={() => setComparing(true)} onPointerUp={() => setComparing(false)} onPointerLeave={() => setComparing(false)}
-                  className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/50 active:text-white">
-                  <IconCompare size={15} />
+                <button
+                  onPointerDown={() => setComparing(true)}
+                  onPointerUp={() => setComparing(false)}
+                  onPointerLeave={() => setComparing(false)}
+                  className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/50 active:text-white"
+                  title="Hold to compare original"
+                >
+                  <IconCompare size={16} />
                 </button>
               )}
-              <button onClick={handleReset} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/30 active:text-white">
-                <IconReset size={15} />
+              {/* Undo */}
+              <button
+                onClick={history.undo}
+                disabled={!history.canUndo}
+                className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center transition-colors disabled:opacity-20"
+                title="Undo"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
+                  <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                </svg>
+              </button>
+              {/* Redo */}
+              <button
+                onClick={history.redo}
+                disabled={!history.canRedo}
+                className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center transition-colors disabled:opacity-20"
+                title="Redo"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
+                  <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10" />
+                </svg>
+              </button>
+              {/* Global reset with confirmation */}
+              <button
+                onClick={handleReset}
+                className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/30 active:text-white"
+                title="Reset all adjustments"
+              >
+                <IconReset size={14} />
               </button>
             </div>
 
@@ -485,7 +580,7 @@ export default function EditorPage() {
             {activeTab === "crop" && (
               <div className="flex flex-col items-center gap-4 px-5 py-3">
                 {/* Aspect ratio pills */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
                   {[
                     { label: "Free", value: "free" },
                     { label: "1:1", value: "1:1" },
@@ -496,40 +591,62 @@ export default function EditorPage() {
                   ].map((r) => (
                     <button
                       key={r.value}
-                      className="px-3 py-1.5 rounded-full text-[10px] tracking-[0.5px] text-white/40 bg-white/[0.04] border border-white/[0.06] hover:text-white/70 hover:bg-white/[0.08] transition-colors"
+                      onClick={() => setCropAspect(r.value)}
+                      className={`px-3.5 py-1.5 rounded-full text-[11px] tracking-[0.5px] font-medium transition-all ${
+                        cropAspect === r.value
+                          ? "bg-white/10 text-white"
+                          : "text-white/35 bg-white/[0.03] hover:text-white/60"
+                      }`}
                     >
                       {r.label}
                     </button>
                   ))}
                 </div>
-                {/* Rotate + Flip */}
-                <div className="flex items-center gap-4">
-                  <button className="flex flex-col items-center gap-1 group">
-                    <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/50">
-                        <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                {/* Rotate + Flip — functional buttons */}
+                <div className="flex items-center gap-5">
+                  <button
+                    onClick={() => setCropRotation((r) => (r + 90) % 360)}
+                    className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
+                  >
+                    <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
+                        <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
                       </svg>
                     </div>
-                    <span className="text-[9px] text-white/30 tracking-wider">Rotate</span>
+                    <span className="text-[10px] text-white/40 tracking-wider font-medium">{cropRotation}°</span>
                   </button>
-                  <button className="flex flex-col items-center gap-1 group">
-                    <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/50">
-                        <line x1="12" y1="2" x2="12" y2="22" /><polyline points="5 12 2 9 5 6" /><polyline points="19 6 22 9 19 12" /><path d="M2 9h20" />
+                  <button
+                    onClick={() => setCropFlipH((f) => !f)}
+                    className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
+                  >
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${cropFlipH ? "bg-white/15" : "bg-white/[0.06] group-active:bg-white/15"}`}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
+                        <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
                       </svg>
                     </div>
-                    <span className="text-[9px] text-white/30 tracking-wider">Flip H</span>
+                    <span className="text-[10px] text-white/40 tracking-wider font-medium">Flip H</span>
                   </button>
-                  <button className="flex flex-col items-center gap-1 group">
-                    <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/50 rotate-90">
-                        <line x1="12" y1="2" x2="12" y2="22" /><polyline points="5 12 2 9 5 6" /><polyline points="19 6 22 9 19 12" /><path d="M2 9h20" />
+                  <button
+                    onClick={() => setCropFlipV((f) => !f)}
+                    className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
+                  >
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${cropFlipV ? "bg-white/15" : "bg-white/[0.06] group-active:bg-white/15"}`}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60 rotate-90">
+                        <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
                       </svg>
                     </div>
-                    <span className="text-[9px] text-white/30 tracking-wider">Flip V</span>
+                    <span className="text-[10px] text-white/40 tracking-wider font-medium">Flip V</span>
+                  </button>
+                  <button
+                    onClick={() => { setCropRotation(0); setCropFlipH(false); setCropFlipV(false); setCropAspect("free"); }}
+                    className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
+                  >
+                    <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
+                      <IconReset size={18} className="text-white/40" />
+                    </div>
+                    <span className="text-[10px] text-white/40 tracking-wider font-medium">Reset</span>
                   </button>
                 </div>
-                <span className="text-[10px] text-white/20 tracking-wider">Crop preview coming soon</span>
               </div>
             )}
           </div>
