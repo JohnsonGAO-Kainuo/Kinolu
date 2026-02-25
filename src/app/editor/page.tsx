@@ -13,6 +13,7 @@ import {
 import { applyEdits, hasActiveEdits, cropImageData, rotateImageData90CW, flipImageDataH, flipImageDataV } from "@/lib/imageProcessor";
 import { saveRefImage, listRefImages, deleteRefImage } from "@/lib/refStore";
 import { listLocalLuts, type LutEntry } from "@/lib/lutStore";
+import { getBuiltinMeta } from "@/lib/builtinLuts";
 import CropOverlay, { type CropRect } from "@/components/CropOverlay";
 import { preloadSegmentationModels } from "@/lib/segmentation";
 import {
@@ -139,13 +140,16 @@ export default function EditorPage() {
   }, []);
 
   /* ── Helpers ── */
+  const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   const loadImageToData = useCallback(
     (url: string): Promise<ImageData> =>
       new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
-          const MAX = 1200;
+          // Lower cap on mobile to reduce memory pressure and prevent tab crashes
+          const MAX = isMobile ? 800 : 1200;
           let w = img.naturalWidth, h = img.naturalHeight;
           if (w > MAX || h > MAX) { const s = MAX / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
           const c = document.createElement("canvas"); c.width = w; c.height = h;
@@ -155,7 +159,7 @@ export default function EditorPage() {
         img.onerror = reject;
         img.src = url;
       }),
-    []
+    [isMobile]
   );
 
   /* Paint canvas directly — called after any data change */
@@ -213,7 +217,9 @@ export default function EditorPage() {
     setProcessing(true); setErrorMsg(null);
     try {
       const blob = await applyPresetToImage(source, presetId);
-      const data = await loadImageToData(URL.createObjectURL(blob));
+      const u = URL.createObjectURL(blob);
+      const data = await loadImageToData(u);
+      URL.revokeObjectURL(u);
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setRenderTick((t) => t + 1);
@@ -297,7 +303,9 @@ export default function EditorPage() {
     setProcessing(true); setErrorMsg(null);
     try {
       const resp = await transferImage(ref, source, params);
-      const data = await loadImageToData(URL.createObjectURL(resp.imageBlob));
+      const resultObjUrl = URL.createObjectURL(resp.imageBlob);
+      const data = await loadImageToData(resultObjUrl);
+      URL.revokeObjectURL(resultObjUrl);
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setRenderTick((t) => t + 1);
@@ -416,7 +424,9 @@ export default function EditorPage() {
     setProcessing(true); setErrorMsg(null);
     try {
       const blob = await applyPresetToImage(source, lutId);
-      const data = await loadImageToData(URL.createObjectURL(blob));
+      const u = URL.createObjectURL(blob);
+      const data = await loadImageToData(u);
+      URL.revokeObjectURL(u);
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setRenderTick((t) => t + 1);
@@ -812,26 +822,66 @@ export default function EditorPage() {
                 )}
 
                 {/* ── LUT/Preset strip ── */}
-                {availableLuts.length > 0 && sourceUrl && (
-                  <div className="mt-2">
-                    <span className="text-[9px] text-white/30 tracking-[1.5px] uppercase mb-1 block">{t("editor_presets")}</span>
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                      {availableLuts.map((lut) => (
-                        <button key={lut.id} onClick={() => applyLutInline(lut.id)}
-                          className="shrink-0 flex flex-col items-center gap-0.5">
-                          <div className="w-12 h-12 rounded-lg border border-white/10 overflow-hidden bg-black/40">
-                            {lutThumbUrls[lut.id] ? (
-                              <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center"><span className="text-[7px] text-white/20">LUT</span></div>
-                            )}
+                {availableLuts.length > 0 && sourceUrl && (() => {
+                  // Separate built-in and user presets
+                  const builtins = availableLuts.filter((l) => getBuiltinMeta(l.name));
+                  const userLuts = availableLuts.filter((l) => !getBuiltinMeta(l.name));
+                  return (
+                    <div className="mt-2 flex flex-col gap-2">
+                      {/* User presets */}
+                      {userLuts.length > 0 && (
+                        <div>
+                          <span className="text-[9px] text-white/30 tracking-[1.5px] uppercase mb-1 block">{t("editor_presets")}</span>
+                          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                            {userLuts.map((lut) => (
+                              <button key={lut.id} onClick={() => applyLutInline(lut.id)}
+                                className="shrink-0 flex flex-col items-center gap-0.5">
+                                <div className="w-12 h-12 rounded-lg border border-white/10 overflow-hidden bg-black/40">
+                                  {lutThumbUrls[lut.id] ? (
+                                    <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center"><span className="text-[7px] text-white/20">LUT</span></div>
+                                  )}
+                                </div>
+                                <span className="text-[8px] text-white/35 max-w-[48px] truncate">{lut.name}</span>
+                              </button>
+                            ))}
                           </div>
-                          <span className="text-[8px] text-white/35 max-w-[48px] truncate">{lut.name}</span>
-                        </button>
-                      ))}
+                        </div>
+                      )}
+                      {/* Built-in film presets */}
+                      {builtins.length > 0 && (
+                        <div>
+                          <span className="text-[9px] text-white/30 tracking-[1.5px] uppercase mb-1 block">{t("editor_filmPresets")}</span>
+                          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                            {builtins.map((lut) => {
+                              const meta = getBuiltinMeta(lut.name);
+                              return (
+                                <button key={lut.id} onClick={() => applyLutInline(lut.id)}
+                                  className="shrink-0 flex flex-col items-center gap-0.5">
+                                  <div className="w-12 h-12 rounded-lg border border-white/10 overflow-hidden bg-black/40">
+                                    {lutThumbUrls[lut.id] ? (
+                                      <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className={`w-full h-full flex items-center justify-center ${
+                                        meta?.category === "fuji" ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/15"
+                                        : meta?.category === "kodak" ? "bg-gradient-to-br from-amber-500/15 to-yellow-500/15"
+                                        : "bg-gradient-to-br from-rose-500/15 to-purple-500/15"
+                                      }`}>
+                                        <span className="text-[7px] text-white/30">{meta?.category === "fuji" ? "F" : meta?.category === "kodak" ? "K" : "✦"}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-[8px] text-white/35 max-w-[48px] truncate">{lut.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
             {activeTab === "edit" && <AdjustmentPanel values={adjValues} activeTool={activeTool} onSelectTool={setActiveTool} onChangeValue={handleAdjChange} />}

@@ -14,14 +14,18 @@ import {
 import { listPresets } from "@/lib/api";
 import type { PresetItem } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
-import { listLocalLuts, type LutEntry } from "@/lib/lutStore";
+import { listLocalLuts, getLocalLut, applyLutToPixels, type LutEntry } from "@/lib/lutStore";
+import { getBuiltinMeta } from "@/lib/builtinLuts";
 
 export default function CameraPage() {
   const router = useRouter();
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number>(0);
+  const activeLutRef = useRef<{ data: Float32Array; size: number } | null>(null);
 
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
@@ -33,6 +37,7 @@ export default function CameraPage() {
   const [localLutItems, setLocalLutItems] = useState<Omit<LutEntry, "data">[]>([]);
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [activePresetId, setActivePresetId] = useState<string>("");
+  const [lutLoading, setLutLoading] = useState(false);
 
   /* ── Start camera ── */
   const startCamera = useCallback(async () => {
@@ -75,6 +80,71 @@ export default function CameraPage() {
   const flipCamera = useCallback(() => setFacingMode((p) => (p === "environment" ? "user" : "environment")), []);
   const cycleZoom = useCallback(() => setZoom((p) => (p === 1 ? 2 : p === 2 ? 3 : 1)), []);
 
+  /* ── Load LUT data when a preset is selected ── */
+  useEffect(() => {
+    if (!activePresetId) {
+      activeLutRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    setLutLoading(true);
+    void (async () => {
+      try {
+        const entry = await getLocalLut(activePresetId);
+        if (!cancelled && entry) {
+          activeLutRef.current = { data: entry.data, size: entry.size };
+        }
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setLutLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [activePresetId]);
+
+  /* ── Real-time preview loop: render video → canvas, apply LUT if active ── */
+  useEffect(() => {
+    const video = videoRef.current;
+    const preview = previewCanvasRef.current;
+    if (!video || !preview) return;
+    const ctx = preview.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    let running = true;
+    const draw = () => {
+      if (!running) return;
+      if (video.readyState >= 2) {
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        if (vw && vh) {
+          // Cap preview resolution when LUT is active for mobile perf
+          const hasLut = !!activeLutRef.current;
+          const maxP = hasLut ? 480 : 0;
+          let cw = vw, ch = vh;
+          if (maxP && Math.max(vw, vh) > maxP) {
+            const s = maxP / Math.max(vw, vh);
+            cw = Math.round(vw * s); ch = Math.round(vh * s);
+          }
+
+          if (preview.width !== cw || preview.height !== ch) {
+            preview.width = cw; preview.height = ch;
+          }
+          // Zoom crop from video
+          const sw = vw / zoom, sh = vh / zoom;
+          const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+          ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
+
+          if (hasLut) {
+            const imgData = ctx.getImageData(0, 0, cw, ch);
+            applyLutToPixels(imgData.data, activeLutRef.current!.data, activeLutRef.current!.size);
+            ctx.putImageData(imgData, 0, 0);
+          }
+        }
+      }
+      rafRef.current = requestAnimationFrame(draw);
+    };
+    rafRef.current = requestAnimationFrame(draw);
+    return () => { running = false; cancelAnimationFrame(rafRef.current); };
+  }, [zoom]);
+
   /* ── Capture ── */
   const capture = useCallback(() => {
     const video = videoRef.current; const canvas = canvasRef.current;
@@ -85,6 +155,12 @@ export default function CameraPage() {
     const sx = (video.videoWidth - sw) / 2, sy = (video.videoHeight - sh) / 2;
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     if (flash) { ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    // Apply active LUT to captured frame
+    if (activeLutRef.current) {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      applyLutToPixels(imgData.data, activeLutRef.current.data, activeLutRef.current.size);
+      ctx.putImageData(imgData, 0, 0);
+    }
     canvas.toBlob((blob) => { if (blob) setCapturedUrl(URL.createObjectURL(blob)); }, "image/jpeg", 0.95);
   }, [zoom, flash]);
 
@@ -115,10 +191,11 @@ export default function CameraPage() {
         </div>
       )}
 
-      {/* ── Full viewfinder ── */}
+      {/* ── Full viewfinder — hidden video + visible preview canvas ── */}
       <video ref={videoRef} autoPlay playsInline muted
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ transform: `scale(${zoom})`, transition: "transform 0.3s ease" }} />
+        className="absolute w-0 h-0 opacity-0 pointer-events-none" />
+      <canvas ref={previewCanvasRef}
+        className="absolute inset-0 w-full h-full object-cover" />
 
       {/* ── Grid overlay ── */}
       {showGrid && (
@@ -127,6 +204,13 @@ export default function CameraPage() {
           <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/15" />
           <div className="absolute top-1/3 left-0 right-0 h-px bg-white/15" />
           <div className="absolute top-2/3 left-0 right-0 h-px bg-white/15" />
+        </div>
+      )}
+
+      {/* ── LUT loading indicator ── */}
+      {lutLoading && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+          <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
         </div>
       )}
 
@@ -175,7 +259,9 @@ export default function CameraPage() {
               </div>
             </button>
             {/* Local LUTs */}
-            {localLutItems.map((lut) => (
+            {localLutItems.map((lut) => {
+              const meta = getBuiltinMeta(lut.name);
+              return (
               <button key={lut.id} onClick={() => setActivePresetId(lut.id)}
                 className={`shrink-0 flex flex-col items-center gap-1`}>
                 <div className={`w-14 h-14 rounded-xl border-2 overflow-hidden transition-all ${
@@ -184,14 +270,20 @@ export default function CameraPage() {
                   {thumbUrls[lut.id] ? (
                     <img src={thumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center backdrop-blur-sm">
-                      <span className="text-[8px] text-white/30">LUT</span>
+                    <div className={`w-full h-full flex items-center justify-center backdrop-blur-sm ${
+                      meta?.category === "fuji" ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20"
+                      : meta?.category === "kodak" ? "bg-gradient-to-br from-amber-500/20 to-yellow-500/20"
+                      : meta ? "bg-gradient-to-br from-rose-500/20 to-purple-500/20"
+                      : "bg-gradient-to-br from-purple-500/20 to-blue-500/20"
+                    }`}>
+                      <span className="text-[8px] text-white/30">{meta ? (meta.category === "fuji" ? "F" : meta.category === "kodak" ? "K" : "✦") : "LUT"}</span>
                     </div>
                   )}
                 </div>
                 <span className="text-[8px] text-white/40 max-w-[56px] truncate">{lut.name}</span>
               </button>
-            ))}
+              );
+            })}
             {/* Server presets fallback */}
             {presets.map((p) => (
               <button key={p.id} onClick={() => setActivePresetId(p.id)}

@@ -74,6 +74,7 @@ const en = {
   editor_resetConfirm: "Reset all adjustments to default?",
   editor_presetApplied: "Preset applied",
   editor_presets: "Presets",
+  editor_filmPresets: "Film Presets",
   editor_replaceSource: "Replace photo",
   editor_imageSaved: "Image saved",
   editor_importPhotoFirst: "Import a photo first",

@@ -481,11 +481,13 @@ export async function clientTransfer(
   skinProtect = true,
   semanticRegions = true,
 ): Promise<TransferResponse> {
-  // Decode images: small for stats, full for output
+  // Decode images: small for stats, capped for output (800px on mobile to prevent OOM)
+  const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const fullMax = isMobile ? 800 : 1200;
   const [srcSmall, refSmall, srcFull] = await Promise.all([
     blobToImageData(sourceBlob, 256),
     blobToImageData(referenceBlob, 256),
-    blobToImageData(sourceBlob),
+    blobToImageData(sourceBlob, fullMax),
   ]);
 
   // Keep a copy of original for region blending

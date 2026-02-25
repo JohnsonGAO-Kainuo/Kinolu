@@ -76,6 +76,7 @@ const zhTW: Record<TranslationKeys, string> = {
   editor_resetConfirm: "是否重置所有調整為預設值？",
   editor_presetApplied: "預設已套用",
   editor_presets: "預設",
+  editor_filmPresets: "膠片濾鏡",
   editor_replaceSource: "替換照片",
   editor_imageSaved: "圖片已儲存",
   editor_importPhotoFirst: "請先匯入一張照片",

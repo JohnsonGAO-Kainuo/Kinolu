@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { I18nProvider } from "@/lib/i18n";
+import BuiltinLutsInit from "@/components/BuiltinLutsInit";
 
 export const metadata: Metadata = {
   title: "Kinolu",
@@ -34,6 +35,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <I18nProvider>
+          <BuiltinLutsInit />
           {children}
         </I18nProvider>
         <script

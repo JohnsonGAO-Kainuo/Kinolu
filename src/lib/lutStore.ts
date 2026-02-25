@@ -263,29 +263,25 @@ export async function applyLutToImage(
   if (!entry) throw new Error("LUT not found");
 
   const bitmap = await createImageBitmap(imageBlob);
-  const { width, height } = bitmap;
+  let { width, height } = bitmap;
+
+  // Cap resolution on mobile to prevent tab crash
+  const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const maxDim = isMobile ? 800 : 1600;
+  if (Math.max(width, height) > maxDim) {
+    const s = maxDim / Math.max(width, height);
+    width = Math.round(width * s);
+    height = Math.round(height * s);
+  }
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(bitmap, 0, 0);
+  ctx.drawImage(bitmap, 0, 0, width, height);
 
   const imageData = ctx.getImageData(0, 0, width, height);
-  const px = imageData.data;
-  const { size, data } = entry;
-
-  for (let i = 0; i < px.length; i += 4) {
-    const r = px[i] / 255;
-    const g = px[i + 1] / 255;
-    const b = px[i + 2] / 255;
-
-    const [nr, ng, nb] = trilinearSample(data, size, r, g, b);
-    px[i] = Math.round(clamp01(nr) * 255);
-    px[i + 1] = Math.round(clamp01(ng) * 255);
-    px[i + 2] = Math.round(clamp01(nb) * 255);
-    // alpha untouched
-  }
+  applyLutToPixels(imageData.data, entry.data, entry.size);
 
   ctx.putImageData(imageData, 0, 0);
 
@@ -296,4 +292,24 @@ export async function applyLutToImage(
       0.92
     );
   });
+}
+
+/**
+ * Apply LUT directly to a Uint8ClampedArray of pixel data (RGBA).
+ * Used for real-time camera preview — avoids IndexedDB round-trip.
+ */
+export function applyLutToPixels(
+  px: Uint8ClampedArray,
+  lutData: Float32Array,
+  lutSize: number,
+): void {
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i] / 255;
+    const g = px[i + 1] / 255;
+    const b = px[i + 2] / 255;
+    const [nr, ng, nb] = trilinearSample(lutData, lutSize, r, g, b);
+    px[i] = Math.round(clamp01(nr) * 255);
+    px[i + 1] = Math.round(clamp01(ng) * 255);
+    px[i + 2] = Math.round(clamp01(nb) * 255);
+  }
 }

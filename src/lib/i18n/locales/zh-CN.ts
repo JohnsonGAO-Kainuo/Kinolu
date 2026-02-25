@@ -76,6 +76,7 @@ const zhCN: Record<TranslationKeys, string> = {
   editor_resetConfirm: "是否重置所有调整为默认值？",
   editor_presetApplied: "预设已应用",
   editor_presets: "预设",
+  editor_filmPresets: "胶片滤镜",
   editor_replaceSource: "替换照片",
   editor_imageSaved: "图片已保存",
   editor_importPhotoFirst: "请先导入一张照片",
