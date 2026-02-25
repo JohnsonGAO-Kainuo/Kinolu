@@ -156,6 +156,14 @@ export default function CameraPage() {
 
         {/* Preset strip — shows local LUTs with thumbnails */}
         <div className="pointer-events-auto px-4 pb-3">
+          {/* Active preset label */}
+          {activePresetId && (
+            <div className="flex justify-center mb-2">
+              <span className="text-[9px] text-white/50 bg-black/40 backdrop-blur-md rounded-full px-3 py-0.5 tracking-wider">
+                {localLutItems.find((l) => l.id === activePresetId)?.name || presets.find((p) => p.id === activePresetId)?.name || "Preset"}
+              </span>
+            </div>
+          )}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {/* Original (no preset) */}
             <button onClick={() => setActivePresetId("")}

@@ -73,6 +73,8 @@ const en = {
   editor_original: "Original",
   editor_resetConfirm: "Reset all adjustments to default?",
   editor_presetApplied: "Preset applied",
+  editor_presets: "Presets",
+  editor_replaceSource: "Replace photo",
   editor_imageSaved: "Image saved",
   editor_importPhotoFirst: "Import a photo first",
   editor_applyTransferFirst: "Apply a transfer first",
@@ -123,6 +125,15 @@ const en = {
   crop_flipH: "Flip H",
   crop_flipV: "Flip V",
   crop_reset: "Reset",
+  crop_apply: "Apply Crop",
+  crop_applied: "Crop applied",
+
+  /* ── Batch ── */
+  batch_import: "Batch",
+  batch_title: "Batch",
+  batch_applyAll: "Apply All",
+  batch_downloadAll: "Download All",
+  batch_complete: "Batch processing complete",
 
   /* ── Curves ── */
   curves_reset: "Reset {channel}",
@@ -150,6 +161,8 @@ const en = {
   lib_applyLocally: "Apply locally (client-side)",
   lib_applyLocallyDesc: "Apply LUT to photos without a backend server",
   lib_apply: "APPLY",
+  lib_openInEditor: "OPEN IN EDITOR",
+  lib_hint: "Manage your presets here. They’re automatically available in Editor and Camera.",
   lib_cube: "CUBE",
   lib_loadFailed: "Load presets failed",
   lib_importFailed: "Import CUBE failed",

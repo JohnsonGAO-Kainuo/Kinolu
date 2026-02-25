@@ -10,8 +10,10 @@ import {
   exportLutFromTransfer,
   transferImage,
 } from "@/lib/api";
-import { applyEdits, hasActiveEdits } from "@/lib/imageProcessor";
+import { applyEdits, hasActiveEdits, cropImageData, rotateImageData90CW, flipImageDataH, flipImageDataV } from "@/lib/imageProcessor";
 import { saveRefImage, listRefImages, deleteRefImage } from "@/lib/refStore";
+import { listLocalLuts, type LutEntry } from "@/lib/lutStore";
+import CropOverlay, { type CropRect } from "@/components/CropOverlay";
 import { preloadSegmentationModels } from "@/lib/segmentation";
 import {
   IconBack,
@@ -106,9 +108,6 @@ export default function EditorPage() {
   const [renderTick, setRenderTick] = useState(0);
 
   /* Crop state */
-  const [cropRotation, setCropRotation] = useState(0); // degrees: 0, 90, 180, 270
-  const [cropFlipH, setCropFlipH] = useState(false);
-  const [cropFlipV, setCropFlipV] = useState(false);
   const [cropAspect, setCropAspect] = useState("free");
 
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -120,6 +119,19 @@ export default function EditorPage() {
   const refFilesRef = useRef<File[]>([]);
   const sourceInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
+  const batchInputRef = useRef<HTMLInputElement>(null);
+  const refIdsRef = useRef<string[]>([]);
+
+  /* Batch state */
+  const [batchFiles, setBatchFiles] = useState<Array<{ file: File; url: string; resultUrl: string | null; status: "idle" | "processing" | "done" | "error" }>>([]);
+  const [batchProcessing, setBatchProcessing] = useState(false);
+
+  /* Preset/LUT strip */
+  const [availableLuts, setAvailableLuts] = useState<Omit<LutEntry, "data">[]>([]);
+  const [lutThumbUrls, setLutThumbUrls] = useState<Record<string, string>>({});
+
+  /* Crop region */
+  const [cropRegion, setCropRegion] = useState<CropRect>({ x: 0, y: 0, w: 1, h: 1 });
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -179,11 +191,14 @@ export default function EditorPage() {
         if (saved.length > 0 && refImages.length === 0) {
           const urls: string[] = [];
           const files: File[] = [];
+          const ids: string[] = [];
           for (const entry of saved) {
             urls.push(URL.createObjectURL(entry.blob));
             files.push(new File([entry.blob], entry.name, { type: entry.blob.type || "image/jpeg" }));
+            ids.push(entry.id);
           }
           refFilesRef.current = files;
+          refIdsRef.current = ids;
           setRefImages(urls);
           setActiveRefIdx(0);
         }
@@ -219,7 +234,7 @@ export default function EditorPage() {
     if (pendingPresetId) { void runApplyPreset(pendingPresetId); setPendingPresetId(""); }
   }, [loadImageToData, pendingPresetId, runApplyPreset]);
 
-  const handleRefUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRefUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files) return;
     const arr = Array.from(files);
     refFilesRef.current = [...refFilesRef.current, ...arr];
@@ -227,12 +242,16 @@ export default function EditorPage() {
     if (refImages.length === 0) setActiveRefIdx(0);
     // Persist references to IndexedDB
     for (const f of arr) {
-      void saveRefImage(f.name, f);
+      const entry = await saveRefImage(f.name, f);
+      refIdsRef.current.push(entry.id);
     }
   }, [refImages.length]);
 
   const removeRef = useCallback((idx: number) => {
+    const dbId = refIdsRef.current[idx];
+    if (dbId) void deleteRefImage(dbId);
     refFilesRef.current = refFilesRef.current.filter((_, i) => i !== idx);
+    refIdsRef.current = refIdsRef.current.filter((_, i) => i !== idx);
     setRefImages((prev) => prev.filter((_, i) => i !== idx));
     if (activeRefIdx >= idx && activeRefIdx > 0) setActiveRefIdx((p) => p - 1);
   }, [activeRefIdx]);
@@ -375,11 +394,115 @@ export default function EditorPage() {
   /* ── Flow step ── */
   const step = !sourceUrl ? 1 : refImages.length === 0 ? 2 : !hasTransferred ? 3 : 4;
 
+  /* ── Load available LUTs for preset strip ── */
+  useEffect(() => {
+    void listLocalLuts().then((luts) => {
+      setAvailableLuts(luts);
+      const urls: Record<string, string> = {};
+      for (const l of luts) {
+        if (l.thumbnail) urls[l.id] = URL.createObjectURL(l.thumbnail);
+      }
+      setLutThumbUrls((prev) => {
+        Object.values(prev).forEach((u) => URL.revokeObjectURL(u));
+        return urls;
+      });
+    }).catch(() => {});
+  }, []);
+
+  /* ── Apply LUT from preset strip ── */
+  const applyLutInline = useCallback(async (lutId: string) => {
+    const source = sourceFileRef.current;
+    if (!source) { showToast(t("editor_importPhotoFirst")); return; }
+    setProcessing(true); setErrorMsg(null);
+    try {
+      const blob = await applyPresetToImage(source, lutId);
+      const data = await loadImageToData(URL.createObjectURL(blob));
+      transferredImageData.current = data; baseImageData.current = data;
+      setHasTransferred(true);
+      setRenderTick((t) => t + 1);
+      showToast(t("editor_presetApplied"));
+    } catch (err) { setErrorMsg(`Preset failed: ${err}`); }
+    finally { setProcessing(false); }
+  }, [loadImageToData, showToast]);
+
+  /* ── Batch import & process ── */
+  const handleBatchImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files; if (!files) return;
+    setBatchFiles(
+      Array.from(files).slice(0, 9).map((f) => ({
+        file: f, url: URL.createObjectURL(f), resultUrl: null, status: "idle" as const,
+      })),
+    );
+    e.target.value = "";
+  }, []);
+
+  const runBatchTransfer = useCallback(async () => {
+    const ref = refFilesRef.current[activeRefIdx];
+    if (!ref || batchFiles.length === 0) return;
+    setBatchProcessing(true);
+    for (let i = 0; i < batchFiles.length; i++) {
+      setBatchFiles((prev) => prev.map((f, j) => (j === i ? { ...f, status: "processing" } : f)));
+      try {
+        const resp = await transferImage(ref, batchFiles[i].file, params);
+        const url = URL.createObjectURL(resp.imageBlob);
+        setBatchFiles((prev) => prev.map((f, j) => (j === i ? { ...f, resultUrl: url, status: "done" } : f)));
+      } catch {
+        setBatchFiles((prev) => prev.map((f, j) => (j === i ? { ...f, status: "error" } : f)));
+      }
+    }
+    setBatchProcessing(false);
+    showToast(t("batch_complete"));
+  }, [batchFiles, activeRefIdx, params, showToast]);
+
+  const downloadBatchAll = useCallback(() => {
+    batchFiles.forEach((f, i) => {
+      if (!f.resultUrl) return;
+      const a = document.createElement("a");
+      a.href = f.resultUrl;
+      a.download = `kinolu_batch_${i + 1}.jpg`;
+      a.click();
+    });
+  }, [batchFiles]);
+
+  /* ── Crop operations (real ImageData transforms) ── */
+  const applyTransformToAll = useCallback((fn: (d: ImageData) => ImageData) => {
+    for (const ref of [baseImageData, sourceImageData, transferredImageData]) {
+      if (ref.current) ref.current = fn(ref.current);
+    }
+    setRenderTick((t) => t + 1);
+  }, []);
+
+  const handleCropApply = useCallback(() => {
+    const base = baseImageData.current;
+    if (!base) return;
+    const r = cropRegion;
+    const px = Math.max(0, Math.round(r.x * base.width));
+    const py = Math.max(0, Math.round(r.y * base.height));
+    const pw = Math.max(1, Math.min(base.width - px, Math.round(r.w * base.width)));
+    const ph = Math.max(1, Math.min(base.height - py, Math.round(r.h * base.height)));
+    applyTransformToAll((d) => cropImageData(d, Math.round(r.x * d.width), Math.round(r.y * d.height), Math.max(1, Math.round(r.w * d.width)), Math.max(1, Math.round(r.h * d.height))));
+    setCropRegion({ x: 0, y: 0, w: 1, h: 1 });
+    showToast(t("crop_applied"));
+  }, [cropRegion, applyTransformToAll, showToast]);
+
+  const handleRotateCW = useCallback(() => {
+    applyTransformToAll(rotateImageData90CW);
+  }, [applyTransformToAll]);
+
+  const handleFlipH = useCallback(() => {
+    applyTransformToAll(flipImageDataH);
+  }, [applyTransformToAll]);
+
+  const handleFlipV = useCallback(() => {
+    applyTransformToAll(flipImageDataV);
+  }, [applyTransformToAll]);
+
   /* ═══════════ RENDER ═══════════ */
   return (
     <div className="flex flex-col w-full h-full bg-black">
       <input ref={sourceInputRef} type="file" accept="image/*" className="hidden" onChange={handleSourceUpload} />
       <input ref={refInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleRefUpload} />
+      <input ref={batchInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleBatchImport} />
 
       {/* ── Header ── */}
       <header className="flex items-center justify-between h-[44px] px-4 safe-top shrink-0 z-10">
@@ -416,13 +539,31 @@ export default function EditorPage() {
               <canvas
                 ref={displayCanvasRef}
                 className={`max-w-full max-h-full object-contain rounded-sm ${comparing ? "hidden" : ""}`}
-                style={{
-                  transform: `rotate(${cropRotation}deg) scaleX(${cropFlipH ? -1 : 1}) scaleY(${cropFlipV ? -1 : 1})`,
-                  transition: "transform 0.3s ease",
-                }}
               />
               {comparing && sourceUrl && <img src={sourceUrl} alt="Original" className="max-w-full max-h-full object-contain rounded-sm" draggable={false} />}
             </div>
+
+            {/* Crop overlay — shown when crop tab is active */}
+            {activeTab === "crop" && (
+              <CropOverlay
+                canvasEl={displayCanvasRef.current}
+                aspect={cropAspect}
+                onChange={setCropRegion}
+              />
+            )}
+
+            {/* Source replace button — top-left, tappable */}
+            {hasImage && !comparing && activeTab === "transfer" && (
+              <button
+                onClick={() => sourceInputRef.current?.click()}
+                className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/40 active:text-white transition-colors"
+                title={t("editor_replaceSource")}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                </svg>
+              </button>
+            )}
 
             {/* Step 2 hint — "add reference" (small floating pill) */}
             {step === 2 && (
@@ -573,19 +714,25 @@ export default function EditorPage() {
                 {refImages.length > 0 && (
                   <div className="flex items-center gap-2 overflow-x-auto py-1 -mx-1 px-1 no-scrollbar">
                     {refImages.map((src, i) => (
-                      <button key={i} onClick={() => setActiveRefIdx(i)} onDoubleClick={() => removeRef(i)}
-                        className={`relative shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
-                          i === activeRefIdx
-                            ? "border-white/70 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
-                            : "border-white/10 hover:border-white/25"
-                        }`}>
-                        <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
-                        {i === activeRefIdx && (
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent h-4 flex items-end justify-center pb-0.5">
-                            <div className="w-1 h-1 rounded-full bg-white" />
-                          </div>
-                        )}
-                      </button>
+                      <div key={i} className="relative shrink-0">
+                        <button onClick={() => setActiveRefIdx(i)}
+                          className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                            i === activeRefIdx
+                              ? "border-white/70 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                              : "border-white/10 hover:border-white/25"
+                          }`}>
+                          <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
+                          {i === activeRefIdx && (
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent h-4 flex items-end justify-center pb-0.5">
+                              <div className="w-1 h-1 rounded-full bg-white" />
+                            </div>
+                          )}
+                        </button>
+                        <button onClick={() => removeRef(i)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-white/60 active:text-white z-10">
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </button>
+                      </div>
                     ))}
                     <button onClick={() => refInputRef.current?.click()}
                       className="shrink-0 w-14 h-14 rounded-lg border border-dashed border-white/15 flex items-center justify-center hover:border-white/30 transition-colors">
@@ -614,9 +761,77 @@ export default function EditorPage() {
                         className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all disabled:opacity-40">
                         {processing ? t("editor_processing") : hasTransferred ? t("editor_reApply") : t("editor_apply")}
                       </button>
+                      {hasTransferred && refImages.length > 0 && (
+                        <button onClick={() => batchInputRef.current?.click()}
+                          className="px-4 py-2.5 rounded-xl text-[11px] font-semibold tracking-wider border border-white/15 text-white/60 active:scale-[0.98] transition-all">
+                          {t("batch_import")}
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
+
+                {/* ── Batch grid ── */}
+                {batchFiles.length > 0 && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[9px] text-white/30 tracking-[1.5px] uppercase">{t("batch_title")} ({batchFiles.filter((f) => f.status === "done").length}/{batchFiles.length})</span>
+                      <div className="flex gap-1.5">
+                        {!batchProcessing && batchFiles.some((f) => f.status === "idle" || f.status === "error") && (
+                          <button onClick={runBatchTransfer} className="text-[9px] text-white/60 bg-white/10 px-2.5 py-1 rounded-lg active:bg-white/20">{t("batch_applyAll")}</button>
+                        )}
+                        {batchFiles.some((f) => f.status === "done") && (
+                          <button onClick={downloadBatchAll} className="text-[9px] text-white/60 bg-white/10 px-2.5 py-1 rounded-lg active:bg-white/20">{t("batch_downloadAll")}</button>
+                        )}
+                        <button onClick={() => setBatchFiles([])} className="text-[9px] text-white/30 px-1.5 py-1">✕</button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {batchFiles.map((bf, i) => (
+                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
+                          <img src={bf.resultUrl || bf.url} alt="" className="w-full h-full object-cover" />
+                          {bf.status === "processing" && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                            </div>
+                          )}
+                          {bf.status === "done" && (
+                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-green-500/80 flex items-center justify-center">
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                            </div>
+                          )}
+                          {bf.status === "error" && (
+                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500/80 flex items-center justify-center">
+                              <span className="text-[8px] text-white">!</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── LUT/Preset strip ── */}
+                {availableLuts.length > 0 && sourceUrl && (
+                  <div className="mt-2">
+                    <span className="text-[9px] text-white/30 tracking-[1.5px] uppercase mb-1 block">{t("editor_presets")}</span>
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                      {availableLuts.map((lut) => (
+                        <button key={lut.id} onClick={() => applyLutInline(lut.id)}
+                          className="shrink-0 flex flex-col items-center gap-0.5">
+                          <div className="w-12 h-12 rounded-lg border border-white/10 overflow-hidden bg-black/40">
+                            {lutThumbUrls[lut.id] ? (
+                              <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center"><span className="text-[7px] text-white/20">LUT</span></div>
+                            )}
+                          </div>
+                          <span className="text-[8px] text-white/35 max-w-[48px] truncate">{lut.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {activeTab === "edit" && <AdjustmentPanel values={adjValues} activeTool={activeTool} onSelectTool={setActiveTool} onChangeValue={handleAdjChange} />}
@@ -647,10 +862,10 @@ export default function EditorPage() {
                     </button>
                   ))}
                 </div>
-                {/* Rotate + Flip — functional buttons */}
+                {/* Rotate + Flip — real ImageData operations */}
                 <div className="flex items-center gap-5">
                   <button
-                    onClick={() => setCropRotation((r) => (r + 90) % 360)}
+                    onClick={handleRotateCW}
                     className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
                   >
                     <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
@@ -658,13 +873,13 @@ export default function EditorPage() {
                         <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-white/40 tracking-wider font-medium">{cropRotation}°</span>
+                    <span className="text-[10px] text-white/40 tracking-wider font-medium">90°</span>
                   </button>
                   <button
-                    onClick={() => setCropFlipH((f) => !f)}
+                    onClick={handleFlipH}
                     className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
                   >
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${cropFlipH ? "bg-white/15" : "bg-white/[0.06] group-active:bg-white/15"}`}>
+                    <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
                         <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
                       </svg>
@@ -672,10 +887,10 @@ export default function EditorPage() {
                     <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipH")}</span>
                   </button>
                   <button
-                    onClick={() => setCropFlipV((f) => !f)}
+                    onClick={handleFlipV}
                     className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
                   >
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${cropFlipV ? "bg-white/15" : "bg-white/[0.06] group-active:bg-white/15"}`}>
+                    <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60 rotate-90">
                         <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
                       </svg>
@@ -683,7 +898,7 @@ export default function EditorPage() {
                     <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipV")}</span>
                   </button>
                   <button
-                    onClick={() => { setCropRotation(0); setCropFlipH(false); setCropFlipV(false); setCropAspect("free"); }}
+                    onClick={() => { setCropAspect("free"); }}
                     className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
                   >
                     <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
@@ -692,6 +907,15 @@ export default function EditorPage() {
                     <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_reset")}</span>
                   </button>
                 </div>
+                {/* Apply Crop button */}
+                {hasImage && (
+                  <button
+                    onClick={handleCropApply}
+                    className="w-full py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all"
+                  >
+                    {t("crop_apply")}
+                  </button>
+                )}
               </div>
             )}
           </div>

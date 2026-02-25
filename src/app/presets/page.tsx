@@ -205,6 +205,11 @@ export default function PresetsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-6">
+        {/* Hint */}
+        <div className="mt-3 text-[10px] text-white/25 text-center leading-relaxed">
+          {t("lib_hint")}
+        </div>
+
         {error && (
           <div className="mt-3 rounded-lg border border-red-500/40 bg-red-900/30 px-3 py-2 text-[12px] text-red-100">
             {error}
@@ -260,7 +265,7 @@ export default function PresetsPage() {
                           onClick={() => openEditorWithLocalLut(entry)}
                           className="flex-1 rounded-md bg-white/[0.08] py-1 text-[9px] text-white/70 hover:bg-white/15 transition-colors text-center tracking-wider"
                         >
-                          {t("lib_apply")}
+                          {t("lib_openInEditor")}
                         </button>
                         <button
                           onClick={() => onExportLocal(entry)}
@@ -311,7 +316,7 @@ export default function PresetsPage() {
                         onClick={() => openEditorWithPreset(item)}
                         className="rounded-lg border border-white/15 px-3 py-1 text-[10px] tracking-[1px] text-white/70 hover:bg-white/10 transition-colors"
                       >
-                        {t("lib_apply")}
+                        {t("lib_openInEditor")}
                       </button>
                     </div>
                     <div className="mt-2 flex items-center gap-1.5">
@@ -352,7 +357,7 @@ export default function PresetsPage() {
                       onClick={() => openEditorWithPreset(item)}
                       className="rounded-lg border border-white/15 px-3 py-1 text-[10px] tracking-[1px] text-white/70 hover:bg-white/10 transition-colors"
                     >
-                      {t("lib_apply")}
+                      {t("lib_openInEditor")}
                     </button>
                   </div>
                   <div className="mt-2 flex items-center gap-1.5">

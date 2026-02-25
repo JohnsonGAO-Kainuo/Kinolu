@@ -75,6 +75,8 @@ const zhTW: Record<TranslationKeys, string> = {
   editor_original: "原圖",
   editor_resetConfirm: "是否重置所有調整為預設值？",
   editor_presetApplied: "預設已套用",
+  editor_presets: "預設",
+  editor_replaceSource: "替換照片",
   editor_imageSaved: "圖片已儲存",
   editor_importPhotoFirst: "請先匯入一張照片",
   editor_applyTransferFirst: "請先套用色調轉移",
@@ -125,6 +127,15 @@ const zhTW: Record<TranslationKeys, string> = {
   crop_flipH: "水平翻轉",
   crop_flipV: "垂直翻轉",
   crop_reset: "重置",
+  crop_apply: "套用裁剪",
+  crop_applied: "裁剪已套用",
+
+  /* ── 批量 ── */
+  batch_import: "批量",
+  batch_title: "批量處理",
+  batch_applyAll: "全部套用",
+  batch_downloadAll: "全部下載",
+  batch_complete: "批量處理完成",
 
   /* ── 曲線 ── */
   curves_reset: "重置 {channel}",
@@ -152,6 +163,8 @@ const zhTW: Record<TranslationKeys, string> = {
   lib_applyLocally: "本地套用（客戶端）",
   lib_applyLocallyDesc: "無需後端伺服器，直接將 LUT 套用到照片",
   lib_apply: "套用",
+  lib_openInEditor: "在編輯器中開啟",
+  lib_hint: "在此管理您的預設。預設會自動出現在編輯器和相機中。",
   lib_cube: "CUBE",
   lib_loadFailed: "載入預設失敗",
   lib_importFailed: "匯入 CUBE 失敗",

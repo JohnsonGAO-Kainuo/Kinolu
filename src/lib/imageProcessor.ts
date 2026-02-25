@@ -451,3 +451,58 @@ export function hasActiveEdits(params: EditParams): boolean {
 
   return false;
 }
+
+/* ─── Image Transform Helpers (crop / rotate / flip) ─── */
+
+function imgDataToCanvas(d: ImageData): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = d.width;
+  c.height = d.height;
+  c.getContext("2d")!.putImageData(d, 0, 0);
+  return c;
+}
+
+/** Crop ImageData by pixel coordinates */
+export function cropImageData(d: ImageData, px: number, py: number, pw: number, ph: number): ImageData {
+  const c = document.createElement("canvas");
+  c.width = pw;
+  c.height = ph;
+  c.getContext("2d")!.drawImage(imgDataToCanvas(d), px, py, pw, ph, 0, 0, pw, ph);
+  return c.getContext("2d")!.getImageData(0, 0, pw, ph);
+}
+
+/** Rotate ImageData 90° clockwise */
+export function rotateImageData90CW(d: ImageData): ImageData {
+  const c = document.createElement("canvas");
+  c.width = d.height;
+  c.height = d.width;
+  const ctx = c.getContext("2d")!;
+  ctx.translate(c.width, 0);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(imgDataToCanvas(d), 0, 0);
+  return ctx.getImageData(0, 0, c.width, c.height);
+}
+
+/** Flip ImageData horizontally */
+export function flipImageDataH(d: ImageData): ImageData {
+  const c = document.createElement("canvas");
+  c.width = d.width;
+  c.height = d.height;
+  const ctx = c.getContext("2d")!;
+  ctx.translate(c.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(imgDataToCanvas(d), 0, 0);
+  return ctx.getImageData(0, 0, c.width, c.height);
+}
+
+/** Flip ImageData vertically */
+export function flipImageDataV(d: ImageData): ImageData {
+  const c = document.createElement("canvas");
+  c.width = d.width;
+  c.height = d.height;
+  const ctx = c.getContext("2d")!;
+  ctx.translate(0, c.height);
+  ctx.scale(1, -1);
+  ctx.drawImage(imgDataToCanvas(d), 0, 0);
+  return ctx.getImageData(0, 0, c.width, c.height);
+}
