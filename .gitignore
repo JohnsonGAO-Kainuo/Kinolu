@@ -28,6 +28,7 @@ node_modules/
 .next/
 .turbo/
 .vercel/
+.env*.local
 
 # IDE
 .vscode/

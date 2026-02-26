@@ -178,11 +178,30 @@ const zhTW: Record<TranslationKeys, string> = {
   lib_importLutDesc: "匯入 .cube 檔案以本地套用",
   lib_lutApplied: "LUT 已套用",
 
+  /* ── 認證 ── */
+  auth_signIn: "登入",
+  auth_signUp: "註冊",
+  auth_welcomeBack: "歡迎回來",
+  auth_signInDesc: "登入以存取你的帳戶",
+  auth_createAccount: "建立帳戶",
+  auth_signUpDesc: "開啟你的色彩調整之旅",
+  auth_email: "電子郵件",
+  auth_password: "密碼（至少6位）",
+  auth_displayName: "暱稱（可選）",
+  auth_noAccount: "沒有帳戶？",
+  auth_hasAccount: "已有帳戶？",
+  auth_checkEmail: "請查收郵件",
+  auth_checkEmailDesc: "我們已向你的電子郵件傳送了確認連結，請點擊連結啟用帳戶。",
+  auth_backToLogin: "返回登入",
+  auth_signInToSubscribe: "登入後訂閱",
+
   /* ── 個人資料 ── */
   profile_title: "個人資料",
   profile_signInToSync: "登入以同步",
   profile_signInDesc: "將預設儲存到雲端，隨時在所有裝置上存取",
   profile_signIn: "登入",
+  profile_signOut: "登出",
+  profile_upgradePro: "升級到 Pro",
 
   /* ── 訂閱 ── */
   sub_title: "訂閱",
@@ -209,6 +228,7 @@ const zhTW: Record<TranslationKeys, string> = {
   sub_lifetimeSub: "一次付費，永久使用",
   sub_mo: "月",
   sub_subscribe: "訂閱 Pro",
+  sub_active: "Pro 已啟用",
   sub_finePrint: "透過 Stripe 安全付款，隨時可取消。價格以美元計價。",
   sub_terms: "服務條款",
   sub_privacy: "隱私政策",

@@ -4,12 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/components/AuthProvider";
 
 type Plan = "monthly" | "annual" | "lifetime";
+
+const PAYMENT_LINKS: Record<Plan, string> = {
+  monthly: process.env.NEXT_PUBLIC_STRIPE_LINK_MONTHLY || "",
+  annual: process.env.NEXT_PUBLIC_STRIPE_LINK_ANNUAL || "",
+  lifetime: process.env.NEXT_PUBLIC_STRIPE_LINK_LIFETIME || "",
+};
 
 export default function SubscriptionPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { user, isPro, profile, subscription } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
 
   return (
@@ -209,10 +217,38 @@ export default function SubscriptionPage() {
             </button>
           </div>
 
-          {/* ── Subscribe button ── */}
-          <button className="w-full py-3 bg-white text-black rounded-2xl text-[13px] font-bold tracking-wide active:opacity-80 transition-opacity">
-            {t("sub_subscribe")}
-          </button>
+          {/* ── Subscribe / Status button ── */}
+          {isPro ? (
+            <div className="w-full py-3 bg-white/[0.06] border border-white/10 text-white/60 rounded-2xl text-[13px] font-bold tracking-wide text-center">
+              ✓ {t("sub_active")}
+              {subscription?.plan_type && (
+                <span className="text-white/30 ml-1.5 font-normal">
+                  ({subscription.plan_type})
+                </span>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                if (!user) {
+                  router.push("/auth/login");
+                  return;
+                }
+                const link = PAYMENT_LINKS[selectedPlan];
+                if (link) {
+                  // Append prefilled email for Stripe
+                  const url = new URL(link);
+                  if (profile?.email) {
+                    url.searchParams.set("prefilled_email", profile.email);
+                  }
+                  window.location.href = url.toString();
+                }
+              }}
+              className="w-full py-3 bg-white text-black rounded-2xl text-[13px] font-bold tracking-wide active:opacity-80 transition-opacity"
+            >
+              {user ? t("sub_subscribe") : t("auth_signInToSubscribe")}
+            </button>
+          )}
 
           {/* ── Fine print ── */}
           <p className="text-[10px] text-white/25 text-center mt-4 leading-relaxed px-2">

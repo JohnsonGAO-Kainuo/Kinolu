@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n, LOCALE_LABELS, type Locale } from "@/lib/i18n";
+import { useAuth } from "@/components/AuthProvider";
 
 interface SidebarProps {
   open: boolean;
@@ -13,6 +14,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const router = useRouter();
   const overlayRef = useRef<HTMLDivElement>(null);
   const { t, locale, setLocale } = useI18n();
+  const { user, profile, isPro } = useAuth();
 
   useEffect(() => {
     if (open) {
@@ -55,10 +57,24 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         }}
       >
         {/* Header */}
-        <div className="h-[60px] safe-top flex items-center px-6">
+        <div className="h-[60px] safe-top flex items-center justify-between px-6">
           <span className="text-[14px] font-bold tracking-[4px] text-white/90 uppercase">
             {t("appName")}
           </span>
+          {user && profile && (
+            <div className="flex items-center gap-2">
+              {isPro && (
+                <span className="text-[8px] tracking-[1px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-white/10 text-white/70">
+                  Pro
+                </span>
+              )}
+              <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-white/60">
+                  {(profile.display_name || profile.email || "U").charAt(0).toUpperCase()}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}

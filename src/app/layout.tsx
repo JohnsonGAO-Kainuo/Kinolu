@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { I18nProvider } from "@/lib/i18n";
+import { AuthProvider } from "@/components/AuthProvider";
 import BuiltinLutsInit from "@/components/BuiltinLutsInit";
 
 export const metadata: Metadata = {
@@ -35,8 +36,10 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <I18nProvider>
-          <BuiltinLutsInit />
-          {children}
+          <AuthProvider>
+            <BuiltinLutsInit />
+            {children}
+          </AuthProvider>
         </I18nProvider>
         <script
           dangerouslySetInnerHTML={{

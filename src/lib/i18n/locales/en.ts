@@ -176,11 +176,30 @@ const en = {
   lib_importLutDesc: "Import .cube files to apply locally",
   lib_lutApplied: "LUT applied",
 
+  /* ── Auth ── */
+  auth_signIn: "Sign In",
+  auth_signUp: "Sign Up",
+  auth_welcomeBack: "Welcome back",
+  auth_signInDesc: "Sign in to access your account",
+  auth_createAccount: "Create account",
+  auth_signUpDesc: "Start your color grading journey",
+  auth_email: "Email",
+  auth_password: "Password (min 6 characters)",
+  auth_displayName: "Display name (optional)",
+  auth_noAccount: "Don't have an account?",
+  auth_hasAccount: "Already have an account?",
+  auth_checkEmail: "Check your email",
+  auth_checkEmailDesc: "We sent a confirmation link to your email. Please click it to activate your account.",
+  auth_backToLogin: "Back to Login",
+  auth_signInToSubscribe: "Sign in to subscribe",
+
   /* ── Profile ── */
   profile_title: "Profile",
   profile_signInToSync: "Sign in to sync",
   profile_signInDesc: "Save your presets to the cloud and access them across all your devices",
   profile_signIn: "Sign In",
+  profile_signOut: "Sign Out",
+  profile_upgradePro: "Upgrade to Pro",
 
   /* ── Subscription ── */
   sub_title: "Subscription",
@@ -207,6 +226,7 @@ const en = {
   sub_lifetimeSub: "Pay once, own forever",
   sub_mo: "mo",
   sub_subscribe: "Subscribe to Pro",
+  sub_active: "Pro Active",
   sub_finePrint: "Payment will be charged via Stripe. You can cancel anytime. Prices shown in USD.",
   sub_terms: "Terms",
   sub_privacy: "Privacy",

@@ -178,11 +178,30 @@ const zhCN: Record<TranslationKeys, string> = {
   lib_importLutDesc: "导入 .cube 文件以本地应用",
   lib_lutApplied: "LUT 已应用",
 
+  /* ── 认证 ── */
+  auth_signIn: "登录",
+  auth_signUp: "注册",
+  auth_welcomeBack: "欢迎回来",
+  auth_signInDesc: "登录以访问你的账户",
+  auth_createAccount: "创建账户",
+  auth_signUpDesc: "开启你的色彩调整之旅",
+  auth_email: "邮箱",
+  auth_password: "密码（至少6位）",
+  auth_displayName: "昵称（可选）",
+  auth_noAccount: "没有账户？",
+  auth_hasAccount: "已有账户？",
+  auth_checkEmail: "请查收邮件",
+  auth_checkEmailDesc: "我们已向你的邮箱发送了确认链接，请点击链接激活账户。",
+  auth_backToLogin: "返回登录",
+  auth_signInToSubscribe: "登录后订阅",
+
   /* ── 个人资料 ── */
   profile_title: "个人资料",
   profile_signInToSync: "登录以同步",
   profile_signInDesc: "将预设保存到云端，随时在所有设备上访问",
   profile_signIn: "登录",
+  profile_signOut: "退出登录",
+  profile_upgradePro: "升级到 Pro",
 
   /* ── 订阅 ── */
   sub_title: "订阅",
@@ -209,6 +228,7 @@ const zhCN: Record<TranslationKeys, string> = {
   sub_lifetimeSub: "一次付费，永久使用",
   sub_mo: "月",
   sub_subscribe: "订阅 Pro",
+  sub_active: "Pro 已激活",
   sub_finePrint: "通过 Stripe 安全支付，随时可取消。价格以美元计价。",
   sub_terms: "服务条款",
   sub_privacy: "隐私政策",
