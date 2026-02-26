@@ -203,6 +203,8 @@ const en = {
   sub_annual: "Annual",
   sub_annualSub: "Save 30%",
   sub_monthly: "Monthly",
+  sub_lifetime: "Lifetime",
+  sub_lifetimeSub: "Pay once, own forever",
   sub_mo: "mo",
   sub_subscribe: "Subscribe to Pro",
   sub_finePrint: "Payment will be charged via Stripe. You can cancel anytime. Prices shown in USD.",

@@ -205,6 +205,8 @@ const zhCN: Record<TranslationKeys, string> = {
   sub_annual: "年度订阅",
   sub_annualSub: "节省 30%",
   sub_monthly: "月度订阅",
+  sub_lifetime: "终身买断",
+  sub_lifetimeSub: "一次付费，永久使用",
   sub_mo: "月",
   sub_subscribe: "订阅 Pro",
   sub_finePrint: "通过 Stripe 安全支付，随时可取消。价格以美元计价。",

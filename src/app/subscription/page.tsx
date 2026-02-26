@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 
-type Plan = "monthly" | "annual";
+type Plan = "monthly" | "annual" | "lifetime";
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -96,7 +96,7 @@ export default function SubscriptionPage() {
             {/* Annual */}
             <button
               onClick={() => setSelectedPlan("annual")}
-              className={`relative flex items-center justify-between px-4 py-3.5 rounded-2xl border transition-all ${
+              className={`relative flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
                 selectedPlan === "annual"
                   ? "border-white/40 bg-white/[0.06]"
                   : "border-white/10 bg-white/[0.02]"
@@ -106,25 +106,9 @@ export default function SubscriptionPage() {
               <div className="absolute -top-2.5 left-4 px-2 py-0.5 bg-white text-black text-[9px] font-bold rounded-full tracking-wider uppercase">
                 {t("sub_bestValue")}
               </div>
-              <div className="flex flex-col items-start">
-                <span className="text-[14px] font-semibold text-white">
-                  {t("sub_annual")}
-                </span>
-                <span className="text-[11px] text-white/40">
-                  {t("sub_annualSub")}
-                </span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[18px] font-bold text-white">
-                  $29.99
-                </span>
-                <span className="text-[10px] text-white/40">
-                  $2.49/{t("sub_mo")}
-                </span>
-              </div>
               {/* Radio */}
               <div
-                className={`absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                className={`shrink-0 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-colors ${
                   selectedPlan === "annual"
                     ? "border-white bg-white"
                     : "border-white/25"
@@ -134,32 +118,37 @@ export default function SubscriptionPage() {
                   <div className="w-2 h-2 rounded-full bg-black" />
                 )}
               </div>
+              <div className="flex-1 flex items-center justify-between">
+                <div className="flex flex-col items-start">
+                  <span className="text-[14px] font-semibold text-white">
+                    {t("sub_annual")}
+                  </span>
+                  <span className="text-[11px] text-white/40">
+                    {t("sub_annualSub")}
+                  </span>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[18px] font-bold text-white">
+                    $29.99
+                  </span>
+                  <span className="text-[10px] text-white/40">
+                    $2.49/{t("sub_mo")}
+                  </span>
+                </div>
+              </div>
             </button>
 
             {/* Monthly */}
             <button
               onClick={() => setSelectedPlan("monthly")}
-              className={`relative flex items-center justify-between px-4 py-3.5 rounded-2xl border transition-all ${
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
                 selectedPlan === "monthly"
                   ? "border-white/40 bg-white/[0.06]"
                   : "border-white/10 bg-white/[0.02]"
               }`}
             >
-              <div className="flex flex-col items-start">
-                <span className="text-[14px] font-semibold text-white">
-                  {t("sub_monthly")}
-                </span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[18px] font-bold text-white">
-                  $2.99
-                </span>
-                <span className="text-[10px] text-white/40">
-                  /{t("sub_mo")}
-                </span>
-              </div>
               <div
-                className={`absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                className={`shrink-0 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-colors ${
                   selectedPlan === "monthly"
                     ? "border-white bg-white"
                     : "border-white/25"
@@ -168,6 +157,54 @@ export default function SubscriptionPage() {
                 {selectedPlan === "monthly" && (
                   <div className="w-2 h-2 rounded-full bg-black" />
                 )}
+              </div>
+              <div className="flex-1 flex items-center justify-between">
+                <span className="text-[14px] font-semibold text-white">
+                  {t("sub_monthly")}
+                </span>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-[18px] font-bold text-white">
+                    $2.99
+                  </span>
+                  <span className="text-[10px] text-white/40">
+                    /{t("sub_mo")}
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            {/* Lifetime */}
+            <button
+              onClick={() => setSelectedPlan("lifetime" as Plan)}
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
+                selectedPlan === ("lifetime" as Plan)
+                  ? "border-white/40 bg-white/[0.06]"
+                  : "border-white/10 bg-white/[0.02]"
+              }`}
+            >
+              <div
+                className={`shrink-0 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-colors ${
+                  selectedPlan === ("lifetime" as Plan)
+                    ? "border-white bg-white"
+                    : "border-white/25"
+                }`}
+              >
+                {selectedPlan === ("lifetime" as Plan) && (
+                  <div className="w-2 h-2 rounded-full bg-black" />
+                )}
+              </div>
+              <div className="flex-1 flex items-center justify-between">
+                <div className="flex flex-col items-start">
+                  <span className="text-[14px] font-semibold text-white">
+                    {t("sub_lifetime")}
+                  </span>
+                  <span className="text-[11px] text-white/40">
+                    {t("sub_lifetimeSub")}
+                  </span>
+                </div>
+                <span className="text-[18px] font-bold text-white">
+                  $49.99
+                </span>
               </div>
             </button>
           </div>

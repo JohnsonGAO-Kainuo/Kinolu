@@ -167,8 +167,8 @@ export default function CameraPage() {
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         if (vw && vh) {
-          /* Cap canvas at 640px for mobile perf (LUT processing is CPU-bound) */
-          const maxDim = 640;
+          /* Cap canvas for mobile perf — 960px gives near-retina sharpness */
+          const maxDim = 960;
           let cw = vw, ch = vh;
           if (Math.max(vw, vh) > maxDim) {
             const s = maxDim / Math.max(vw, vh);
