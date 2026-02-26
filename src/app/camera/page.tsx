@@ -2,85 +2,153 @@
 
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  IconBack,
-  IconFlash,
-  IconFlashOff,
-  IconGrid,
-  IconFlip,
-  IconImage,
-  IconLibrary,
-} from "@/components/icons";
-import { listPresets } from "@/lib/api";
-import type { PresetItem } from "@/lib/types";
+import { IconBack, IconFlip, IconGrid } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
-import { listLocalLuts, getLocalLut, applyLutToPixels, type LutEntry } from "@/lib/lutStore";
+import {
+  listLocalLuts,
+  getLocalLut,
+  applyLutToPixels,
+  type LutEntry,
+} from "@/lib/lutStore";
 import { getBuiltinMeta } from "@/lib/builtinLuts";
+
+/* ── Focal-length presets (mm → digital zoom) ── */
+const FOCAL_PRESETS = [
+  { mm: 26, zoom: 1.0 },
+  { mm: 50, zoom: 1.92 },
+  { mm: 77, zoom: 2.96 },
+] as const;
+const MIN_ZOOM = 1.0;
+const MAX_ZOOM = 5.0;
+const zoomToMm = (z: number) => Math.round(26 * z);
 
 export default function CameraPage() {
   const router = useRouter();
   const { t } = useI18n();
+
+  /* ── Refs ── */
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const viewfinderRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
-  const activeLutRef = useRef<{ data: Float32Array; size: number } | null>(null);
+  const activeLutRef = useRef<{ data: Float32Array; size: number } | null>(
+    null,
+  );
+  const zoomRef = useRef(1.0);
+  const brightnessRef = useRef(1.0);
+  const pinchRef = useRef<{
+    startDist: number;
+    startZoom: number;
+  } | null>(null);
+  const touchStartRef = useRef<{
+    x: number;
+    y: number;
+    time: number;
+  } | null>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focalDragRef = useRef<{
+    startX: number;
+    startZoom: number;
+  } | null>(null);
+  const brightDragRef = useRef<{
+    startY: number;
+    startVal: number;
+  } | null>(null);
 
+  /* ── State ── */
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [flash, setFlash] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
-  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
-  const [zoom, setZoom] = useState<1 | 2 | 3>(1);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">(
+    "environment",
+  );
+  const [zoom, setZoom] = useState(1.0);
+  const [brightness, setBrightness] = useState(1.0);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
-  const [presets, setPresets] = useState<PresetItem[]>([]);
-  const [localLutItems, setLocalLutItems] = useState<Omit<LutEntry, "data">[]>([]);
+  const [localLutItems, setLocalLutItems] = useState<
+    Omit<LutEntry, "data">[]
+  >([]);
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [activePresetId, setActivePresetId] = useState<string>("");
   const [lutLoading, setLutLoading] = useState(false);
+  const [focusPoint, setFocusPoint] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [focusKey, setFocusKey] = useState(0);
 
-  /* ── Start camera ── */
+  /* keep refs in sync */
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+  useEffect(() => {
+    brightnessRef.current = brightness;
+  }, [brightness]);
+
+  /* ════════════════ CAMERA SETUP ════════════════ */
+
   const startCamera = useCallback(async () => {
     try {
-      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+      if (streamRef.current)
+        streamRef.current.getTracks().forEach((tr) => tr.stop());
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: {
+          facingMode,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: false,
       });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch (err) {
       const msg =
-        err instanceof DOMException && err.name === "NotFoundError" ? t("camera_noCameraFound")
-        : err instanceof DOMException && err.name === "NotAllowedError" ? t("camera_permissionDenied")
-        : t("camera_unableAccess");
+        err instanceof DOMException && err.name === "NotFoundError"
+          ? t("camera_noCameraFound")
+          : err instanceof DOMException && err.name === "NotAllowedError"
+            ? t("camera_permissionDenied")
+            : t("camera_unableAccess");
       setCameraError(msg);
     }
-  }, [facingMode]);
+  }, [facingMode, t]);
 
+  /* load local LUTs */
   useEffect(() => {
-    void listPresets().then((items) => setPresets(items)).catch(() => {});
-    void listLocalLuts().then((luts) => {
-      setLocalLutItems(luts);
-      const urls: Record<string, string> = {};
-      for (const lut of luts) {
-        if (lut.thumbnail) urls[lut.id] = URL.createObjectURL(lut.thumbnail);
-      }
-      setThumbUrls(urls);
-    }).catch(() => {});
+    void listLocalLuts()
+      .then((luts) => {
+        setLocalLutItems(luts);
+        const urls: Record<string, string> = {};
+        for (const lut of luts) {
+          if (lut.thumbnail)
+            urls[lut.id] = URL.createObjectURL(lut.thumbnail);
+        }
+        setThumbUrls(urls);
+      })
+      .catch(() => {});
   }, []);
 
+  /* boot camera */
   useEffect(() => {
     let cancelled = false;
-    const boot = async () => { await Promise.resolve(); if (!cancelled) await startCamera(); };
+    const boot = async () => {
+      await Promise.resolve();
+      if (!cancelled) await startCamera();
+    };
     void boot();
-    return () => { cancelled = true; streamRef.current?.getTracks().forEach((t) => t.stop()); };
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((tr) => tr.stop());
+    };
   }, [startCamera]);
 
-  const flipCamera = useCallback(() => setFacingMode((p) => (p === "environment" ? "user" : "environment")), []);
-  const cycleZoom = useCallback(() => setZoom((p) => (p === 1 ? 2 : p === 2 ? 3 : 1)), []);
+  const flipCamera = useCallback(
+    () =>
+      setFacingMode((p) => (p === "environment" ? "user" : "environment")),
+    [],
+  );
 
-  /* ── Load LUT data when a preset is selected ── */
+  /* ── Load LUT data when preset changes ── */
   useEffect(() => {
     if (!activePresetId) {
       activeLutRef.current = null;
@@ -91,16 +159,21 @@ export default function CameraPage() {
     void (async () => {
       try {
         const entry = await getLocalLut(activePresetId);
-        if (!cancelled && entry) {
+        if (!cancelled && entry)
           activeLutRef.current = { data: entry.data, size: entry.size };
-        }
-      } catch { /* ignore */ }
-      finally { if (!cancelled) setLutLoading(false); }
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setLutLoading(false);
+      }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [activePresetId]);
 
-  /* ── Real-time preview loop: render video → canvas, apply LUT if active ── */
+  /* ════════════════ PREVIEW LOOP ════════════════ */
+
   useEffect(() => {
     const video = videoRef.current;
     const preview = previewCanvasRef.current;
@@ -110,15 +183,14 @@ export default function CameraPage() {
 
     let running = true;
     let lastDrawTime = 0;
-    const LUT_FPS_INTERVAL = 1000 / 30; // throttle to ~30 fps when LUT active
+    const FPS_CAP = 1000 / 30;
 
     const draw = (now: number) => {
       if (!running) return;
-
       const hasLut = !!activeLutRef.current;
 
-      // When LUT is active, throttle to 30 fps to keep higher resolution smooth
-      if (hasLut && now - lastDrawTime < LUT_FPS_INTERVAL) {
+      /* throttle to ~30 fps when LUT is active */
+      if (hasLut && now - lastDrawTime < FPS_CAP) {
         rafRef.current = requestAnimationFrame(draw);
         return;
       }
@@ -127,96 +199,326 @@ export default function CameraPage() {
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         if (vw && vh) {
-          // Always use full video resolution for sharpest preview
-          const cw = vw, ch = vh;
+          /* Size canvas to match CSS display size × DPR — optimal pixels */
+          const rect = preview.getBoundingClientRect();
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          let cw = Math.round(rect.width * dpr);
+          let ch = Math.round(rect.height * dpr);
 
-          if (preview.width !== cw || preview.height !== ch) {
-            preview.width = cw; preview.height = ch;
+          /* Cap when LUT active for mobile performance */
+          if (hasLut) {
+            const cap = 960;
+            if (Math.max(cw, ch) > cap) {
+              const s = cap / Math.max(cw, ch);
+              cw = Math.round(cw * s);
+              ch = Math.round(ch * s);
+            }
           }
 
-          // Zoom crop from video
-          const sw = vw / zoom, sh = vh / zoom;
-          const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+          if (preview.width !== cw || preview.height !== ch) {
+            preview.width = cw;
+            preview.height = ch;
+          }
+
+          const z = zoomRef.current;
+          const sw = vw / z,
+            sh = vh / z;
+          const sx = (vw - sw) / 2,
+            sy = (vh - sh) / 2;
           ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
 
           if (hasLut) {
             const imgData = ctx.getImageData(0, 0, cw, ch);
-            applyLutToPixels(imgData.data, activeLutRef.current!.data, activeLutRef.current!.size);
+            applyLutToPixels(
+              imgData.data,
+              activeLutRef.current!.data,
+              activeLutRef.current!.size,
+            );
             ctx.putImageData(imgData, 0, 0);
           }
-
           lastDrawTime = now;
         }
       }
       rafRef.current = requestAnimationFrame(draw);
     };
     rafRef.current = requestAnimationFrame(draw);
-    return () => { running = false; cancelAnimationFrame(rafRef.current); };
-  }, [zoom]);
+    return () => {
+      running = false;
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, []); // uses refs — no deps needed
 
-  /* ── Capture ── */
+  /* ════════════════ VIEWFINDER TOUCH ════════════════ */
+
+  const handleVFTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      /* start pinch-to-zoom */
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchRef.current = {
+        startDist: Math.hypot(dx, dy),
+        startZoom: zoomRef.current,
+      };
+      touchStartRef.current = null;
+    } else if (e.touches.length === 1) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now(),
+      };
+    }
+  }, []);
+
+  const handleVFTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchRef.current) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const scale = dist / pinchRef.current.startDist;
+      setZoom(
+        Math.min(
+          MAX_ZOOM,
+          Math.max(MIN_ZOOM, pinchRef.current.startZoom * scale),
+        ),
+      );
+    }
+    /* cancel tap if dragged > 10 px */
+    if (touchStartRef.current && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - touchStartRef.current.x;
+      const dy = e.touches[0].clientY - touchStartRef.current.y;
+      if (Math.hypot(dx, dy) > 10) touchStartRef.current = null;
+    }
+  }, []);
+
+  const handleVFTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinchRef.current = null;
+
+    /* single tap → focus */
+    if (
+      touchStartRef.current &&
+      e.touches.length === 0 &&
+      e.changedTouches.length === 1
+    ) {
+      const elapsed = Date.now() - touchStartRef.current.time;
+      if (elapsed < 300) {
+        const rect = viewfinderRef.current?.getBoundingClientRect();
+        if (rect) {
+          const x = touchStartRef.current.x - rect.left;
+          const y = touchStartRef.current.y - rect.top;
+          setFocusPoint({ x, y });
+          setFocusKey((k) => k + 1);
+          setBrightness(1.0);
+
+          /* try hardware focus */
+          if (streamRef.current) {
+            const track = streamRef.current.getVideoTracks()[0];
+            try {
+              /* eslint-disable @typescript-eslint/no-explicit-any */
+              const cap = track.getCapabilities?.() as any;
+              if (cap?.focusMode?.includes?.("manual")) {
+                void track.applyConstraints({
+                  advanced: [
+                    {
+                      pointOfInterest: {
+                        x: x / rect.width,
+                        y: y / rect.height,
+                      },
+                    } as any,
+                  ],
+                });
+              }
+              /* eslint-enable @typescript-eslint/no-explicit-any */
+            } catch {
+              /* not supported */
+            }
+          }
+
+          /* auto-hide after 3.5 s */
+          if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+          focusTimerRef.current = setTimeout(
+            () => setFocusPoint(null),
+            3500,
+          );
+        }
+      }
+      touchStartRef.current = null;
+    }
+  }, []);
+
+  /* ════════════════ BRIGHTNESS DRAG ════════════════ */
+
+  const handleBrightStart = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    brightDragRef.current = {
+      startY: e.touches[0].clientY,
+      startVal: brightnessRef.current,
+    };
+  }, []);
+
+  const handleBrightMove = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (!brightDragRef.current) return;
+    const dy = brightDragRef.current.startY - e.touches[0].clientY;
+    setBrightness(
+      Math.min(2.0, Math.max(0.3, brightDragRef.current.startVal + dy / 120)),
+    );
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    focusTimerRef.current = setTimeout(() => setFocusPoint(null), 3500);
+  }, []);
+
+  const handleBrightEnd = useCallback(() => {
+    brightDragRef.current = null;
+  }, []);
+
+  /* ════════════════ FOCAL STRIP DRAG ════════════════ */
+
+  const handleFocalStart = useCallback((e: React.TouchEvent) => {
+    focalDragRef.current = {
+      startX: e.touches[0].clientX,
+      startZoom: zoomRef.current,
+    };
+  }, []);
+
+  const handleFocalMove = useCallback((e: React.TouchEvent) => {
+    if (!focalDragRef.current) return;
+    e.stopPropagation();
+    const dx = focalDragRef.current.startX - e.touches[0].clientX;
+    setZoom(
+      Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, focalDragRef.current.startZoom + dx * 0.012),
+      ),
+    );
+  }, []);
+
+  const handleFocalEnd = useCallback(() => {
+    focalDragRef.current = null;
+  }, []);
+
+  /* ════════════════ CAPTURE ════════════════ */
+
   const capture = useCallback(() => {
-    const video = videoRef.current; const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
     if (!video || !canvas) return;
-    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d"); if (!ctx) return;
-    const sw = video.videoWidth / zoom, sh = video.videoHeight / zoom;
-    const sx = (video.videoWidth - sw) / 2, sy = (video.videoHeight - sh) / 2;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const z = zoomRef.current;
+    const sw = video.videoWidth / z,
+      sh = video.videoHeight / z;
+    const sx = (video.videoWidth - sw) / 2,
+      sy = (video.videoHeight - sh) / 2;
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-    if (flash) { ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-    // Apply active LUT to captured frame
-    if (activeLutRef.current) {
+
+    /* apply brightness */
+    const br = brightnessRef.current;
+    if (br !== 1.0) {
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      applyLutToPixels(imgData.data, activeLutRef.current.data, activeLutRef.current.size);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        d[i] = Math.min(255, d[i] * br);
+        d[i + 1] = Math.min(255, d[i + 1] * br);
+        d[i + 2] = Math.min(255, d[i + 2] * br);
+      }
       ctx.putImageData(imgData, 0, 0);
     }
-    canvas.toBlob((blob) => { if (blob) setCapturedUrl(URL.createObjectURL(blob)); }, "image/jpeg", 0.95);
-  }, [zoom, flash]);
+
+    /* apply LUT */
+    if (activeLutRef.current) {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      applyLutToPixels(
+        imgData.data,
+        activeLutRef.current.data,
+        activeLutRef.current.size,
+      );
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob) setCapturedUrl(URL.createObjectURL(blob));
+      },
+      "image/jpeg",
+      0.95,
+    );
+  }, []);
 
   const goEditorWithCapture = useCallback(() => {
     if (!capturedUrl) return;
     sessionStorage.setItem("kinolu_captured", capturedUrl);
-    if (activePresetId) sessionStorage.setItem("kinolu_capture_preset_id", activePresetId);
+    if (activePresetId)
+      sessionStorage.setItem("kinolu_capture_preset_id", activePresetId);
     else sessionStorage.removeItem("kinolu_capture_preset_id");
     router.push("/editor");
   }, [capturedUrl, activePresetId, router]);
 
+  /* ═══════════ DERIVED ═══════════ */
+  const currentMm = zoomToMm(zoom);
+  const isOnPreset = FOCAL_PRESETS.some(
+    (p) => Math.abs(zoom - p.zoom) < 0.1,
+  );
+
   /* ═══════════ RENDER ═══════════ */
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden">
+    <div className="relative w-full h-full bg-black overflow-hidden select-none">
       <canvas ref={canvasRef} className="hidden" />
 
       {/* ── Error fallback ── */}
       {cameraError && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 px-8">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/20">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="text-white/20"
+          >
             <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-            <circle cx="12" cy="13" r="4" /><line x1="1" y1="1" x2="23" y2="23" />
+            <circle cx="12" cy="13" r="4" />
+            <line x1="1" y1="1" x2="23" y2="23" />
           </svg>
-          <p className="text-white/40 text-[13px] text-center">{cameraError}</p>
-          <button onClick={() => router.push("/editor")} className="mt-2 px-5 py-2 border border-white/15 rounded-full text-[11px] text-white/60 tracking-[1.5px] hover:bg-white/5 transition-colors">
+          <p className="text-white/40 text-[13px] text-center">
+            {cameraError}
+          </p>
+          <button
+            onClick={() => router.push("/editor")}
+            className="mt-2 px-5 py-2 border border-white/15 rounded-full text-[11px] text-white/60 tracking-[1.5px] hover:bg-white/5 transition-colors"
+          >
             {t("camera_goToEditor")}
           </button>
         </div>
       )}
 
-      {/* ── Full viewfinder — hidden video + visible preview canvas ── */}
-      <video ref={videoRef} autoPlay playsInline muted
-        className="absolute w-0 h-0 opacity-0 pointer-events-none" />
-      <canvas ref={previewCanvasRef}
-        className="absolute inset-0 w-full h-full object-cover" />
+      {/* ── Hidden video + visible preview canvas ── */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="absolute w-0 h-0 opacity-0 pointer-events-none"
+      />
+      <canvas
+        ref={previewCanvasRef}
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        style={{ filter: `brightness(${brightness})` }}
+      />
 
-      {/* ── Grid overlay ── */}
+      {/* ── Grid overlay — thicker & more visible ── */}
       {showGrid && (
         <div className="absolute inset-0 pointer-events-none z-10">
-          <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white/15" />
-          <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/15" />
-          <div className="absolute top-1/3 left-0 right-0 h-px bg-white/15" />
-          <div className="absolute top-2/3 left-0 right-0 h-px bg-white/15" />
+          <div className="absolute left-1/3 top-0 bottom-0 w-[0.75px] bg-white/30" />
+          <div className="absolute left-2/3 top-0 bottom-0 w-[0.75px] bg-white/30" />
+          <div className="absolute top-1/3 left-0 right-0 h-[0.75px] bg-white/30" />
+          <div className="absolute top-2/3 left-0 right-0 h-[0.75px] bg-white/30" />
         </div>
       )}
 
-      {/* ── LUT loading indicator ── */}
+      {/* ── LUT loading ── */}
       {lutLoading && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
           <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -225,126 +527,232 @@ export default function CameraPage() {
 
       {/* ── UI overlay ── */}
       <div className="absolute inset-0 z-20 flex flex-col safe-top safe-bottom pointer-events-none">
-
-        {/* Top bar — minimal floating controls */}
+        {/* ── Top bar ── */}
         <div className="flex items-center justify-between px-4 pt-1 pointer-events-auto">
-          <button onClick={() => { if (window.history.length > 1) router.back(); else router.push("/"); }} className="w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/90">
+          <button
+            onClick={() => {
+              if (window.history.length > 1) router.back();
+              else router.push("/");
+            }}
+            className="w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/90"
+          >
             <IconBack size={18} />
           </button>
-          <div className="flex items-center gap-2">
-            <button onClick={() => router.push("/presets")} className="w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/50" title="Library">
-              <IconLibrary size={15} />
-            </button>
-            <button onClick={() => setFlash(!flash)} className={`w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${flash ? "text-yellow-300" : "text-white/50"}`}>
-              {flash ? <IconFlash size={16} /> : <IconFlashOff size={16} />}
-            </button>
-            <button onClick={() => setShowGrid(!showGrid)} className={`w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${showGrid ? "text-white" : "text-white/40"}`}>
-              <IconGrid size={16} />
-            </button>
-          </div>
+          <button
+            onClick={() => setShowGrid(!showGrid)}
+            className={`w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${
+              showGrid ? "text-white" : "text-white/40"
+            }`}
+          >
+            <IconGrid size={16} />
+          </button>
         </div>
 
-        {/* Spacer — pushes bottom area down */}
-        <div className="flex-1" />
+        {/* ── Viewfinder touch area — tap-to-focus & pinch-to-zoom ── */}
+        <div
+          ref={viewfinderRef}
+          className="flex-1 pointer-events-auto relative touch-none"
+          onTouchStart={handleVFTouchStart}
+          onTouchMove={handleVFTouchMove}
+          onTouchEnd={handleVFTouchEnd}
+        >
+          {/* Focus square + brightness slider */}
+          {focusPoint && (
+            <div
+              key={focusKey}
+              className="absolute pointer-events-none camera-focus-square"
+              style={{
+                left: focusPoint.x - 36,
+                top: focusPoint.y - 36,
+              }}
+            >
+              {/* Yellow focus frame */}
+              <div className="w-[72px] h-[72px] border-[1.5px] border-yellow-400/90 rounded-[2px]" />
 
-        {/* Preset strip — shows local LUTs with thumbnails */}
-        <div className="pointer-events-auto px-4 pb-3">
-          {/* Active preset label */}
-          {activePresetId && (
-            <div className="flex justify-center mb-2">
-              <span className="text-[9px] text-white/50 bg-black/40 backdrop-blur-md rounded-full px-3 py-0.5 tracking-wider">
-                {localLutItems.find((l) => l.id === activePresetId)?.name || presets.find((p) => p.id === activePresetId)?.name || "Preset"}
-              </span>
+              {/* Brightness control — vertical track + sun icon */}
+              <div
+                className="absolute -right-11 -top-6 bottom-[-24px] flex flex-col items-center pointer-events-auto touch-none"
+                onTouchStart={handleBrightStart}
+                onTouchMove={handleBrightMove}
+                onTouchEnd={handleBrightEnd}
+              >
+                {/* Vertical track */}
+                <div className="flex-1 w-[1.5px] bg-white/15 rounded-full relative min-h-[96px]">
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 w-[7px] h-[7px] rounded-full bg-yellow-400 shadow-sm transition-[bottom] duration-75"
+                    style={{
+                      bottom: `${Math.max(0, Math.min(100, ((brightness - 0.3) / 1.7) * 100))}%`,
+                      marginBottom: "-3.5px",
+                    }}
+                  />
+                </div>
+                {/* Sun icon */}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="text-yellow-400 mt-1.5 shrink-0"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
             </div>
           )}
+        </div>
+
+        {/* ── Active preset label ── */}
+        {activePresetId && (
+          <div className="flex justify-center pb-1.5 pointer-events-none">
+            <span className="text-[10px] text-white/50 bg-black/40 backdrop-blur-md rounded-full px-3 py-0.5 tracking-wider">
+              {localLutItems.find((l) => l.id === activePresetId)?.name ||
+                "Preset"}
+            </span>
+          </div>
+        )}
+
+        {/* ── Preset strip ── */}
+        <div className="pointer-events-auto px-3 pb-2">
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {/* Original (no preset) */}
-            <button onClick={() => setActivePresetId("")}
-              className={`shrink-0 flex flex-col items-center gap-1`}>
-              <div className={`w-14 h-14 rounded-xl border-2 overflow-hidden flex items-center justify-center transition-all ${
-                activePresetId === "" ? "border-white/60 bg-white/10" : "border-white/10 bg-black/30"
-              }`}>
-                <span className="text-[10px] text-white/50 tracking-wider">{t("camera_original")}</span>
+            {/* Original (no filter) */}
+            <button
+              onClick={() => setActivePresetId("")}
+              className="shrink-0 flex flex-col items-center gap-1"
+            >
+              <div
+                className={`w-[52px] h-[52px] rounded-xl border-2 overflow-hidden flex items-center justify-center transition-all ${
+                  activePresetId === ""
+                    ? "border-white/60 bg-white/10"
+                    : "border-white/10 bg-black/30"
+                }`}
+              >
+                <span className="text-[9px] text-white/50 tracking-wider">
+                  {t("camera_original")}
+                </span>
               </div>
             </button>
+
             {/* Local LUTs */}
             {localLutItems.map((lut) => {
               const meta = getBuiltinMeta(lut.name);
               return (
-              <button key={lut.id} onClick={() => setActivePresetId(lut.id)}
-                className={`shrink-0 flex flex-col items-center gap-1`}>
-                <div className={`w-14 h-14 rounded-xl border-2 overflow-hidden transition-all ${
-                  activePresetId === lut.id ? "border-white/60 shadow-[0_0_10px_rgba(255,255,255,0.12)]" : "border-white/10"
-                }`}>
-                  {thumbUrls[lut.id] ? (
-                    <img src={thumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className={`w-full h-full flex items-center justify-center backdrop-blur-sm ${
-                      meta?.category === "fuji" ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20"
-                      : meta?.category === "kodak" ? "bg-gradient-to-br from-amber-500/20 to-yellow-500/20"
-                      : meta ? "bg-gradient-to-br from-rose-500/20 to-purple-500/20"
-                      : "bg-gradient-to-br from-purple-500/20 to-blue-500/20"
-                    }`}>
-                      <span className="text-[8px] text-white/30">{meta ? (meta.category === "fuji" ? "F" : meta.category === "kodak" ? "K" : "✦") : "LUT"}</span>
-                    </div>
-                  )}
-                </div>
-                <span className="text-[8px] text-white/40 max-w-[56px] truncate">{lut.name}</span>
-              </button>
+                <button
+                  key={lut.id}
+                  onClick={() => setActivePresetId(lut.id)}
+                  className="shrink-0 flex flex-col items-center gap-1"
+                >
+                  <div
+                    className={`w-[52px] h-[52px] rounded-xl border-2 overflow-hidden transition-all ${
+                      activePresetId === lut.id
+                        ? "border-white/60 shadow-[0_0_10px_rgba(255,255,255,0.12)]"
+                        : "border-white/10"
+                    }`}
+                  >
+                    {thumbUrls[lut.id] ? (
+                      <img
+                        src={thumbUrls[lut.id]}
+                        alt={lut.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`w-full h-full flex items-center justify-center ${
+                          meta?.category === "fuji"
+                            ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20"
+                            : meta?.category === "kodak"
+                              ? "bg-gradient-to-br from-amber-500/20 to-yellow-500/20"
+                              : meta
+                                ? "bg-gradient-to-br from-rose-500/20 to-purple-500/20"
+                                : "bg-gradient-to-br from-purple-500/20 to-blue-500/20"
+                        }`}
+                      >
+                        <span className="text-[8px] text-white/30">
+                          {meta
+                            ? meta.category === "fuji"
+                              ? "F"
+                              : meta.category === "kodak"
+                                ? "K"
+                                : "✦"
+                            : "LUT"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[8px] text-white/40 max-w-[52px] truncate">
+                    {lut.name}
+                  </span>
+                </button>
               );
             })}
-            {/* Server presets fallback */}
-            {presets.map((p) => (
-              <button key={p.id} onClick={() => setActivePresetId(p.id)}
-                className={`shrink-0 flex flex-col items-center gap-1`}>
-                <div className={`w-14 h-14 rounded-xl border-2 overflow-hidden transition-all ${
-                  activePresetId === p.id ? "border-white/60" : "border-white/10"
-                }`}>
-                  <div className="w-full h-full bg-gradient-to-br from-amber-500/20 to-rose-500/20 flex items-center justify-center">
-                    <span className="text-[8px] text-white/40">✨</span>
-                  </div>
-                </div>
-                <span className="text-[8px] text-white/40 max-w-[56px] truncate">{p.name}</span>
-              </button>
-            ))}
-            {/* Create new */}
-            {localLutItems.length === 0 && presets.length === 0 && (
-              <button onClick={() => router.push("/presets")}
-                className="shrink-0 flex flex-col items-center gap-1">
-                <div className="w-14 h-14 rounded-xl border-2 border-dashed border-white/15 flex items-center justify-center">
-                  <span className="text-[12px] text-white/20">+</span>
-                </div>
-                <span className="text-[8px] text-white/30">{t("camera_createPreset")}</span>
-              </button>
+          </div>
+        </div>
+
+        {/* ── Focal-length strip (26 · 50 · 77 + continuous drag) ── */}
+        <div className="flex justify-center pb-2 pointer-events-auto">
+          <div
+            className="flex items-center bg-black/30 backdrop-blur-md rounded-full h-8 px-1 gap-0.5 touch-none"
+            onTouchStart={handleFocalStart}
+            onTouchMove={handleFocalMove}
+            onTouchEnd={handleFocalEnd}
+          >
+            {FOCAL_PRESETS.map((p) => {
+              const active = Math.abs(zoom - p.zoom) < 0.1;
+              return (
+                <button
+                  key={p.mm}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setZoom(p.zoom);
+                  }}
+                  className={`h-6 min-w-[34px] rounded-full text-[11px] font-semibold transition-all duration-200 ${
+                    active
+                      ? "bg-yellow-500/90 text-black"
+                      : "text-white/50"
+                  }`}
+                >
+                  {p.mm}
+                </button>
+              );
+            })}
+            {/* show current mm when between presets */}
+            {!isOnPreset && (
+              <span className="text-[11px] text-yellow-400/80 font-semibold pl-1.5 pr-1.5 tabular-nums">
+                {currentMm}
+              </span>
             )}
           </div>
         </div>
 
-        {/* Zoom pill */}
-        <div className="flex justify-center pb-3 pointer-events-auto">
-          <button onClick={cycleZoom} className="h-7 px-3 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center text-white/80 text-[12px] font-medium tracking-wide">
-            {zoom}×
-          </button>
-        </div>
-
-        {/* Bottom bar — gallery · shutter · flip */}
-        <div className="flex items-center justify-center gap-10 pb-4 pointer-events-auto">
-          {/* Gallery / Last capture */}
-          <button onClick={() => capturedUrl && goEditorWithCapture()} className="w-11 h-11 rounded-xl overflow-hidden border border-white/15">
-            {capturedUrl ? (
-              <img src={capturedUrl} alt="Last" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-white/5 flex items-center justify-center"><IconImage size={17} className="text-white/25" /></div>
-            )}
-          </button>
+        {/* ── Bottom bar — shutter + flip ── */}
+        <div className="flex items-center justify-center gap-12 pb-4 pointer-events-auto">
+          {/* Spacer for symmetry */}
+          <div className="w-11 h-11" />
 
           {/* Shutter */}
-          <button onClick={capture} className="w-[68px] h-[68px] rounded-full border-[3px] border-white/90 flex items-center justify-center active:scale-95 transition-transform">
+          <button
+            onClick={capture}
+            className="w-[68px] h-[68px] rounded-full border-[3px] border-white/90 flex items-center justify-center active:scale-95 transition-transform"
+          >
             <div className="w-[56px] h-[56px] rounded-full bg-white active:bg-white/80 transition-colors" />
           </button>
 
           {/* Flip camera */}
-          <button onClick={flipCamera} className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/70">
+          <button
+            onClick={flipCamera}
+            className="w-11 h-11 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/70"
+          >
             <IconFlip size={18} />
           </button>
         </div>
@@ -354,11 +762,25 @@ export default function CameraPage() {
       {capturedUrl && (
         <div className="absolute inset-0 z-30 bg-black flex flex-col">
           <div className="flex items-center justify-between px-5 h-[44px] safe-top">
-            <button onClick={() => setCapturedUrl(null)} className="text-white/70 text-[13px] font-medium tracking-wider">{t("camera_retake")}</button>
-            <button onClick={goEditorWithCapture} className="text-white text-[13px] font-semibold tracking-wider">{t("camera_usePhoto")}</button>
+            <button
+              onClick={() => setCapturedUrl(null)}
+              className="text-white/70 text-[13px] font-medium tracking-wider"
+            >
+              {t("camera_retake")}
+            </button>
+            <button
+              onClick={goEditorWithCapture}
+              className="text-white text-[13px] font-semibold tracking-wider"
+            >
+              {t("camera_usePhoto")}
+            </button>
           </div>
           <div className="flex-1 flex items-center justify-center p-4">
-            <img src={capturedUrl} alt="Captured" className="max-w-full max-h-full object-contain rounded-sm" />
+            <img
+              src={capturedUrl}
+              alt="Captured"
+              className="max-w-full max-h-full object-contain rounded-sm"
+            />
           </div>
         </div>
       )}

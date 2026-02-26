@@ -135,6 +135,21 @@ input[type="range"].k-slider-center::-webkit-slider-thumb {
   padding-bottom: max(10px, var(--k-safe-bottom));
 }
 
+/* ── Camera focus square animation ── */
+.camera-focus-square {
+  animation: cameraFocusIn 0.25s ease-out;
+}
+@keyframes cameraFocusIn {
+  from {
+    transform: scale(1.35);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* ── Transitions ── */
 .k-transition {
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
