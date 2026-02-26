@@ -109,24 +109,37 @@ export default function CameraPage() {
     if (!ctx) return;
 
     let running = true;
-    const draw = () => {
+    let lastDrawTime = 0;
+    const LUT_FPS_INTERVAL = 1000 / 30; // throttle to ~30 fps when LUT active
+
+    const draw = (now: number) => {
       if (!running) return;
+
+      const hasLut = !!activeLutRef.current;
+
+      // When LUT is active, throttle to 30 fps to keep higher resolution smooth
+      if (hasLut && now - lastDrawTime < LUT_FPS_INTERVAL) {
+        rafRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
       if (video.readyState >= 2) {
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         if (vw && vh) {
-          // Cap preview resolution when LUT is active for mobile perf
-          const hasLut = !!activeLutRef.current;
-          const maxP = hasLut ? 480 : 0;
           let cw = vw, ch = vh;
-          if (maxP && Math.max(vw, vh) > maxP) {
-            const s = maxP / Math.max(vw, vh);
+
+          // When LUT active: cap at 1280 (≈720p) for sharp preview
+          // Without LUT: use full video resolution (GPU-only, no pixel work)
+          if (hasLut && Math.max(vw, vh) > 1280) {
+            const s = 1280 / Math.max(vw, vh);
             cw = Math.round(vw * s); ch = Math.round(vh * s);
           }
 
           if (preview.width !== cw || preview.height !== ch) {
             preview.width = cw; preview.height = ch;
           }
+
           // Zoom crop from video
           const sw = vw / zoom, sh = vh / zoom;
           const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
@@ -137,6 +150,8 @@ export default function CameraPage() {
             applyLutToPixels(imgData.data, activeLutRef.current!.data, activeLutRef.current!.size);
             ctx.putImageData(imgData, 0, 0);
           }
+
+          lastDrawTime = now;
         }
       }
       rafRef.current = requestAnimationFrame(draw);
