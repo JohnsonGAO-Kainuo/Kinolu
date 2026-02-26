@@ -127,14 +127,8 @@ export default function CameraPage() {
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         if (vw && vh) {
-          let cw = vw, ch = vh;
-
-          // When LUT active: cap at 1280 (≈720p) for sharp preview
-          // Without LUT: use full video resolution (GPU-only, no pixel work)
-          if (hasLut && Math.max(vw, vh) > 1280) {
-            const s = 1280 / Math.max(vw, vh);
-            cw = Math.round(vw * s); ch = Math.round(vh * s);
-          }
+          // Always use full video resolution for sharpest preview
+          const cw = vw, ch = vh;
 
           if (preview.width !== cw || preview.height !== ch) {
             preview.width = cw; preview.height = ch;
