@@ -38,13 +38,39 @@ export default function HomePage() {
   const [active, setActive] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
-  const { canInstall, promptInstall } = usePWAInstall();
+  const { canInstall, promptInstall, showIOSGuide, dismissIOSGuide } = usePWAInstall();
   const { t } = useI18n();
 
   return (
     <div className="relative w-full h-full flex flex-col">
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* iOS "Add to Home Screen" guide modal */}
+      {showIOSGuide && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={dismissIOSGuide}>
+          <div className="bg-[#1c1c1e] rounded-t-2xl w-full max-w-md p-6 pb-8 safe-bottom animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-[14px] font-semibold text-white tracking-wide">{t("pwa_iosTitle")}</h3>
+              <button onClick={dismissIOSGuide} className="text-white/40 text-[18px]">✕</button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[16px]">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+                    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <p className="text-[12px] text-white/70 leading-relaxed">{t("pwa_iosStep1")}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[16px]">＋</div>
+                <p className="text-[12px] text-white/70 leading-relaxed">{t("pwa_iosStep2")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top bar */}
       <div className="absolute top-0 left-0 w-full safe-top px-5 flex justify-between items-center z-50 pointer-events-none">

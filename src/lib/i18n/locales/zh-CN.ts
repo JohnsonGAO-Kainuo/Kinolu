@@ -209,7 +209,7 @@ const zhCN: Record<TranslationKeys, string> = {
   sub_feature: "功能",
   sub_free: "免费",
   sub_current: "当前",
-  sub_5day: "5次/天",
+  sub_10day: "10次/天",
   sub_all12: "全部 12+",
   sub_comingSoon: "即将",
   sub_feat_transfer: "一键追色",
@@ -252,7 +252,7 @@ const zhCN: Record<TranslationKeys, string> = {
   privacy_analytics: "分析",
   privacy_analyticsDesc: "我们使用尊重隐私的分析工具来了解 Kinolu 的使用情况。不会收集任何个人信息。",
   privacy_contact: "联系我们",
-  privacy_contactDesc: "如有隐私方面的问题，请通过 privacy@kinolu.app 联系我们",
+  privacy_contactDesc: "如有隐私方面的问题，请通过 contact@kainuotech.com 联系我们",
 
   /* ── 服务条款 ── */
   terms_title: "服务条款",
@@ -270,6 +270,11 @@ const zhCN: Record<TranslationKeys, string> = {
   lang_en: "English",
   lang_zhCN: "简体中文",
   lang_zhTW: "繁體中文",
+
+  /* ── PWA 安装 ── */
+  pwa_iosTitle: "安装 Kinolu",
+  pwa_iosStep1: "点击浏览器工具栏中的“分享”按钮",
+  pwa_iosStep2: "向下滚动并点击“添加到主屏幕”",
 };
 
 export default zhCN;

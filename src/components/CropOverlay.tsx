@@ -27,6 +27,7 @@ export default function CropOverlay({ canvasEl, aspect, onChange }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [cv, setCv] = useState<{ l: number; t: number; w: number; h: number } | null>(null);
   const [region, setRegionRaw] = useState<CropRect>({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
+  const [dragging, setDragging] = useState(false);
   const drag = useRef<{ kind: string; sx: number; sy: number; orig: CropRect } | null>(null);
 
   const setRegion = useCallback(
@@ -114,12 +115,11 @@ export default function CropOverlay({ canvasEl, aspect, onChange }: Props) {
     (e: React.PointerEvent) => {
       const n = toNorm(e);
       if (!n || !cv) return;
-      e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       const [mx, my] = n;
       const { x, y, w, h } = region;
-      const hr = 28 / cv.w; // generous touch zone
-      const vr = 28 / cv.h;
+      // 44px touch zones for comfortable mobile interaction
+      const hr = 44 / cv.w;
+      const vr = 44 / cv.h;
       let kind = "";
       const aL = Math.abs(mx - x) < hr,
         aR = Math.abs(mx - (x + w)) < hr;
@@ -135,7 +135,10 @@ export default function CropOverlay({ canvasEl, aspect, onChange }: Props) {
       else if (aR && my > y && my < y + h) kind = "e";
       else if (mx >= x && mx <= x + w && my >= y && my <= y + h) kind = "move";
       if (!kind) return;
+      e.preventDefault();
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       drag.current = { kind, sx: mx, sy: my, orig: { ...region } };
+      setDragging(true);
     },
     [region, cv, toNorm],
   );
@@ -188,6 +191,7 @@ export default function CropOverlay({ canvasEl, aspect, onChange }: Props) {
 
   const onUp = useCallback(() => {
     drag.current = null;
+    setDragging(false);
   }, []);
 
   if (!cv) return null;
@@ -196,8 +200,11 @@ export default function CropOverlay({ canvasEl, aspect, onChange }: Props) {
   const sy = cv.t + region.y * cv.h;
   const sw = region.w * cv.w;
   const sh = region.h * cv.h;
-  const B = 20; // corner bracket arm length
-  const BW = 3; // bracket stroke width
+  const C = 22; // corner bracket arm length
+  const CW = 3; // bracket stroke width
+  const maskAlpha = dragging ? 0.65 : 0.5;
+  const gridAlpha = dragging ? 0.35 : 0.15;
+  const borderAlpha = dragging ? 0.8 : 0.5;
 
   return (
     <div
@@ -209,58 +216,58 @@ export default function CropOverlay({ canvasEl, aspect, onChange }: Props) {
       onPointerCancel={onUp}
     >
       {/* ── dark mask (4 rects around crop) ── */}
-      <div className="absolute bg-black/55" style={{ left: cv.l, top: cv.t, width: cv.w, height: region.y * cv.h }} />
+      <div className="absolute transition-[background] duration-150" style={{ left: cv.l, top: cv.t, width: cv.w, height: region.y * cv.h, background: `rgba(0,0,0,${maskAlpha})` }} />
       <div
-        className="absolute bg-black/55"
-        style={{ left: cv.l, top: sy + sh, width: cv.w, height: Math.max(0, (1 - region.y - region.h) * cv.h) }}
+        className="absolute transition-[background] duration-150"
+        style={{ left: cv.l, top: sy + sh, width: cv.w, height: Math.max(0, (1 - region.y - region.h) * cv.h), background: `rgba(0,0,0,${maskAlpha})` }}
       />
-      <div className="absolute bg-black/55" style={{ left: cv.l, top: sy, width: region.x * cv.w, height: sh }} />
+      <div className="absolute transition-[background] duration-150" style={{ left: cv.l, top: sy, width: region.x * cv.w, height: sh, background: `rgba(0,0,0,${maskAlpha})` }} />
       <div
-        className="absolute bg-black/55"
-        style={{ left: sx + sw, top: sy, width: Math.max(0, (1 - region.x - region.w) * cv.w), height: sh }}
+        className="absolute transition-[background] duration-150"
+        style={{ left: sx + sw, top: sy, width: Math.max(0, (1 - region.x - region.w) * cv.w), height: sh, background: `rgba(0,0,0,${maskAlpha})` }}
       />
 
       {/* ── crop border + rule-of-thirds ── */}
-      <div className="absolute border border-white/50 pointer-events-none" style={{ left: sx, top: sy, width: sw, height: sh }}>
-        <div className="absolute left-1/3 top-0 bottom-0 w-px bg-white/20" />
-        <div className="absolute left-2/3 top-0 bottom-0 w-px bg-white/20" />
-        <div className="absolute top-1/3 left-0 right-0 h-px bg-white/20" />
-        <div className="absolute top-2/3 left-0 right-0 h-px bg-white/20" />
+      <div className="absolute pointer-events-none" style={{ left: sx, top: sy, width: sw, height: sh, border: `1px solid rgba(255,255,255,${borderAlpha})`, transition: "border-color 150ms" }}>
+        <div className="absolute left-1/3 top-0 bottom-0 w-px transition-[background] duration-150" style={{ background: `rgba(255,255,255,${gridAlpha})` }} />
+        <div className="absolute left-2/3 top-0 bottom-0 w-px transition-[background] duration-150" style={{ background: `rgba(255,255,255,${gridAlpha})` }} />
+        <div className="absolute top-1/3 left-0 right-0 h-px transition-[background] duration-150" style={{ background: `rgba(255,255,255,${gridAlpha})` }} />
+        <div className="absolute top-2/3 left-0 right-0 h-px transition-[background] duration-150" style={{ background: `rgba(255,255,255,${gridAlpha})` }} />
       </div>
 
-      {/* ── corner brackets (L-shaped) ── */}
+      {/* ── corner brackets (L-shaped, rounded tips) ── */}
       {/* TL */}
-      <div className="absolute bg-white pointer-events-none" style={{ left: sx - 1, top: sy - 1, width: B, height: BW }} />
-      <div className="absolute bg-white pointer-events-none" style={{ left: sx - 1, top: sy - 1, width: BW, height: B }} />
+      <div className="absolute bg-white pointer-events-none" style={{ left: sx - 1, top: sy - 1, width: C, height: CW, borderRadius: 2 }} />
+      <div className="absolute bg-white pointer-events-none" style={{ left: sx - 1, top: sy - 1, width: CW, height: C, borderRadius: 2 }} />
       {/* TR */}
-      <div className="absolute bg-white pointer-events-none" style={{ left: sx + sw - B + 1, top: sy - 1, width: B, height: BW }} />
-      <div className="absolute bg-white pointer-events-none" style={{ left: sx + sw - BW + 1, top: sy - 1, width: BW, height: B }} />
+      <div className="absolute bg-white pointer-events-none" style={{ left: sx + sw - C + 1, top: sy - 1, width: C, height: CW, borderRadius: 2 }} />
+      <div className="absolute bg-white pointer-events-none" style={{ left: sx + sw - CW + 1, top: sy - 1, width: CW, height: C, borderRadius: 2 }} />
       {/* BL */}
-      <div className="absolute bg-white pointer-events-none" style={{ left: sx - 1, top: sy + sh - BW + 1, width: B, height: BW }} />
-      <div className="absolute bg-white pointer-events-none" style={{ left: sx - 1, top: sy + sh - B + 1, width: BW, height: B }} />
+      <div className="absolute bg-white pointer-events-none" style={{ left: sx - 1, top: sy + sh - CW + 1, width: C, height: CW, borderRadius: 2 }} />
+      <div className="absolute bg-white pointer-events-none" style={{ left: sx - 1, top: sy + sh - C + 1, width: CW, height: C, borderRadius: 2 }} />
       {/* BR */}
-      <div className="absolute bg-white pointer-events-none" style={{ left: sx + sw - B + 1, top: sy + sh - BW + 1, width: B, height: BW }} />
-      <div className="absolute bg-white pointer-events-none" style={{ left: sx + sw - BW + 1, top: sy + sh - B + 1, width: BW, height: B }} />
+      <div className="absolute bg-white pointer-events-none" style={{ left: sx + sw - C + 1, top: sy + sh - CW + 1, width: C, height: CW, borderRadius: 2 }} />
+      <div className="absolute bg-white pointer-events-none" style={{ left: sx + sw - CW + 1, top: sy + sh - C + 1, width: CW, height: C, borderRadius: 2 }} />
 
-      {/* ── edge midpoint handles ── */}
-      <div className="absolute bg-white/80 rounded-sm pointer-events-none" style={{ left: sx + sw / 2 - 12, top: sy - 1.5, width: 24, height: BW }} />
+      {/* ── edge midpoint handles (wider touch-friendly bars) ── */}
+      <div className="absolute bg-white/70 pointer-events-none" style={{ left: sx + sw / 2 - 16, top: sy - 1.5, width: 32, height: CW, borderRadius: 2 }} />
       <div
-        className="absolute bg-white/80 rounded-sm pointer-events-none"
-        style={{ left: sx + sw / 2 - 12, top: sy + sh - 1.5, width: 24, height: BW }}
+        className="absolute bg-white/70 pointer-events-none"
+        style={{ left: sx + sw / 2 - 16, top: sy + sh - 1.5, width: 32, height: CW, borderRadius: 2 }}
       />
-      <div className="absolute bg-white/80 rounded-sm pointer-events-none" style={{ left: sx - 1.5, top: sy + sh / 2 - 12, width: BW, height: 24 }} />
+      <div className="absolute bg-white/70 pointer-events-none" style={{ left: sx - 1.5, top: sy + sh / 2 - 16, width: CW, height: 32, borderRadius: 2 }} />
       <div
-        className="absolute bg-white/80 rounded-sm pointer-events-none"
-        style={{ left: sx + sw - 1.5, top: sy + sh / 2 - 12, width: BW, height: 24 }}
+        className="absolute bg-white/70 pointer-events-none"
+        style={{ left: sx + sw - 1.5, top: sy + sh / 2 - 16, width: CW, height: 32, borderRadius: 2 }}
       />
 
       {/* ── dimension label ── */}
       {canvasEl && (
         <div
-          className="absolute pointer-events-none"
-          style={{ left: sx + sw / 2 - 40, top: sy + sh + 8, width: 80, textAlign: "center" }}
+          className="absolute pointer-events-none transition-opacity duration-150"
+          style={{ left: sx + sw / 2 - 40, top: sy + sh + 8, width: 80, textAlign: "center", opacity: dragging ? 1 : 0.7 }}
         >
-          <span className="bg-black/60 text-[9px] text-white/60 rounded-full px-2 py-0.5 tabular-nums">
+          <span className="bg-black/60 text-[9px] text-white/60 rounded-full px-2 py-0.5 tabular-nums backdrop-blur-sm">
             {Math.round(region.w * canvasEl.width)}×{Math.round(region.h * canvasEl.height)}
           </span>
         </div>

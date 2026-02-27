@@ -154,3 +154,12 @@ input[type="range"].k-slider-center::-webkit-slider-thumb {
 .k-transition {
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
+
+/* ── PWA iOS guide slide-up ── */
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

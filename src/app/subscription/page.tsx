@@ -71,7 +71,7 @@ export default function SubscriptionPage() {
 
             {/* Feature rows */}
             {[
-              { key: "sub_feat_transfer", free: t("sub_5day"), pro: "∞" },
+              { key: "sub_feat_transfer", free: t("sub_10day"), pro: "∞" },
               { key: "sub_feat_filters", free: "3", pro: t("sub_all12") },
               { key: "sub_feat_camera", free: "✓", pro: "✓" },
               { key: "sub_feat_editor", free: "✓", pro: "✓" },

@@ -71,6 +71,18 @@ export default function CameraPage() {
   const startCamera = useCallback(async () => {
     try {
       if (streamRef.current) streamRef.current.getTracks().forEach((tr) => tr.stop());
+
+      // Check permission state before prompting — avoids re-asking on every visit
+      if (navigator.permissions?.query) {
+        try {
+          const perm = await navigator.permissions.query({ name: "camera" as PermissionName });
+          if (perm.state === "denied") {
+            setCameraError(t("camera_permissionDenied"));
+            return;
+          }
+        } catch { /* permissions API not supported on this browser, continue normally */ }
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,

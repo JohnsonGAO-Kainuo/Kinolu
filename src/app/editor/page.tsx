@@ -130,6 +130,7 @@ export default function EditorPage() {
   /* Preset/LUT strip */
   const [availableLuts, setAvailableLuts] = useState<Omit<LutEntry, "data">[]>([]);
   const [lutThumbUrls, setLutThumbUrls] = useState<Record<string, string>>({});
+  const [activeLutId, setActiveLutId] = useState<string>("");
 
   /* Crop region */
   const [cropRegion, setCropRegion] = useState<CropRect>({ x: 0, y: 0, w: 1, h: 1 });
@@ -222,6 +223,7 @@ export default function EditorPage() {
       URL.revokeObjectURL(u);
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
+      setActiveLutId(presetId);
       setRenderTick((t) => t + 1);
       showToast(t("editor_presetApplied"));
     } catch (err) { setErrorMsg(`${t("editor_presetFailed")}: ${err}`); setTimeout(() => setErrorMsg(null), 4000); }
@@ -277,7 +279,11 @@ export default function EditorPage() {
     transferredImageData.current = null; setHasTransferred(false);
     setRenderTick((t) => t + 1);
     const sp = sessionStorage.getItem("kinolu_capture_preset_id") || "";
-    if (sp) { void runApplyPreset(sp); sessionStorage.removeItem("kinolu_capture_preset_id"); }
+    if (sp) {
+      setActiveLutId(sp);
+      void runApplyPreset(sp);
+      sessionStorage.removeItem("kinolu_capture_preset_id");
+    }
   }, [loadImageToData, runApplyPreset]);
 
   useEffect(() => {
@@ -421,6 +427,17 @@ export default function EditorPage() {
   const applyLutInline = useCallback(async (lutId: string) => {
     const source = sourceFileRef.current;
     if (!source) { showToast(t("editor_importPhotoFirst")); return; }
+    // If tapping the already-active LUT, deselect and revert to original
+    if (lutId === activeLutId) {
+      setActiveLutId("");
+      if (sourceImageData.current) {
+        baseImageData.current = sourceImageData.current;
+        transferredImageData.current = null;
+        setHasTransferred(false);
+        setRenderTick((t) => t + 1);
+      }
+      return;
+    }
     setProcessing(true); setErrorMsg(null);
     try {
       const blob = await applyPresetToImage(source, lutId);
@@ -429,11 +446,12 @@ export default function EditorPage() {
       URL.revokeObjectURL(u);
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
+      setActiveLutId(lutId);
       setRenderTick((t) => t + 1);
       showToast(t("editor_presetApplied"));
     } catch (err) { setErrorMsg(`Preset failed: ${err}`); }
     finally { setProcessing(false); }
-  }, [loadImageToData, showToast]);
+  }, [loadImageToData, showToast, activeLutId]);
 
   /* ── Batch import & process ── */
   const handleBatchImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -836,14 +854,14 @@ export default function EditorPage() {
                             {userLuts.map((lut) => (
                               <button key={lut.id} onClick={() => applyLutInline(lut.id)}
                                 className="shrink-0 flex flex-col items-center gap-0.5">
-                                <div className="w-12 h-12 rounded-lg border border-white/10 overflow-hidden bg-black/40">
+                                <div className={`w-12 h-12 rounded-lg overflow-hidden bg-black/40 transition-all ${activeLutId === lut.id ? "ring-2 ring-white border-transparent scale-105" : "border border-white/10"}`}>
                                   {lutThumbUrls[lut.id] ? (
                                     <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center"><span className="text-[7px] text-white/20">LUT</span></div>
                                   )}
                                 </div>
-                                <span className="text-[8px] text-white/35 max-w-[48px] truncate">{lut.name}</span>
+                                <span className={`text-[8px] max-w-[48px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : "text-white/35"}`}>{lut.name}</span>
                               </button>
                             ))}
                           </div>
@@ -859,7 +877,7 @@ export default function EditorPage() {
                               return (
                                 <button key={lut.id} onClick={() => applyLutInline(lut.id)}
                                   className="shrink-0 flex flex-col items-center gap-0.5">
-                                  <div className="w-12 h-12 rounded-lg border border-white/10 overflow-hidden bg-black/40">
+                                  <div className={`w-12 h-12 rounded-lg overflow-hidden bg-black/40 transition-all ${activeLutId === lut.id ? "ring-2 ring-white border-transparent scale-105" : "border border-white/10"}`}>
                                     {lutThumbUrls[lut.id] ? (
                                       <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
                                     ) : (
@@ -872,7 +890,7 @@ export default function EditorPage() {
                                       </div>
                                     )}
                                   </div>
-                                  <span className="text-[8px] text-white/35 max-w-[48px] truncate">{lut.name}</span>
+                                  <span className={`text-[8px] max-w-[48px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : "text-white/35"}`}>{lut.name}</span>
                                 </button>
                               );
                             })}

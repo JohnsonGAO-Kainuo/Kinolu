@@ -207,7 +207,7 @@ const en = {
   sub_feature: "Feature",
   sub_free: "Free",
   sub_current: "CURRENT",
-  sub_5day: "5/day",
+  sub_10day: "10/day",
   sub_all12: "All 12+",
   sub_comingSoon: "Soon",
   sub_feat_transfer: "Color transfer",
@@ -250,7 +250,7 @@ const en = {
   privacy_analytics: "Analytics",
   privacy_analyticsDesc: "We use privacy-respecting analytics to understand how Kinolu is used. No personal information is collected.",
   privacy_contact: "Contact",
-  privacy_contactDesc: "For questions about privacy, please contact us at privacy@kinolu.app",
+  privacy_contactDesc: "For questions about privacy, please contact us at contact@kainuotech.com",
 
   /* ── Terms ── */
   terms_title: "Terms of Service",
@@ -268,6 +268,11 @@ const en = {
   lang_en: "English",
   lang_zhCN: "简体中文",
   lang_zhTW: "繁體中文",
+
+  /* ── PWA install ── */
+  pwa_iosTitle: "Install Kinolu",
+  pwa_iosStep1: "Tap the Share button in your browser toolbar",
+  pwa_iosStep2: "Scroll down and tap \"Add to Home Screen\"",
 } as const;
 
 export type TranslationKeys = keyof typeof en;
