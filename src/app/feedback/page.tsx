@@ -4,16 +4,29 @@ import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/components/AuthProvider";
+import { createClient } from "@/lib/supabase";
 
 export default function FeedbackPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { user } = useAuth();
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!feedback.trim()) return;
-    console.log("Feedback:", feedback);
+    try {
+      const supabase = createClient();
+      await supabase.from("feedback").insert({
+        user_id: user?.id ?? null,
+        email: user?.email ?? null,
+        message: feedback.trim(),
+      });
+    } catch {
+      // Fallback: if table doesn't exist, just log
+      console.log("Feedback:", feedback);
+    }
     setSubmitted(true);
     setTimeout(() => {
       setFeedback("");

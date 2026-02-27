@@ -108,6 +108,7 @@ const zhCN: Record<TranslationKeys, string> = {
   editor_saveFailed: "保存失败 — 后端是否在运行？",
   editor_lutExportFailed: "LUT 导出失败 — 后端是否在运行？",
   editor_freePresetLimit: "免费用户最多保存5个预设，升级Pro解锁无限制",
+  editor_dailyLimitReached: "今日已达上限（10次/天），升级Pro解锁无限制",
 
   /* ── 编辑器标签页 ── */
   tab_transfer: "转移",
@@ -159,6 +160,7 @@ const zhCN: Record<TranslationKeys, string> = {
   batch_downloadAll: "全部下载",
   batch_complete: "批量处理完成",
   batch_longPressDelete: "长按可删除",
+  batch_proOnly: "批量处理为Pro功能",
 
   /* ── 曲线 ── */
   curves_reset: "重置 {channel}",
@@ -236,12 +238,13 @@ const zhCN: Record<TranslationKeys, string> = {
   sub_comingSoon: "即将",
   sub_feat_transfer: "一键追色",
   sub_feat_filters: "胶片滤镜",
+  sub_feat_presets: "用户预设",
   sub_feat_camera: "相机与取景",
   sub_feat_editor: "照片编辑",
-  sub_feat_lutImport: "LUT 导入 (.cube)",
-  sub_feat_lutExport: "LUT 导出 (.cube)",
+  sub_feat_lutImport: "LUT 导入/导出",
   sub_feat_batch: "批量处理",
   sub_feat_cloudSync: "云端同步",
+  sub_5max: "最多5个",
   sub_bestValue: "最划算",
   sub_annual: "年度订阅",
   sub_annualSub: "节省 30%",

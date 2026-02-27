@@ -108,6 +108,7 @@ const zhTW: Record<TranslationKeys, string> = {
   editor_saveFailed: "儲存失敗 — 後端是否在執行？",
   editor_lutExportFailed: "LUT 匯出失敗 — 後端是否在執行？",
   editor_freePresetLimit: "免費用戶最多儲存5個預設，升級Pro解鎖無限制",
+  editor_dailyLimitReached: "今日已達上限（10次/天），升級Pro解鎖無限制",
 
   /* ── 編輯器標籤頁 ── */
   tab_transfer: "轉移",
@@ -159,6 +160,7 @@ const zhTW: Record<TranslationKeys, string> = {
   batch_downloadAll: "全部下載",
   batch_complete: "批量處理完成",
   batch_longPressDelete: "長按可刪除",
+  batch_proOnly: "批次處理為Pro功能",
 
   /* ── 曲線 ── */
   curves_reset: "重置 {channel}",
@@ -236,12 +238,13 @@ const zhTW: Record<TranslationKeys, string> = {
   sub_comingSoon: "即將",
   sub_feat_transfer: "一鍵追色",
   sub_feat_filters: "膠片濾鏡",
+  sub_feat_presets: "用戶預設",
   sub_feat_camera: "相機與取景",
   sub_feat_editor: "照片編輯",
-  sub_feat_lutImport: "LUT 匯入 (.cube)",
-  sub_feat_lutExport: "LUT 匯出 (.cube)",
+  sub_feat_lutImport: "LUT 匯入/匯出",
   sub_feat_batch: "批次處理",
   sub_feat_cloudSync: "雲端同步",
+  sub_5max: "最多5個",
   sub_bestValue: "最划算",
   sub_annual: "年度訂閱",
   sub_annualSub: "節省 30%",

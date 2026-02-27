@@ -17,7 +17,7 @@ const PAYMENT_LINKS: Record<Plan, string> = {
 export default function SubscriptionPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { user, isPro, profile, subscription } = useAuth();
+  const { user, isPro, profile, subscription, refreshProfile } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
 
   return (
@@ -73,10 +73,10 @@ export default function SubscriptionPage() {
             {[
               { key: "sub_feat_transfer", free: t("sub_10day"), pro: "∞" },
               { key: "sub_feat_filters", free: "5", pro: t("sub_all12") },
+              { key: "sub_feat_presets", free: t("sub_5max"), pro: "∞" },
               { key: "sub_feat_camera", free: "✓", pro: "✓" },
               { key: "sub_feat_editor", free: "✓", pro: "✓" },
-              { key: "sub_feat_lutImport", free: "—", pro: "✓" },
-              { key: "sub_feat_lutExport", free: "—", pro: "✓" },
+              { key: "sub_feat_lutImport", free: "✓", pro: "✓" },
               { key: "sub_feat_batch", free: "—", pro: "✓" },
               { key: "sub_feat_cloudSync", free: "—", pro: t("sub_comingSoon") },
             ].map((row, i) => (
@@ -271,7 +271,12 @@ export default function SubscriptionPage() {
               {t("sub_privacy")}
             </button>
             <span className="text-white/10 text-[10px]">|</span>
-            <button className="text-[10px] text-white/30 underline underline-offset-2">
+            <button onClick={async () => {
+              if (!user) { router.push("/auth/login"); return; }
+              await refreshProfile();
+              if (isPro) alert(t("sub_active"));
+              else alert("No active subscription found. If you recently purchased, please wait a moment and try again.");
+            }} className="text-[10px] text-white/30 underline underline-offset-2">
               {t("sub_restore")}
             </button>
           </div>

@@ -260,13 +260,17 @@ export default function EditorPage() {
     transferredImageData.current = null; setHasTransferred(false);
     setRenderTick((t) => t + 1);
 
-    // If multiple files selected → rest become batch queue (ColorBy style)
+    // If multiple files selected → rest become batch queue (Pro only)
     if (arr.length > 1) {
-      setBatchFiles(
-        arr.slice(1, 10).map((f) => ({
-          file: f, url: URL.createObjectURL(f), resultUrl: null, status: "idle" as const,
-        })),
-      );
+      if (!isPro) {
+        showToast(t("batch_proOnly"));
+      } else {
+        setBatchFiles(
+          arr.slice(1, 10).map((f) => ({
+            file: f, url: URL.createObjectURL(f), resultUrl: null, status: "idle" as const,
+          })),
+        );
+      }
     }
 
     if (pendingPresetId) { void runApplyPreset(pendingPresetId); setPendingPresetId(""); }
@@ -337,11 +341,33 @@ export default function EditorPage() {
     void runApplyPreset(pendingPresetId); setPendingPresetId("");
   }, [pendingPresetId, runApplyPreset]);
 
+  /* ── Daily transfer limit (client-side, localStorage) ── */
+  const getDailyTransferCount = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const stored = localStorage.getItem("kinolu_daily_transfers");
+    if (!stored) return 0;
+    try {
+      const { date, count } = JSON.parse(stored);
+      return date === today ? (count as number) : 0;
+    } catch { return 0; }
+  }, []);
+
+  const incrementDailyTransfer = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const current = getDailyTransferCount();
+    localStorage.setItem("kinolu_daily_transfers", JSON.stringify({ date: today, count: current + 1 }));
+  }, [getDailyTransferCount]);
+
   /* ── Transfer ── */
   const runTransfer = useCallback(async (overrideRefIdx?: number) => {
     const idx = overrideRefIdx ?? activeRefIdx;
     const source = sourceFileRef.current; const ref = refFilesRef.current[idx];
     if (!source || !ref) return;
+    // Free user daily limit
+    if (!isPro && getDailyTransferCount() >= 10) {
+      showToast(t("editor_dailyLimitReached"));
+      return;
+    }
     setProcessing(true); setErrorMsg(null);
     try {
       const resp = await transferImage(ref, source, params);
@@ -352,6 +378,7 @@ export default function EditorPage() {
       setHasTransferred(true);
       setTransferUsedXY(true);
       setRenderTick((t) => t + 1);
+      if (!isPro) incrementDailyTransfer();
       if (params.auto_xy) setParams((p) => ({ ...p, color_strength: resp.autoX, tone_strength: resp.autoY }));
     } catch (err) {
       setErrorMsg(`${t("editor_transferFailed")}: ${err}`);
@@ -518,14 +545,15 @@ export default function EditorPage() {
     finally { setProcessing(false); }
   }, [loadImageToData, showToast, activeLutId, isPro, availableLuts]);
 
-  /* ── Batch import & process ── */
-  const handleBatchImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  /* ── Batch add more (appends to existing batch) ── */
+  const handleBatchAddMore = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files) return;
-    setBatchFiles(
-      Array.from(files).slice(0, 9).map((f) => ({
+    setBatchFiles((prev) => [
+      ...prev,
+      ...Array.from(files).slice(0, Math.max(0, 9 - prev.length)).map((f) => ({
         file: f, url: URL.createObjectURL(f), resultUrl: null, status: "idle" as const,
       })),
-    );
+    ]);
     e.target.value = "";
   }, []);
 
@@ -595,7 +623,7 @@ export default function EditorPage() {
     <div className="flex flex-col w-full h-full bg-black">
       <input ref={sourceInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleSourceUpload} />
       <input ref={refInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleRefUpload} />
-      <input ref={batchInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleBatchImport} />
+      <input ref={batchInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleBatchAddMore} />
 
       {/* ── Header — hidden in fullscreen ── */}
       {!previewFullscreen && (
@@ -664,7 +692,16 @@ export default function EditorPage() {
             className="shrink-0 w-12 h-12 rounded-lg border border-dashed border-white/15 flex items-center justify-center">
             <IconPlus size={10} className="text-white/30" />
           </button>
-          <span className="text-[8px] text-white/20 shrink-0 ml-1">{t("batch_longPressDelete")}</span>
+          {/* Batch actions */}
+          <div className="shrink-0 flex items-center gap-1 ml-auto">
+            {!batchProcessing && batchFiles.some((f) => f.status === "idle" || f.status === "error") && (
+              <button onClick={runBatchTransfer} className="text-[8px] text-white/60 bg-white/10 px-2 py-1 rounded-lg active:bg-white/20 whitespace-nowrap">{t("batch_applyAll")}</button>
+            )}
+            {batchFiles.some((f) => f.status === "done") && (
+              <button onClick={downloadBatchAll} className="text-[8px] text-white/60 bg-white/10 px-2 py-1 rounded-lg active:bg-white/20 whitespace-nowrap">{t("batch_downloadAll")}</button>
+            )}
+            <button onClick={() => setBatchFiles([])} className="text-[8px] text-white/30 px-1 py-1">✕</button>
+          </div>
         </div>
       )}
 
@@ -864,7 +901,7 @@ export default function EditorPage() {
       {!previewFullscreen && (
       <div className="shrink-0 bg-[#080808]" style={{ maxHeight: "45vh" }}>
         {/* Scrollable panel content — fixed height with nav bar outside */}
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(45vh - 52px)" }}>
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(45vh - 56px)" }}>
           <div className="pt-2 pb-3">
             {activeTab === "transfer" && (
               <div className="flex flex-col gap-2 px-5 py-1">
@@ -920,60 +957,12 @@ export default function EditorPage() {
                     </button>
                   )}
                   {step >= 3 && (
-                    <>
-                      <button onClick={() => runTransfer()} disabled={!canProcess}
-                        className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all disabled:opacity-40">
-                        {processing ? t("editor_processing") : hasTransferred ? t("editor_reApply") : t("editor_apply")}
-                      </button>
-                      {hasTransferred && refImages.length > 0 && (
-                        <button onClick={() => batchInputRef.current?.click()}
-                          className="px-4 py-2.5 rounded-xl text-[11px] font-semibold tracking-wider border border-white/15 text-white/60 active:scale-[0.98] transition-all">
-                          {t("batch_import")}
-                        </button>
-                      )}
-                    </>
+                    <button onClick={() => runTransfer()} disabled={!canProcess}
+                      className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all disabled:opacity-40">
+                      {processing ? t("editor_processing") : hasTransferred ? t("editor_reApply") : t("editor_apply")}
+                    </button>
                   )}
                 </div>
-
-                {/* ── Batch grid ── */}
-                {batchFiles.length > 0 && (
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[9px] text-white/30 tracking-[1.5px] uppercase">{t("batch_title")} ({batchFiles.filter((f) => f.status === "done").length}/{batchFiles.length})</span>
-                      <div className="flex gap-1.5">
-                        {!batchProcessing && batchFiles.some((f) => f.status === "idle" || f.status === "error") && (
-                          <button onClick={runBatchTransfer} className="text-[9px] text-white/60 bg-white/10 px-2.5 py-1 rounded-lg active:bg-white/20">{t("batch_applyAll")}</button>
-                        )}
-                        {batchFiles.some((f) => f.status === "done") && (
-                          <button onClick={downloadBatchAll} className="text-[9px] text-white/60 bg-white/10 px-2.5 py-1 rounded-lg active:bg-white/20">{t("batch_downloadAll")}</button>
-                        )}
-                        <button onClick={() => setBatchFiles([])} className="text-[9px] text-white/30 px-1.5 py-1">✕</button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {batchFiles.map((bf, i) => (
-                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/10">
-                          <img src={bf.resultUrl || bf.url} alt="" className="w-full h-full object-cover" />
-                          {bf.status === "processing" && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                            </div>
-                          )}
-                          {bf.status === "done" && (
-                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-green-500/80 flex items-center justify-center">
-                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                            </div>
-                          )}
-                          {bf.status === "error" && (
-                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500/80 flex items-center justify-center">
-                              <span className="text-[8px] text-white">!</span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* ── LUT/Preset strip with Film / Presets toggle ── */}
                 {availableLuts.length > 0 && sourceUrl && (() => {

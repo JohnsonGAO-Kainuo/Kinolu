@@ -106,6 +106,7 @@ const en = {
   editor_saveFailed: "Save failed — is the backend running?",
   editor_lutExportFailed: "LUT export failed — is the backend running?",
   editor_freePresetLimit: "Free users can save up to 5 presets. Upgrade to Pro for unlimited.",
+  editor_dailyLimitReached: "Daily limit reached (10/day). Upgrade to Pro for unlimited.",
 
   /* ── Editor Tabs ── */
   tab_transfer: "Transfer",
@@ -157,6 +158,7 @@ const en = {
   batch_downloadAll: "Download All",
   batch_complete: "Batch processing complete",
   batch_longPressDelete: "Long press to delete",
+  batch_proOnly: "Batch processing is a Pro feature",
 
   /* ── Curves ── */
   curves_reset: "Reset {channel}",
@@ -234,12 +236,13 @@ const en = {
   sub_comingSoon: "Soon",
   sub_feat_transfer: "Color transfer",
   sub_feat_filters: "Film presets",
+  sub_feat_presets: "User presets",
   sub_feat_camera: "Camera & viewfinder",
   sub_feat_editor: "Photo editor",
-  sub_feat_lutImport: "LUT import (.cube)",
-  sub_feat_lutExport: "LUT export (.cube)",
+  sub_feat_lutImport: "LUT import/export",
   sub_feat_batch: "Batch processing",
   sub_feat_cloudSync: "Cloud sync",
+  sub_5max: "Max 5",
   sub_bestValue: "Best Value",
   sub_annual: "Annual",
   sub_annualSub: "Save 30%",
