@@ -912,7 +912,7 @@ export default function EditorPage() {
                                       </div>
                                     )}
                                   </div>
-                                  <span className={`text-[8px] max-w-[48px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : locked ? "text-white/25" : "text-white/35"}`}>{lut.name}</span>
+                                  <span className={`text-[7px] max-w-[56px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : locked ? "text-white/25" : "text-white/35"}`}>{lut.name}</span>
                                 </button>
                               );
                             })}
