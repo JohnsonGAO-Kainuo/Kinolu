@@ -4,9 +4,13 @@
  * On first app launch these are fetched from /luts/builtin/*.cube,
  * parsed, and saved into IndexedDB so they appear alongside user presets.
  * A localStorage flag prevents re-importing on subsequent visits.
+ *
+ * Naming follows international photography conventions:
+ *   Fuji simulations: official Fuji names / abbreviations (CC, CN)
+ *   Kodak stocks: classic film stock designations
  */
 
-import { parseCubeFile, importCubeFileLocal, listLocalLuts, type LutEntry } from "./lutStore";
+import { parseCubeFile, importCubeFileLocal, listLocalLuts, applyLutToPixels, type LutEntry } from "./lutStore";
 
 /* ── Curated preset manifest ── */
 export interface BuiltinLutMeta {
@@ -18,29 +22,61 @@ export interface BuiltinLutMeta {
   category: "fuji" | "kodak" | "classic";
   /** Short description */
   desc: string;
+  /** Available in free tier */
+  isFree: boolean;
 }
 
 export const BUILTIN_LUTS: BuiltinLutMeta[] = [
   // ── Fuji Film Simulations ──
-  { file: "fuji_provia.cube",         name: "PROVIA",         category: "fuji",    desc: "Standard, faithful color" },
-  { file: "fuji_velvia.cube",         name: "Velvia",         category: "fuji",    desc: "Vivid, saturated landscape" },
-  { file: "fuji_astia.cube",          name: "ASTIA",          category: "fuji",    desc: "Soft, flattering portrait" },
-  { file: "fuji_classic_chrome.cube", name: "Classic Chrome", category: "fuji",    desc: "Muted, documentary tone" },
-  { file: "fuji_classic_neg.cube",    name: "Classic Neg",    category: "fuji",    desc: "Nostalgic film negative" },
-  { file: "fuji_acros.cube",          name: "ACROS",          category: "fuji",    desc: "Fine-grain black & white" },
-  { file: "fuji_eterna.cube",         name: "ETERNA",         category: "fuji",    desc: "Cinematic, low saturation" },
+  { file: "fuji_provia.cube",         name: "PROVIA",     category: "fuji",    desc: "Standard / faithful color reproduction",   isFree: true },
+  { file: "fuji_velvia.cube",         name: "Velvia",     category: "fuji",    desc: "Vivid saturated landscapes",               isFree: false },
+  { file: "fuji_astia.cube",          name: "ASTIA",      category: "fuji",    desc: "Soft flattering portraits",                isFree: false },
+  { file: "fuji_classic_chrome.cube", name: "CC",         category: "fuji",    desc: "Classic Chrome / muted documentary tone",   isFree: true },
+  { file: "fuji_classic_neg.cube",    name: "CN",         category: "fuji",    desc: "Classic Neg / nostalgic film negative",     isFree: true },
+  { file: "fuji_acros.cube",          name: "ACROS",      category: "fuji",    desc: "Fine-grain monochrome",                    isFree: false },
+  { file: "fuji_eterna.cube",         name: "ETERNA",     category: "fuji",    desc: "Cinematic subdued color",                  isFree: false },
 
   // ── Kodak Film Stocks ──
-  { file: "kodak_portra_400.cube",    name: "Portra 400",     category: "kodak",   desc: "Warm portrait skin tones" },
-  { file: "kodak_ektar_100.cube",     name: "Ektar 100",      category: "kodak",   desc: "Vivid, punchy landscape" },
-  { file: "kodak_gold_200.cube",      name: "Gold 200",       category: "kodak",   desc: "Warm consumer classic" },
+  { file: "kodak_portra_400.cube",    name: "Portra 400", category: "kodak",   desc: "Natural skin tones / fine grain portrait", isFree: true },
+  { file: "kodak_ektar_100.cube",     name: "Ektar 100",  category: "kodak",   desc: "Ultra-vivid punchy landscape",             isFree: false },
+  { file: "kodak_gold_200.cube",      name: "Gold 200",   category: "kodak",   desc: "Warm everyday film classic",               isFree: true },
 
-  // ── Classics ──
-  { file: "kodachrome.cube",          name: "Kodachrome",     category: "classic", desc: "Legendary slide film" },
-  { file: "polaroid_600.cube",        name: "Polaroid 600",   category: "classic", desc: "Instant film warmth" },
+  // ── Classic ──
+  { file: "kodachrome.cube",          name: "Kodachrome", category: "classic", desc: "Legendary warm slide film",                isFree: false },
+  { file: "polaroid_600.cube",        name: "Polaroid",   category: "classic", desc: "Instant film character",                   isFree: false },
 ];
 
-const LS_KEY = "kinolu_builtin_luts_v1";
+/** Names of free-tier builtins for quick lookup */
+export const FREE_BUILTIN_NAMES = new Set(
+  BUILTIN_LUTS.filter((m) => m.isFree).map((m) => m.name),
+);
+
+const LS_KEY = "kinolu_builtin_luts_v2"; // bumped to force re-import with new names
+
+/**
+ * Generate a preview thumbnail by applying the LUT to a sample image.
+ */
+async function generatePreviewThumb(
+  lutData: Float32Array,
+  lutSize: number,
+): Promise<Blob | null> {
+  try {
+    const resp = await fetch("/luts/sample.jpg");
+    if (!resp.ok) return null;
+    const imgBlob = await resp.blob();
+    const bmp = await createImageBitmap(imgBlob, { resizeWidth: 96, resizeHeight: 96 });
+    const c = document.createElement("canvas");
+    c.width = 96; c.height = 96;
+    const ctx = c.getContext("2d")!;
+    ctx.drawImage(bmp, 0, 0, 96, 96);
+    const imgData = ctx.getImageData(0, 0, 96, 96);
+    applyLutToPixels(imgData.data, lutData, lutSize);
+    ctx.putImageData(imgData, 0, 0);
+    return new Promise((r) => c.toBlob((b) => r(b), "image/jpeg", 0.85));
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Check and install built-in LUTs if not already done.
@@ -59,14 +95,24 @@ export async function ensureBuiltinLuts(): Promise<string[]> {
     }
   }
 
-  // Check if any builtins already exist by name (avoid duplicates)
+  // Clean up old version entries
+  const oldKey = "kinolu_builtin_luts_v1";
+  if (localStorage.getItem(oldKey)) {
+    // Delete old builtins from IndexedDB so names get refreshed
+    const oldIds = JSON.parse(localStorage.getItem(oldKey) || "[]") as string[];
+    const { deleteLocalLut } = await import("./lutStore");
+    for (const id of oldIds) {
+      try { await deleteLocalLut(id); } catch { /* ignore */ }
+    }
+    localStorage.removeItem(oldKey);
+  }
+
   const existing = await listLocalLuts();
   const existingNames = new Set(existing.map((e) => e.name));
   const ids: string[] = [];
 
   for (const meta of BUILTIN_LUTS) {
     if (existingNames.has(meta.name)) {
-      // Already exists — find its ID
       const match = existing.find((e) => e.name === meta.name);
       if (match) ids.push(match.id);
       continue;
@@ -76,27 +122,28 @@ export async function ensureBuiltinLuts(): Promise<string[]> {
       const resp = await fetch(`/luts/builtin/${meta.file}`);
       if (!resp.ok) continue;
       const text = await resp.text();
-      const { size, data } = parseCubeFile(text);
+      const parsed = parseCubeFile(text);
 
-      // Create a File-like blob for importCubeFileLocal
       const blob = new Blob([text], { type: "text/plain" });
       const file = new File([blob], meta.file, { type: "text/plain" });
 
       const entry = await importCubeFileLocal(file, {
         sourceType: "imported",
       });
-      // Rename to our friendly name
       ids.push(entry.id);
 
-      // Update the name in IndexedDB
-      const { renameLocalLut } = await import("./lutStore");
+      // Rename to the friendly display name
+      const { renameLocalLut, updateLutThumbnail } = await import("./lutStore");
       await renameLocalLut(entry.id, meta.name);
+
+      // Generate preview thumbnail from sample image
+      const thumb = await generatePreviewThumb(parsed.data, parsed.size);
+      if (thumb) await updateLutThumbnail(entry.id, thumb);
     } catch (err) {
       console.warn(`[Kinolu] Failed to install builtin LUT: ${meta.name}`, err);
     }
   }
 
-  // Mark as installed
   localStorage.setItem(LS_KEY, JSON.stringify(ids));
   return ids;
 }

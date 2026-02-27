@@ -14,6 +14,7 @@ import { applyEdits, hasActiveEdits, cropImageData, rotateImageData90CW, flipIma
 import { saveRefImage, listRefImages, deleteRefImage } from "@/lib/refStore";
 import { listLocalLuts, type LutEntry } from "@/lib/lutStore";
 import { getBuiltinMeta } from "@/lib/builtinLuts";
+import { useAuth } from "@/components/AuthProvider";
 import CropOverlay, { type CropRect } from "@/components/CropOverlay";
 import { preloadSegmentationModels } from "@/lib/segmentation";
 import {
@@ -84,6 +85,7 @@ function useHistory<T>(initial: T) {
 export default function EditorPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { isPro } = useAuth();
 
   const history = useHistory<EditParams>(DEFAULT_EDIT_PARAMS);
   const params = history.current;
@@ -427,6 +429,17 @@ export default function EditorPage() {
   const applyLutInline = useCallback(async (lutId: string) => {
     const source = sourceFileRef.current;
     if (!source) { showToast(t("editor_importPhotoFirst")); return; }
+
+    // Check if the LUT is a Pro-only builtin
+    const lutEntry = availableLuts.find((l) => l.id === lutId);
+    if (lutEntry && !isPro) {
+      const meta = getBuiltinMeta(lutEntry.name);
+      if (meta && !meta.isFree) {
+        showToast(t("editor_proOnly"));
+        return;
+      }
+    }
+
     // If tapping the already-active LUT, deselect and revert to original
     if (lutId === activeLutId) {
       setActiveLutId("");
@@ -451,7 +464,7 @@ export default function EditorPage() {
       showToast(t("editor_presetApplied"));
     } catch (err) { setErrorMsg(`Preset failed: ${err}`); }
     finally { setProcessing(false); }
-  }, [loadImageToData, showToast, activeLutId]);
+  }, [loadImageToData, showToast, activeLutId, isPro, availableLuts]);
 
   /* ── Batch import & process ── */
   const handleBatchImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -874,10 +887,11 @@ export default function EditorPage() {
                           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                             {builtins.map((lut) => {
                               const meta = getBuiltinMeta(lut.name);
+                              const locked = !isPro && meta && !meta.isFree;
                               return (
                                 <button key={lut.id} onClick={() => applyLutInline(lut.id)}
-                                  className="shrink-0 flex flex-col items-center gap-0.5">
-                                  <div className={`w-12 h-12 rounded-lg overflow-hidden bg-black/40 transition-all ${activeLutId === lut.id ? "ring-2 ring-white border-transparent scale-105" : "border border-white/10"}`}>
+                                  className={`shrink-0 flex flex-col items-center gap-0.5 ${locked ? "opacity-60" : ""}`}>
+                                  <div className={`relative w-12 h-12 rounded-lg overflow-hidden bg-black/40 transition-all ${activeLutId === lut.id ? "ring-2 ring-white border-transparent scale-105" : "border border-white/10"}`}>
                                     {lutThumbUrls[lut.id] ? (
                                       <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
                                     ) : (
@@ -889,8 +903,16 @@ export default function EditorPage() {
                                         <span className="text-[7px] text-white/30">{meta?.category === "fuji" ? "F" : meta?.category === "kodak" ? "K" : "✦"}</span>
                                       </div>
                                     )}
+                                    {locked && (
+                                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/50">
+                                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                          <path d="M7 11V7a5 5 0 0110 0v4" />
+                                        </svg>
+                                      </div>
+                                    )}
                                   </div>
-                                  <span className={`text-[8px] max-w-[48px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : "text-white/35"}`}>{lut.name}</span>
+                                  <span className={`text-[8px] max-w-[48px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : locked ? "text-white/25" : "text-white/35"}`}>{lut.name}</span>
                                 </button>
                               );
                             })}

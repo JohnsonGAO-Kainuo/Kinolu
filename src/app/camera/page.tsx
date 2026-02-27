@@ -11,6 +11,7 @@ import {
   type LutEntry,
 } from "@/lib/lutStore";
 import { getBuiltinMeta } from "@/lib/builtinLuts";
+import { useAuth } from "@/components/AuthProvider";
 
 /* ── Focal-length presets ── */
 const FOCAL_PRESETS = [
@@ -25,6 +26,7 @@ const zoomToMm = (z: number) => Math.round(26 * z);
 export default function CameraPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { isPro } = useAuth();
 
   /* ── Refs ── */
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -56,6 +58,12 @@ export default function CameraPage() {
   const [lutLoading, setLutLoading] = useState(false);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const [focusKey, setFocusKey] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }, []);
 
   /* keep refs in sync */
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
@@ -489,9 +497,13 @@ export default function CameraPage() {
             </button>
             {localLutItems.map((lut) => {
               const meta = getBuiltinMeta(lut.name);
+              const locked = !isPro && meta && !meta.isFree;
               return (
-                <button key={lut.id} onClick={() => setActivePresetId(lut.id)} className="shrink-0 flex flex-col items-center gap-1">
-                  <div className={`w-[52px] h-[52px] rounded-xl border-2 overflow-hidden transition-all ${
+                <button key={lut.id} onClick={() => {
+                  if (locked) { showToast(t("editor_proOnly")); return; }
+                  setActivePresetId(lut.id);
+                }} className={`shrink-0 flex flex-col items-center gap-1 ${locked ? "opacity-60" : ""}`}>
+                  <div className={`relative w-[52px] h-[52px] rounded-xl border-2 overflow-hidden transition-all ${
                     activePresetId === lut.id ? "border-white/60 shadow-[0_0_10px_rgba(255,255,255,0.12)]" : "border-white/10"}`}>
                     {thumbUrls[lut.id] ? (
                       <img src={thumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
@@ -506,8 +518,16 @@ export default function CameraPage() {
                         </span>
                       </div>
                     )}
+                    {locked && (
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/50">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0110 0v4" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-[8px] text-white/40 max-w-[52px] truncate">{lut.name}</span>
+                  <span className={`text-[8px] max-w-[52px] truncate ${locked ? "text-white/25" : "text-white/40"}`}>{lut.name}</span>
                 </button>
               );
             })}
@@ -558,6 +578,13 @@ export default function CameraPage() {
           <div className="flex-1 flex items-center justify-center p-4">
             <img src={capturedUrl} alt="Captured" className="max-w-full max-h-full object-contain rounded-sm" />
           </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 bg-black/70 backdrop-blur-md text-white text-[12px] px-4 py-2 rounded-full pointer-events-none animate-fade-in">
+          {toast}
         </div>
       )}
     </div>

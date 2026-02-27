@@ -102,6 +102,22 @@ export async function renameLocalLut(
   });
 }
 
+export async function updateLutThumbnail(
+  id: string,
+  thumbnail: Blob,
+): Promise<void> {
+  const db = await openDB();
+  const entry = await getLocalLut(id);
+  if (!entry) throw new Error("LUT not found");
+  entry.thumbnail = thumbnail;
+  return new Promise((resolve, reject) => {
+    const store = txStore(db, "readwrite");
+    const req = store.put(entry);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
 /* ─── .cube parser ─── */
 
 export function parseCubeFile(text: string): { size: number; data: Float32Array; title: string } {
