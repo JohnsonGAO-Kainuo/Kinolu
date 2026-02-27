@@ -20,7 +20,7 @@ const zhTW: Record<TranslationKeys, string> = {
   home_cameraDesc: "帶著風格拍攝",
   home_editor: "編輯器",
   home_editorDesc: "匯入並調色",
-  home_library: "圖庫",
+  home_library: "預設庫",
   home_libraryDesc: "你的收藏",
 
   /* ── 側邊欄 ── */
@@ -29,7 +29,7 @@ const zhTW: Record<TranslationKeys, string> = {
   sidebar_editorDesc: "匯入並調色照片",
   sidebar_camera: "相機",
   sidebar_cameraDesc: "帶著風格拍攝",
-  sidebar_library: "圖庫",
+  sidebar_library: "預設庫",
   sidebar_libraryDesc: "預設和 LUT 收藏",
   sidebar_account: "帳戶",
   sidebar_profile: "個人資料",
@@ -77,6 +77,9 @@ const zhTW: Record<TranslationKeys, string> = {
   editor_presetApplied: "預設已套用",
   editor_presets: "預設",
   editor_filmPresets: "膠片濾鏡",
+  editor_filmTab: "膠片",
+  editor_presetsTab: "預設",
+  lib_changeCover: "更換封面",
   editor_proOnly: "升級 Pro 解鎖此濾鏡",
   editor_proBadge: "PRO",
 
@@ -172,7 +175,7 @@ const zhTW: Record<TranslationKeys, string> = {
   hsl_purple: "紫",
 
   /* ── 圖庫 / 預設 ── */
-  lib_title: "圖庫",
+  lib_title: "預設庫",
   lib_generated: "已生成",
   lib_imported: "已匯入",
   lib_noGenerated: "暫無生成的預設。",

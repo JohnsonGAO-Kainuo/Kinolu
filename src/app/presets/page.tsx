@@ -13,7 +13,9 @@ import {
   deleteLocalLut,
   renameLocalLut,
   exportCubeFile,
+  updateLutThumbnail,
 } from "@/lib/lutStore";
+import { getBuiltinMeta } from "@/lib/builtinLuts";
 
 export default function PresetsPage() {
   const router = useRouter();
@@ -167,9 +169,39 @@ export default function PresetsPage() {
     }
   }, []);
 
+  /* ─── Cover change handler ─── */
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [coverTargetId, setCoverTargetId] = useState<string | null>(null);
+
+  const onChangeCover = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !coverTargetId) return;
+    try {
+      // Resize to 200x200 thumbnail
+      const bmp = await createImageBitmap(file, { resizeWidth: 200, resizeHeight: 200 });
+      const c = document.createElement("canvas");
+      c.width = 200; c.height = 200;
+      const ctx = c.getContext("2d")!;
+      ctx.drawImage(bmp, 0, 0, 200, 200);
+      const blob: Blob | null = await new Promise((r) => c.toBlob((b) => r(b), "image/jpeg", 0.85));
+      if (blob) {
+        await updateLutThumbnail(coverTargetId, blob);
+        await refreshLocal();
+      }
+    } catch (err) {
+      setError(`Cover change failed: ${err}`);
+    } finally {
+      setCoverTargetId(null);
+      e.target.value = "";
+    }
+  }, [coverTargetId, refreshLocal]);
+
   const openEditorWithLocalLut = useCallback((entry: Omit<LutEntry, "data">) => {
     router.push(`/editor?localLut=${encodeURIComponent(entry.id)}`);
   }, [router]);
+
+  // Filter out built-in presets — only show user presets
+  const userLuts = useMemo(() => localLuts.filter((l) => !getBuiltinMeta(l.name)), [localLuts]);
 
   return (
     <div className="flex flex-col w-full h-full bg-black">
@@ -187,6 +219,13 @@ export default function PresetsPage() {
         accept=".cube,text/plain,application/octet-stream"
         className="hidden"
         onChange={onImportLocal}
+      />
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onChangeCover}
       />
 
       {/* Header */}
@@ -216,14 +255,11 @@ export default function PresetsPage() {
           </div>
         )}
 
-        {/* ─── Local LUTs (always available) ─── */}
+        {/* ─── User Presets Only ─── */}
         <section className="mt-4">
-          <div className="mb-2 text-[10px] tracking-[2px] uppercase text-white/30">
-            {t("lib_title")}
-          </div>
           {localLoading ? (
             <div className="text-[12px] text-k-muted">{t("loading")}</div>
-          ) : localLuts.length === 0 ? (
+          ) : userLuts.length === 0 ? (
             <button
               onClick={() => lutInputRef.current?.click()}
               className="w-full flex items-center justify-between py-4 px-5 bg-white/[0.03] rounded-xl border border-white/[0.06] hover:border-white/15 transition-colors"
@@ -238,127 +274,68 @@ export default function PresetsPage() {
               <IconChevronRight size={18} className="text-k-muted" />
             </button>
           ) : (
-            <div className="flex flex-col gap-3">
-              {/* Grid of preset cards with thumbnails */}
-              <div className="grid grid-cols-2 gap-2.5">
-                {localLuts.map((entry) => (
-                  <div key={entry.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
-                    {/* Thumbnail / placeholder */}
-                    <button onClick={() => openEditorWithLocalLut(entry)} className="w-full aspect-[4/3] bg-black/40 flex items-center justify-center overflow-hidden">
-                      {thumbUrls[entry.id] ? (
-                        <img src={thumbUrls[entry.id]} alt={entry.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="flex flex-col items-center gap-1.5">
-                          <IconLUT size={24} className="text-white/15" />
-                          <span className="text-[8px] text-white/20 tracking-wider">CUBE {entry.size}³</span>
-                        </div>
-                      )}
+            <div className="grid grid-cols-2 gap-2.5">
+              {userLuts.map((entry) => (
+                <div key={entry.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+                  {/* Thumbnail — tap to change cover */}
+                  <div className="relative w-full aspect-[4/3] bg-black/40 overflow-hidden group">
+                    {thumbUrls[entry.id] ? (
+                      <img src={thumbUrls[entry.id]} alt={entry.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5">
+                        <IconLUT size={24} className="text-white/15" />
+                        <span className="text-[8px] text-white/20 tracking-wider">CUBE {entry.size}³</span>
+                      </div>
+                    )}
+                    {/* Cover change overlay */}
+                    <button
+                      onClick={() => { setCoverTargetId(entry.id); coverInputRef.current?.click(); }}
+                      className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <span className="text-[9px] text-white/70 bg-black/50 backdrop-blur-sm rounded-full px-2.5 py-1">{t("lib_changeCover")}</span>
                     </button>
-                    {/* Info row */}
-                    <div className="px-2.5 py-2">
-                      <div className="truncate text-[11px] font-semibold text-white/90">{entry.name}</div>
-                      <div className="text-[8px] text-white/30 mt-0.5">
-                        {entry.sourceType === "generated" ? "✨ Generated" : `CUBE ${entry.size}³`} · {new Date(entry.createdAt).toLocaleDateString()}
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-1">
-                        <button
-                          onClick={() => openEditorWithLocalLut(entry)}
-                          className="flex-1 rounded-md bg-white/[0.08] py-1 text-[9px] text-white/70 hover:bg-white/15 transition-colors text-center tracking-wider"
-                        >
-                          {t("lib_openInEditor")}
-                        </button>
-                        <button
-                          onClick={() => onExportLocal(entry)}
-                          className="rounded-md border border-white/[0.06] px-1.5 py-1 text-[8px] text-white/40 hover:text-white/70 transition-colors"
-                        >
-                          <IconLUT size={9} />
-                        </button>
-                        <button onClick={() => onRenameLocal(entry)} className="rounded-md border border-white/[0.06] px-1.5 py-1 text-[8px] text-white/40 hover:text-white/70 transition-colors">
-                          ✏️
-                        </button>
-                        <button onClick={() => onDeleteLocal(entry)} className="rounded-md border border-white/[0.06] px-1.5 py-1 text-[8px] text-red-400/60 hover:text-red-300 transition-colors">
-                          ✕
-                        </button>
-                      </div>
+                  </div>
+                  {/* Info row — simplified */}
+                  <div className="px-2.5 py-2">
+                    <div className="truncate text-[11px] font-semibold text-white/90">{entry.name}</div>
+                    <div className="text-[8px] text-white/30 mt-0.5">
+                      {entry.sourceType === "generated" ? "✨ Generated" : `CUBE ${entry.size}³`} · {new Date(entry.createdAt).toLocaleDateString()}
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <button
+                        onClick={() => onExportLocal(entry)}
+                        className="rounded-md border border-white/[0.06] px-2 py-1 text-[8px] text-white/40 hover:text-white/70 transition-colors"
+                        title="Export .cube"
+                      >
+                        <IconLUT size={9} />
+                      </button>
+                      <button onClick={() => onRenameLocal(entry)} className="rounded-md border border-white/[0.06] px-2 py-1 text-[8px] text-white/40 hover:text-white/70 transition-colors">
+                        ✏️
+                      </button>
+                      <div className="flex-1" />
+                      <button onClick={() => onDeleteLocal(entry)} className="rounded-md border border-white/[0.06] px-2 py-1 text-[8px] text-red-400/60 hover:text-red-300 transition-colors">
+                        ✕
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-              {/* Add more button */}
-              <button
-                onClick={() => lutInputRef.current?.click()}
-                className="mt-1 w-full py-2.5 rounded-xl border border-dashed border-white/[0.08] text-[11px] text-white/30 hover:text-white/50 hover:border-white/15 transition-colors"
-              >
-                + {t("lib_importCube")}
-              </button>
+                </div>
+              ))}
             </div>
           )}
         </section>
 
         {/* ─── Server-generated presets (only when backend available) ─── */}
-        {backendAvailable && (
+        {backendAvailable && generated.length > 0 && (
           <section className="mt-6">
             <div className="mb-2 text-[10px] tracking-[2px] uppercase text-white/30">{t("lib_generated")}</div>
-            {loading ? (
-              <div className="text-[12px] text-k-muted">{t("loading")}</div>
-            ) : generated.length === 0 ? (
-              <div className="text-[12px] text-k-muted">{t("lib_noGenerated")}</div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {generated.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-[12px] font-semibold text-white/90">{item.name}</div>
-                        <div className="text-[9px] text-white/30 mt-0.5">{new Date(item.updated_at).toLocaleString()}</div>
-                      </div>
-                      <button
-                        onClick={() => openEditorWithPreset(item)}
-                        className="rounded-lg border border-white/15 px-3 py-1 text-[10px] tracking-[1px] text-white/70 hover:bg-white/10 transition-colors"
-                      >
-                        {t("lib_openInEditor")}
-                      </button>
-                    </div>
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <button
-                        onClick={() => window.open(presetCubeDownloadUrl(item.id), "_blank")}
-                        className="inline-flex items-center gap-1 rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-white/40 hover:text-white/70 transition-colors"
-                      >
-                        <IconLUT size={10} />
-                        {t("lib_cube")}
-                      </button>
-                      <button onClick={() => onRename(item)} className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-white/40 hover:text-white/70 transition-colors">
-                        {t("rename")}
-                      </button>
-                      <button onClick={() => onDelete(item)} className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[9px] text-red-400/60 hover:text-red-300 transition-colors">
-                        {t("delete")}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* ─── Server-imported presets (only when backend available) ─── */}
-        {backendAvailable && imported.length > 0 && (
-          <section className="mt-6">
-            <div className="mb-2 text-[10px] tracking-[2px] uppercase text-white/30">{t("lib_imported")}</div>
             <div className="flex flex-col gap-2">
-              {imported.map((item) => (
+              {generated.map((item) => (
                 <div key={item.id} className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="truncate text-[12px] font-semibold text-white/90">{item.name}</div>
-                      <div className="text-[9px] text-white/30 mt-0.5">CUBE • {new Date(item.updated_at).toLocaleString()}</div>
+                      <div className="text-[9px] text-white/30 mt-0.5">{new Date(item.updated_at).toLocaleString()}</div>
                     </div>
-                    <button
-                      onClick={() => openEditorWithPreset(item)}
-                      className="rounded-lg border border-white/15 px-3 py-1 text-[10px] tracking-[1px] text-white/70 hover:bg-white/10 transition-colors"
-                    >
-                      {t("lib_openInEditor")}
-                    </button>
                   </div>
                   <div className="mt-2 flex items-center gap-1.5">
                     <button

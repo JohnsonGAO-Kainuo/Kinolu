@@ -234,35 +234,46 @@ export default function AdjustmentPanel({
   const categoryTools = CATEGORY_TOOLS[activeCategory];
 
   return (
-    <div className="w-full flex flex-col">
-      {/* Category tabs — Light / Color / Effects / Detail */}
-      <div className="flex items-center gap-1 px-4 pb-2">
-        {CATEGORIES.map((cat) => {
-          const isActive = cat.key === activeCategory;
-          const hasChanges = CATEGORY_TOOLS[cat.key].some(
-            (t) => values[t.key] !== 0
-          );
-          return (
-            <button
-              key={cat.key}
-              onClick={() => {
-                setActiveCategory(cat.key);
-                const first = CATEGORY_TOOLS[cat.key][0];
-                if (first) onSelectTool(first.key);
-              }}
-              className={`relative px-3.5 py-1.5 rounded-full text-[11px] tracking-[0.5px] font-medium transition-all ${
-                isActive
-                  ? "bg-white/10 text-white"
-                  : "text-white/30 hover:text-white/55"
-              }`}
-            >
-              {t(cat.labelKey)}
-              {hasChanges && !isActive && (
-                <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-white/50" />
-              )}
-            </button>
-          );
-        })}
+    <div className="w-full flex flex-col pb-4">
+      {/* Category tabs + Reset inline */}
+      <div className="flex items-center justify-between px-4 pb-2">
+        <div className="flex items-center gap-1">
+          {CATEGORIES.map((cat) => {
+            const isActive = cat.key === activeCategory;
+            const hasChanges = CATEGORY_TOOLS[cat.key].some(
+              (t) => values[t.key] !== 0
+            );
+            return (
+              <button
+                key={cat.key}
+                onClick={() => {
+                  setActiveCategory(cat.key);
+                  const first = CATEGORY_TOOLS[cat.key][0];
+                  if (first) onSelectTool(first.key);
+                }}
+                className={`relative px-3 py-1.5 rounded-full text-[11px] tracking-[0.5px] font-medium transition-all ${
+                  isActive
+                    ? "bg-white/10 text-white"
+                    : "text-white/30 hover:text-white/55"
+                }`}
+              >
+                {t(cat.labelKey)}
+                {hasChanges && !isActive && (
+                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-white/50" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {/* Reset — always visible, prominent pill */}
+        <button
+          onClick={() =>
+            categoryTools.forEach((tl) => onChangeValue(tl.key, 0))
+          }
+          className="px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[10px] text-white/35 tracking-wider hover:text-white/60 hover:bg-white/10 transition-colors shrink-0"
+        >
+          {t("adj_resetCategory", { category: t(CATEGORIES.find((c) => c.key === activeCategory)?.labelKey ?? "adj_light") })}
+        </button>
       </div>
 
       {/* Slider list */}
@@ -278,18 +289,6 @@ export default function AdjustmentPanel({
             onChange={(v) => onChangeValue(tl.key, v)}
           />
         ))}
-      </div>
-
-      {/* Reset category */}
-      <div className="flex justify-center pt-1.5 pb-1">
-        <button
-          onClick={() =>
-            categoryTools.forEach((tl) => onChangeValue(tl.key, 0))
-          }
-          className="text-[10px] text-white/25 tracking-[1.5px] uppercase hover:text-white/55 transition-colors"
-        >
-          {t("adj_resetCategory", { category: t(CATEGORIES.find((c) => c.key === activeCategory)?.labelKey ?? "adj_light") })}
-        </button>
       </div>
     </div>
   );

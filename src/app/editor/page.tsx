@@ -137,6 +137,9 @@ export default function EditorPage() {
   /* Crop region */
   const [cropRegion, setCropRegion] = useState<CropRect>({ x: 0, y: 0, w: 1, h: 1 });
 
+  /* LUT strip toggle: film vs user presets */
+  const [lutStripTab, setLutStripTab] = useState<"film" | "presets">("film");
+
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
@@ -748,7 +751,7 @@ export default function EditorPage() {
       {/* ── Control tray ── */}
       <div className="shrink-0 bg-[#080808]" style={{ maxHeight: "40vh" }}>
         <div className="overflow-y-auto" style={{ maxHeight: "calc(40vh - 52px)" }}>
-          <div className="py-2">
+          <div className="pt-2 pb-5">
             {activeTab === "transfer" && (
               <div className="flex flex-col gap-2 px-5 py-1">
                 {/* Reference thumbnails strip */}
@@ -852,71 +855,65 @@ export default function EditorPage() {
                   </div>
                 )}
 
-                {/* ── LUT/Preset strip ── */}
+                {/* ── LUT/Preset strip with Film / Presets toggle ── */}
                 {availableLuts.length > 0 && sourceUrl && (() => {
-                  // Separate built-in and user presets
                   const builtins = availableLuts.filter((l) => getBuiltinMeta(l.name));
                   const userLuts = availableLuts.filter((l) => !getBuiltinMeta(l.name));
+                  const showItems = lutStripTab === "film" ? builtins : userLuts;
                   return (
                     <div className="mt-2 flex flex-col gap-2">
-                      {/* User presets */}
-                      {userLuts.length > 0 && (
-                        <div>
-                          <span className="text-[9px] text-white/30 tracking-[1.5px] uppercase mb-1 block">{t("editor_presets")}</span>
-                          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                            {userLuts.map((lut) => (
+                      {/* Toggle: Film | Presets */}
+                      <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg p-0.5 self-start">
+                        <button onClick={() => setLutStripTab("film")}
+                          className={`px-3.5 py-1 rounded-md text-[11px] font-medium tracking-wider transition-all ${lutStripTab === "film" ? "bg-white/10 text-white" : "text-white/35"}`}>
+                          {t("editor_filmTab")}
+                        </button>
+                        <button onClick={() => setLutStripTab("presets")}
+                          className={`px-3.5 py-1 rounded-md text-[11px] font-medium tracking-wider transition-all ${lutStripTab === "presets" ? "bg-white/10 text-white" : "text-white/35"}`}>
+                          {t("editor_presetsTab")} {userLuts.length > 0 && <span className="text-white/25 ml-0.5">{userLuts.length}</span>}
+                        </button>
+                      </div>
+                      {/* LUT strip */}
+                      {showItems.length > 0 ? (
+                        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                          {showItems.map((lut) => {
+                            const meta = getBuiltinMeta(lut.name);
+                            const locked = !isPro && meta && !meta.isFree;
+                            return (
                               <button key={lut.id} onClick={() => applyLutInline(lut.id)}
-                                className="shrink-0 flex flex-col items-center gap-0.5">
-                                <div className={`w-12 h-12 rounded-lg overflow-hidden bg-black/40 transition-all ${activeLutId === lut.id ? "ring-2 ring-white border-transparent scale-105" : "border border-white/10"}`}>
+                                className={`shrink-0 flex flex-col items-center gap-1 ${locked ? "opacity-60" : ""}`}>
+                                <div className={`relative w-16 h-16 rounded-xl overflow-hidden bg-black/40 transition-all ${activeLutId === lut.id ? "ring-2 ring-white border-transparent scale-105" : "border border-white/10"}`}>
                                   {lutThumbUrls[lut.id] ? (
                                     <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center"><span className="text-[7px] text-white/20">LUT</span></div>
+                                    <div className={`w-full h-full flex items-center justify-center ${
+                                      meta?.category === "fuji" ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/15"
+                                      : meta?.category === "kodak" ? "bg-gradient-to-br from-amber-500/15 to-yellow-500/15"
+                                      : meta ? "bg-gradient-to-br from-rose-500/15 to-purple-500/15"
+                                      : "bg-gradient-to-br from-purple-500/15 to-blue-500/15"
+                                    }`}>
+                                      <span className="text-[8px] text-white/30">{meta ? (meta.category === "fuji" ? "F" : meta.category === "kodak" ? "K" : "✦") : "LUT"}</span>
+                                    </div>
+                                  )}
+                                  {locked && (
+                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/50">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                        <path d="M7 11V7a5 5 0 0110 0v4" />
+                                      </svg>
+                                    </div>
                                   )}
                                 </div>
-                                <span className={`text-[8px] max-w-[48px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : "text-white/35"}`}>{lut.name}</span>
+                                <span className={`text-[8px] max-w-[64px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : locked ? "text-white/25" : "text-white/40"}`}>
+                                  {meta?.i18nKey ? t(meta.i18nKey as Parameters<typeof t>[0]) : lut.name}
+                                </span>
                               </button>
-                            ))}
-                          </div>
+                            );
+                          })}
                         </div>
-                      )}
-                      {/* Built-in film presets */}
-                      {builtins.length > 0 && (
-                        <div>
-                          <span className="text-[9px] text-white/30 tracking-[1.5px] uppercase mb-1 block">{t("editor_filmPresets")}</span>
-                          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                            {builtins.map((lut) => {
-                              const meta = getBuiltinMeta(lut.name);
-                              const locked = !isPro && meta && !meta.isFree;
-                              return (
-                                <button key={lut.id} onClick={() => applyLutInline(lut.id)}
-                                  className={`shrink-0 flex flex-col items-center gap-0.5 ${locked ? "opacity-60" : ""}`}>
-                                  <div className={`relative w-12 h-12 rounded-lg overflow-hidden bg-black/40 transition-all ${activeLutId === lut.id ? "ring-2 ring-white border-transparent scale-105" : "border border-white/10"}`}>
-                                    {lutThumbUrls[lut.id] ? (
-                                      <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className={`w-full h-full flex items-center justify-center ${
-                                        meta?.category === "fuji" ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/15"
-                                        : meta?.category === "kodak" ? "bg-gradient-to-br from-amber-500/15 to-yellow-500/15"
-                                        : "bg-gradient-to-br from-rose-500/15 to-purple-500/15"
-                                      }`}>
-                                        <span className="text-[7px] text-white/30">{meta?.category === "fuji" ? "F" : meta?.category === "kodak" ? "K" : "✦"}</span>
-                                      </div>
-                                    )}
-                                    {locked && (
-                                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/50">
-                                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                          <path d="M7 11V7a5 5 0 0110 0v4" />
-                                        </svg>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <span className={`text-[7px] max-w-[56px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : locked ? "text-white/25" : "text-white/35"}`}>{meta?.i18nKey ? t(meta.i18nKey as Parameters<typeof t>[0]) : lut.name}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
+                      ) : (
+                        <div className="py-4 text-center text-[11px] text-white/25">
+                          {lutStripTab === "presets" ? t("lib_noLuts") : ""}
                         </div>
                       )}
                     </div>

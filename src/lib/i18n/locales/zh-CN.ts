@@ -20,7 +20,7 @@ const zhCN: Record<TranslationKeys, string> = {
   home_cameraDesc: "带着风格拍摄",
   home_editor: "编辑器",
   home_editorDesc: "导入并调色",
-  home_library: "图库",
+  home_library: "预设库",
   home_libraryDesc: "你的收藏",
 
   /* ── 侧边栏 ── */
@@ -29,7 +29,7 @@ const zhCN: Record<TranslationKeys, string> = {
   sidebar_editorDesc: "导入并调色照片",
   sidebar_camera: "相机",
   sidebar_cameraDesc: "带着风格拍摄",
-  sidebar_library: "图库",
+  sidebar_library: "预设库",
   sidebar_libraryDesc: "预设和 LUT 收藏",
   sidebar_account: "账户",
   sidebar_profile: "个人资料",
@@ -77,6 +77,9 @@ const zhCN: Record<TranslationKeys, string> = {
   editor_presetApplied: "预设已应用",
   editor_presets: "预设",
   editor_filmPresets: "胶片滤镜",
+  editor_filmTab: "胶片",
+  editor_presetsTab: "预设",
+  lib_changeCover: "更换封面",
   editor_proOnly: "升级 Pro 解锁此滤镜",
   editor_proBadge: "PRO",
 
@@ -172,7 +175,7 @@ const zhCN: Record<TranslationKeys, string> = {
   hsl_purple: "紫",
 
   /* ── 图库 / 预设 ── */
-  lib_title: "图库",
+  lib_title: "预设库",
   lib_generated: "生成的",
   lib_imported: "导入的",
   lib_noGenerated: "暂无生成的预设。",

@@ -312,34 +312,36 @@ export default function CurveEditor({ curves, onChange }: CurveEditorProps) {
   ];
 
   return (
-    <div className="w-full flex flex-col items-center gap-3 px-4">
-      {/* Channel tabs */}
-      <div className="flex gap-1 bg-k-surface rounded-lg p-1">
-        {channelTabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setChannel(tab.key)}
-            className={`px-4 py-1.5 rounded-md text-xs font-semibold tracking-wider transition-colors ${
-              channel === tab.key
-                ? "bg-k-raised text-white"
-                : "text-k-text-secondary hover:text-white"
-            }`}
-            style={
-              channel === tab.key
-                ? { color: CHANNEL_COLORS[tab.key] }
-                : undefined
-            }
-          >
-            {tab.label}
-          </button>
-        ))}
+    <div className="w-full flex flex-col items-center gap-3 px-4 pb-4">
+      {/* Channel tabs + Reset inline */}
+      <div className="flex items-center gap-2 w-full justify-center">
+        <div className="flex gap-1 bg-k-surface rounded-lg p-1">
+          {channelTabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setChannel(tab.key)}
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold tracking-wider transition-colors ${
+                channel === tab.key
+                  ? "bg-k-raised text-white"
+                  : "text-k-text-secondary hover:text-white"
+              }`}
+              style={
+                channel === tab.key
+                  ? { color: CHANNEL_COLORS[tab.key] }
+                  : undefined
+              }
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Canvas */}
       <div
         className="w-full rounded-xl overflow-hidden"
         style={{
-          maxWidth: 300,
+          maxWidth: 260,
           border: "1px solid rgba(255,255,255,0.08)",
         }}
       >
@@ -355,10 +357,10 @@ export default function CurveEditor({ curves, onChange }: CurveEditorProps) {
         />
       </div>
 
-      {/* Reset */}
+      {/* Reset — prominent pill button */}
       <button
         onClick={resetChannel}
-        className="text-[10px] text-k-text-secondary tracking-wider uppercase hover:text-white transition-colors"
+        className="px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] text-white/40 tracking-wider hover:text-white/70 hover:bg-white/10 transition-colors"
       >
         {t("curves_reset", { channel: channel.toUpperCase() })}
       </button>

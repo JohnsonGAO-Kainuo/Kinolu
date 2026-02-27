@@ -18,7 +18,7 @@ const en = {
   home_cameraDesc: "Shoot with style",
   home_editor: "Editor",
   home_editorDesc: "Import & grade",
-  home_library: "Library",
+  home_library: "Presets",
   home_libraryDesc: "Your collection",
 
   /* ── Sidebar ── */
@@ -27,7 +27,7 @@ const en = {
   sidebar_editorDesc: "Import & grade photos",
   sidebar_camera: "Camera",
   sidebar_cameraDesc: "Shoot with style",
-  sidebar_library: "Library",
+  sidebar_library: "Presets",
   sidebar_libraryDesc: "Presets & LUT collection",
   sidebar_account: "Account",
   sidebar_profile: "Profile",
@@ -75,6 +75,9 @@ const en = {
   editor_presetApplied: "Preset applied",
   editor_presets: "Presets",
   editor_filmPresets: "Film Presets",
+  editor_filmTab: "Film",
+  editor_presetsTab: "Presets",
+  lib_changeCover: "Change Cover",
   editor_proOnly: "Upgrade to Pro to unlock this preset",
   editor_proBadge: "PRO",
 
@@ -170,7 +173,7 @@ const en = {
   hsl_purple: "Purple",
 
   /* ── Library / Presets ── */
-  lib_title: "Library",
+  lib_title: "Preset Library",
   lib_generated: "Generated",
   lib_imported: "Imported",
   lib_noGenerated: "No generated presets yet.",

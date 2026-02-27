@@ -490,7 +490,7 @@ export default function CameraPage() {
         <div className="pointer-events-auto px-3 pb-2">
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             <button onClick={() => setActivePresetId("")} className="shrink-0 flex flex-col items-center gap-1">
-              <div className={`w-[52px] h-[52px] rounded-xl border-2 overflow-hidden flex items-center justify-center transition-all ${
+              <div className={`w-[60px] h-[60px] rounded-xl border-2 overflow-hidden flex items-center justify-center transition-all ${
                 activePresetId === "" ? "border-white/60 bg-white/10" : "border-white/10 bg-black/30"}`}>
                 <span className="text-[9px] text-white/50 tracking-wider">{t("camera_original")}</span>
               </div>
@@ -503,7 +503,7 @@ export default function CameraPage() {
                   if (locked) { showToast(t("editor_proOnly")); return; }
                   setActivePresetId(lut.id);
                 }} className={`shrink-0 flex flex-col items-center gap-1 ${locked ? "opacity-60" : ""}`}>
-                  <div className={`relative w-[52px] h-[52px] rounded-xl border-2 overflow-hidden transition-all ${
+                  <div className={`relative w-[60px] h-[60px] rounded-xl border-2 overflow-hidden transition-all ${
                     activePresetId === lut.id ? "border-white/60 shadow-[0_0_10px_rgba(255,255,255,0.12)]" : "border-white/10"}`}>
                     {thumbUrls[lut.id] ? (
                       <img src={thumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
@@ -527,7 +527,7 @@ export default function CameraPage() {
                       </div>
                     )}
                   </div>
-                  <span className={`text-[8px] max-w-[52px] truncate ${locked ? "text-white/25" : "text-white/40"}`}>{meta?.i18nKey ? t(meta.i18nKey as Parameters<typeof t>[0]) : lut.name}</span>
+                  <span className={`text-[8px] max-w-[60px] truncate ${locked ? "text-white/25" : "text-white/40"}`}>{meta?.i18nKey ? t(meta.i18nKey as Parameters<typeof t>[0]) : lut.name}</span>
                 </button>
               );
             })}
