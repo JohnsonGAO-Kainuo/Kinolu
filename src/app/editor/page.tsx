@@ -392,6 +392,15 @@ export default function EditorPage() {
   const handleSavePreset = useCallback(async () => {
     if (!sourceFileRef.current) { showToast(t("editor_importPhotoFirst")); return; }
     if (!hasTransferred) { showToast(t("editor_applyTransferFirst")); return; }
+    // Free users: max 5 user presets
+    if (!isPro) {
+      const allLuts = await listLocalLuts();
+      const userPresets = allLuts.filter((l) => !getBuiltinMeta(l.name));
+      if (userPresets.length >= 5) {
+        showToast(t("editor_freePresetLimit"));
+        return;
+      }
+    }
     const blob = await getCurrentCanvasBlob(); if (!blob) return;
     const name = window.prompt("Preset name", `Look ${new Date().toLocaleDateString()}`)?.trim();
     if (!name) return;
@@ -402,7 +411,7 @@ export default function EditorPage() {
       showToast(`Preset "${name}" saved`);
     } catch (err) { setErrorMsg(`${t("editor_saveFailed")} ${err}`); }
     finally { setSavingPreset(false); }
-  }, [getCurrentCanvasBlob, showToast, hasTransferred]);
+  }, [getCurrentCanvasBlob, showToast, hasTransferred, isPro]);
 
   const handleExportLut = useCallback(async () => {
     if (!sourceFileRef.current) { showToast(t("editor_importPhotoFirst")); return; }
@@ -618,10 +627,10 @@ export default function EditorPage() {
 
             {/* Reference image overlay — top-left, like ColorBy */}
             {!previewFullscreen && hasTransferred && refImages[activeRefIdx] && (
-              <div className="absolute top-3 left-3 z-10 w-20 h-14 rounded-lg overflow-hidden border border-white/20 shadow-lg bg-black/30">
+              <div className="absolute top-3 left-3 z-10 w-[100px] h-[70px] rounded-xl overflow-hidden border border-white/20 shadow-lg bg-black/30">
                 <img src={refImages[activeRefIdx]} alt="Reference" className="w-full h-full object-cover" draggable={false} />
-                <div className="absolute bottom-0 inset-x-0 bg-black/50 py-0.5">
-                  <span className="block text-center text-[7px] text-white/60 tracking-wider">REF</span>
+                <div className="absolute bottom-0.5 left-1">
+                  <span className="text-[8px] text-white/50 font-medium tracking-wider bg-black/40 px-1.5 py-0.5 rounded">REF</span>
                 </div>
               </div>
             )}
@@ -678,17 +687,16 @@ export default function EditorPage() {
             {/* ── Bottom-left floating toolbar: Compare + Undo + Redo + Reset — hidden in fullscreen ── */}
             {!previewFullscreen && (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10">
-              {/* Original — hold to see original (prominent pill) */}
+              {/* Original — hold to see original */}
               {hasTransferred && (
                 <button
                   onPointerDown={() => setComparing(true)}
                   onPointerUp={() => setComparing(false)}
                   onPointerLeave={() => setComparing(false)}
-                  className="h-9 px-3 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center gap-1.5 text-white/60 active:text-white border border-white/10"
+                  className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/60 active:text-white border border-white/10"
                   title="Hold to compare original"
                 >
-                  <IconCompare size={14} />
-                  <span className="text-[10px] tracking-wider font-medium">{t("editor_original")}</span>
+                  <IconCompare size={15} />
                 </button>
               )}
               {/* Undo */}

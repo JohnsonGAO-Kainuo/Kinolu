@@ -107,6 +107,7 @@ const zhTW: Record<TranslationKeys, string> = {
   editor_presetFailed: "預設失敗",
   editor_saveFailed: "儲存失敗 — 後端是否在執行？",
   editor_lutExportFailed: "LUT 匯出失敗 — 後端是否在執行？",
+  editor_freePresetLimit: "免費用戶最多儲存5個預設，升級Pro解鎖無限制",
 
   /* ── 編輯器標籤頁 ── */
   tab_transfer: "轉移",

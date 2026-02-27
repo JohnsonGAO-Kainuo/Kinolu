@@ -105,6 +105,7 @@ const en = {
   editor_presetFailed: "Preset failed",
   editor_saveFailed: "Save failed — is the backend running?",
   editor_lutExportFailed: "LUT export failed — is the backend running?",
+  editor_freePresetLimit: "Free users can save up to 5 presets. Upgrade to Pro for unlimited.",
 
   /* ── Editor Tabs ── */
   tab_transfer: "Transfer",

@@ -6,6 +6,7 @@ import { deletePresetById, importCubePreset, listPresets, presetCubeDownloadUrl,
 import type { PresetItem } from "@/lib/types";
 import { IconBack, IconChevronRight, IconLUT, IconPlus } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/components/AuthProvider";
 import {
   type LutEntry,
   listLocalLuts,
@@ -20,6 +21,7 @@ import { getBuiltinMeta } from "@/lib/builtinLuts";
 export default function PresetsPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { isPro } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lutInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,6 +127,14 @@ export default function PresetsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      // Free users: max 5 user presets
+      if (!isPro) {
+        const userPresets = localLuts.filter((l) => !getBuiltinMeta(l.name));
+        if (userPresets.length >= 5) {
+          setError(t("editor_freePresetLimit"));
+          return;
+        }
+      }
       await importCubeFileLocal(file);
       await refreshLocal();
     } catch (err) {
@@ -132,7 +142,7 @@ export default function PresetsPage() {
     } finally {
       e.target.value = "";
     }
-  }, [refreshLocal, t]);
+  }, [refreshLocal, t, isPro, localLuts]);
 
   const onRenameLocal = useCallback(async (entry: Omit<LutEntry, "data">) => {
     const name = window.prompt(t("lib_newName"), entry.name);

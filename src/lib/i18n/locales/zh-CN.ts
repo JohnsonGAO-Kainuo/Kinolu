@@ -107,6 +107,7 @@ const zhCN: Record<TranslationKeys, string> = {
   editor_presetFailed: "预设失败",
   editor_saveFailed: "保存失败 — 后端是否在运行？",
   editor_lutExportFailed: "LUT 导出失败 — 后端是否在运行？",
+  editor_freePresetLimit: "免费用户最多保存5个预设，升级Pro解锁无限制",
 
   /* ── 编辑器标签页 ── */
   tab_transfer: "转移",
