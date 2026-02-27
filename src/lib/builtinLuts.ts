@@ -51,7 +51,7 @@ export const FREE_BUILTIN_NAMES = new Set(
   BUILTIN_LUTS.filter((m) => m.isFree).map((m) => m.name),
 );
 
-const LS_KEY = "kinolu_builtin_luts_v3"; // bumped to force re-import with branded names
+const LS_KEY = "kinolu_builtin_luts_v4"; // v4: better sample photo (road visible, lighter processing)
 
 /**
  * Generate a preview thumbnail by applying the LUT to a sample image.
@@ -95,8 +95,8 @@ export async function ensureBuiltinLuts(): Promise<string[]> {
     }
   }
 
-  // Clean up old version entries (v1 and v2)
-  for (const oldKey of ["kinolu_builtin_luts_v1", "kinolu_builtin_luts_v2"]) {
+  // Clean up old version entries
+  for (const oldKey of ["kinolu_builtin_luts_v1", "kinolu_builtin_luts_v2", "kinolu_builtin_luts_v3"]) {
     if (localStorage.getItem(oldKey)) {
       const oldIds = JSON.parse(localStorage.getItem(oldKey) || "[]") as string[];
       const { deleteLocalLut } = await import("./lutStore");
