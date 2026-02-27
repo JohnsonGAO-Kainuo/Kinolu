@@ -158,6 +158,7 @@ const zhCN: Record<TranslationKeys, string> = {
   batch_applyAll: "全部应用",
   batch_downloadAll: "全部下载",
   batch_complete: "批量处理完成",
+  batch_longPressDelete: "长按可删除",
 
   /* ── 曲线 ── */
   curves_reset: "重置 {channel}",

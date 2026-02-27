@@ -119,6 +119,7 @@ export default function EditorPage() {
   const [renderTick, setRenderTick] = useState(0);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [transferUsedXY, setTransferUsedXY] = useState(false);
+  const [pendingAutoTransfer, setPendingAutoTransfer] = useState(false);
 
   /* Crop state */
   const [cropAspect, setCropAspect] = useState("free");
@@ -247,26 +248,45 @@ export default function EditorPage() {
 
   /* ── Uploads ── */
   const handleSourceUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const files = e.target.files; if (!files || files.length === 0) return;
+    const arr = Array.from(files);
+
+    // First file → source image
+    const file = arr[0];
     sourceFileRef.current = file;
     const url = URL.createObjectURL(file); setSourceUrl(url);
     const data = await loadImageToData(url);
     sourceImageData.current = data; baseImageData.current = data;
     transferredImageData.current = null; setHasTransferred(false);
     setRenderTick((t) => t + 1);
+
+    // If multiple files selected → rest become batch queue (ColorBy style)
+    if (arr.length > 1) {
+      setBatchFiles(
+        arr.slice(1, 10).map((f) => ({
+          file: f, url: URL.createObjectURL(f), resultUrl: null, status: "idle" as const,
+        })),
+      );
+    }
+
     if (pendingPresetId) { void runApplyPreset(pendingPresetId); setPendingPresetId(""); }
   }, [loadImageToData, pendingPresetId, runApplyPreset]);
 
   const handleRefUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files) return;
     const arr = Array.from(files);
+    const isFirstRef = refImages.length === 0;
     refFilesRef.current = [...refFilesRef.current, ...arr];
     setRefImages((prev) => [...prev, ...arr.map((f) => URL.createObjectURL(f))]);
-    if (refImages.length === 0) setActiveRefIdx(0);
+    if (isFirstRef) setActiveRefIdx(0);
     // Persist references to IndexedDB
     for (const f of arr) {
       const entry = await saveRefImage(f.name, f);
       refIdsRef.current.push(entry.id);
+    }
+    // Flag to auto-apply when runTransfer becomes available
+    if (isFirstRef && sourceFileRef.current) {
+      setPendingAutoTransfer(true);
     }
   }, [refImages.length]);
 
@@ -318,8 +338,9 @@ export default function EditorPage() {
   }, [pendingPresetId, runApplyPreset]);
 
   /* ── Transfer ── */
-  const runTransfer = useCallback(async () => {
-    const source = sourceFileRef.current; const ref = refFilesRef.current[activeRefIdx];
+  const runTransfer = useCallback(async (overrideRefIdx?: number) => {
+    const idx = overrideRefIdx ?? activeRefIdx;
+    const source = sourceFileRef.current; const ref = refFilesRef.current[idx];
     if (!source || !ref) return;
     setProcessing(true); setErrorMsg(null);
     try {
@@ -337,6 +358,14 @@ export default function EditorPage() {
       setTimeout(() => setErrorMsg(null), 5000);
     } finally { setProcessing(false); }
   }, [activeRefIdx, params, loadImageToData]);
+
+  // Auto-apply transfer when first ref is uploaded
+  useEffect(() => {
+    if (pendingAutoTransfer && sourceFileRef.current && refFilesRef.current[0]) {
+      setPendingAutoTransfer(false);
+      void runTransfer(0);
+    }
+  }, [pendingAutoTransfer, runTransfer]);
 
   const updateXY = useCallback((x: number, y: number) => {
     setParams((p) => ({ ...p, color_strength: x, tone_strength: y, auto_xy: false }));
@@ -564,7 +593,7 @@ export default function EditorPage() {
   /* ═══════════ RENDER ═══════════ */
   return (
     <div className="flex flex-col w-full h-full bg-black">
-      <input ref={sourceInputRef} type="file" accept="image/*" className="hidden" onChange={handleSourceUpload} />
+      <input ref={sourceInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleSourceUpload} />
       <input ref={refInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleRefUpload} />
       <input ref={batchInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleBatchImport} />
 
@@ -594,6 +623,49 @@ export default function EditorPage() {
           </button>
         </div>
       </header>
+      )}
+
+      {/* ── Batch source strip — ColorBy style (top, below header) ── */}
+      {!previewFullscreen && batchFiles.length > 0 && (
+        <div className="shrink-0 bg-[#080808] px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-white/5">
+          {/* Main source (active) */}
+          {sourceUrl && (
+            <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 border-white/50">
+              <img src={sourceUrl} alt="" className="w-full h-full object-cover" draggable={false} />
+            </div>
+          )}
+          {/* Batch items */}
+          {batchFiles.map((bf, i) => (
+            <button key={i} onClick={() => {
+              // Switch to this batch file as active source
+              sourceFileRef.current = bf.file;
+              setSourceUrl(bf.url);
+              void loadImageToData(bf.url).then((data) => {
+                sourceImageData.current = data; baseImageData.current = data;
+                transferredImageData.current = null; setHasTransferred(false);
+                setRenderTick((t) => t + 1);
+              });
+            }} className="shrink-0 relative w-12 h-12 rounded-lg overflow-hidden border border-white/10">
+              <img src={bf.resultUrl || bf.url} alt="" className="w-full h-full object-cover" draggable={false} />
+              {bf.status === "done" && (
+                <div className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-green-500/80 flex items-center justify-center">
+                  <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                </div>
+              )}
+              {bf.status === "processing" && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="w-3 h-3 border border-white/20 border-t-white rounded-full animate-spin" />
+                </div>
+              )}
+            </button>
+          ))}
+          {/* Add more */}
+          <button onClick={() => batchInputRef.current?.click()}
+            className="shrink-0 w-12 h-12 rounded-lg border border-dashed border-white/15 flex items-center justify-center">
+            <IconPlus size={10} className="text-white/30" />
+          </button>
+          <span className="text-[8px] text-white/20 shrink-0 ml-1">{t("batch_longPressDelete")}</span>
+        </div>
       )}
 
       {/* ── Canvas area ── */}
@@ -671,6 +743,8 @@ export default function EditorPage() {
                   onChange={updateXY}
                   onCommit={commitXY}
                   compact
+                  xLabel={t("xy_colorAxis")}
+                  yLabel={t("xy_toneAxis")}
                 />
                 <button
                   onClick={() => {
@@ -799,7 +873,13 @@ export default function EditorPage() {
                   <div className="flex items-center gap-2 overflow-x-auto py-1 -mx-1 px-1 no-scrollbar">
                     {refImages.map((src, i) => (
                       <div key={i} className="relative shrink-0">
-                        <button onClick={() => setActiveRefIdx(i)}
+                        <button onClick={() => {
+                          setActiveRefIdx(i);
+                          // Auto-apply transfer when tapping a ref (no Apply button needed)
+                          if (sourceFileRef.current && refFilesRef.current[i]) {
+                            void runTransfer(i);
+                          }
+                        }}
                           className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
                             i === activeRefIdx
                               ? "border-white/70 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
@@ -841,7 +921,7 @@ export default function EditorPage() {
                   )}
                   {step >= 3 && (
                     <>
-                      <button onClick={runTransfer} disabled={!canProcess}
+                      <button onClick={() => runTransfer()} disabled={!canProcess}
                         className="flex-1 py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all disabled:opacity-40">
                         {processing ? t("editor_processing") : hasTransferred ? t("editor_reApply") : t("editor_apply")}
                       </button>

@@ -156,6 +156,7 @@ const en = {
   batch_applyAll: "Apply All",
   batch_downloadAll: "Download All",
   batch_complete: "Batch processing complete",
+  batch_longPressDelete: "Long press to delete",
 
   /* ── Curves ── */
   curves_reset: "Reset {channel}",
