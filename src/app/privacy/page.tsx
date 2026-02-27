@@ -28,6 +28,12 @@ export default function PrivacyPage() {
           <h2 className="text-[14px] font-bold text-white/90 mt-6 mb-3">{t("privacy_localStorage")}</h2>
           <p className="text-[12px] text-white/60 leading-relaxed mb-4">{t("privacy_localStorageDesc")}</p>
 
+          <h2 className="text-[14px] font-bold text-white/90 mt-6 mb-3">{t("privacy_accountData")}</h2>
+          <p className="text-[12px] text-white/60 leading-relaxed mb-4">{t("privacy_accountDataDesc")}</p>
+
+          <h2 className="text-[14px] font-bold text-white/90 mt-6 mb-3">{t("privacy_thirdParty")}</h2>
+          <p className="text-[12px] text-white/60 leading-relaxed mb-4">{t("privacy_thirdPartyDesc")}</p>
+
           <h2 className="text-[14px] font-bold text-white/90 mt-6 mb-3">{t("privacy_analytics")}</h2>
           <p className="text-[12px] text-white/60 leading-relaxed mb-4">{t("privacy_analyticsDesc")}</p>
 

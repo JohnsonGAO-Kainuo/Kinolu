@@ -3,6 +3,7 @@ import "./globals.css";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/components/AuthProvider";
 import BuiltinLutsInit from "@/components/BuiltinLutsInit";
+import WhatsNew from "@/components/WhatsNew";
 
 export const metadata: Metadata = {
   title: "Kinolu",
@@ -38,6 +39,7 @@ export default function RootLayout({
         <I18nProvider>
           <AuthProvider>
             <BuiltinLutsInit />
+            <WhatsNew />
             {children}
           </AuthProvider>
         </I18nProvider>

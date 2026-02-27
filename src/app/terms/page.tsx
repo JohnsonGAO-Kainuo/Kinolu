@@ -28,6 +28,12 @@ export default function TermsPage() {
           <h2 className="text-[14px] font-bold text-white/90 mt-6 mb-3">{t("terms_use")}</h2>
           <p className="text-[12px] text-white/60 leading-relaxed mb-4">{t("terms_useDesc")}</p>
 
+          <h2 className="text-[14px] font-bold text-white/90 mt-6 mb-3">{t("terms_billing")}</h2>
+          <p className="text-[12px] text-white/60 leading-relaxed mb-4">{t("terms_billingDesc")}</p>
+
+          <h2 className="text-[14px] font-bold text-white/90 mt-6 mb-3">{t("terms_cancellation")}</h2>
+          <p className="text-[12px] text-white/60 leading-relaxed mb-4">{t("terms_cancellationDesc")}</p>
+
           <h2 className="text-[14px] font-bold text-white/90 mt-6 mb-3">{t("terms_limitations")}</h2>
           <p className="text-[12px] text-white/60 leading-relaxed mb-4">{t("terms_limitationsDesc")}</p>
 
