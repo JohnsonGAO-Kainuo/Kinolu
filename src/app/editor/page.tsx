@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { EditParams, AdjustmentTool, EditorTab } from "@/lib/types";
+import type { EditParams, AdjustmentTool, EditorTab, EditSubTab } from "@/lib/types";
 import { DEFAULT_EDIT_PARAMS } from "@/lib/types";
 import {
   applyPresetToImage,
@@ -95,6 +95,7 @@ export default function EditorPage() {
   }, [history]);
 
   const [activeTab, setActiveTab] = useState<EditorTab>("transfer");
+  const [editSubTab, setEditSubTab] = useState<EditSubTab>("light");
   const [activeTool, setActiveTool] = useState<AdjustmentTool>("exposure");
   const [processing, setProcessing] = useState(false);
   const [savingPreset, setSavingPreset] = useState(false);
@@ -109,6 +110,8 @@ export default function EditorPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasTransferred, setHasTransferred] = useState(false);
   const [renderTick, setRenderTick] = useState(0);
+  const [previewFullscreen, setPreviewFullscreen] = useState(false);
+  const [transferUsedXY, setTransferUsedXY] = useState(false);
 
   /* Crop state */
   const [cropAspect, setCropAspect] = useState("free");
@@ -319,6 +322,7 @@ export default function EditorPage() {
       URL.revokeObjectURL(resultObjUrl);
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
+      setTransferUsedXY(true);
       setRenderTick((t) => t + 1);
       if (params.auto_xy) setParams((p) => ({ ...p, color_strength: resp.autoX, tone_strength: resp.autoY }));
     } catch (err) {
@@ -548,7 +552,8 @@ export default function EditorPage() {
       <input ref={refInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleRefUpload} />
       <input ref={batchInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleBatchImport} />
 
-      {/* ── Header ── */}
+      {/* ── Header — hidden in fullscreen ── */}
+      {!previewFullscreen && (
       <header className="flex items-center justify-between h-[44px] px-4 safe-top shrink-0 z-10">
         <button onClick={() => {
             if (window.history.length > 1) router.back();
@@ -573,13 +578,21 @@ export default function EditorPage() {
           </button>
         </div>
       </header>
+      )}
 
       {/* ── Canvas area ── */}
       <div className="flex-1 min-h-0 relative">
         {hasImage ? (
           <>
-            {/* Image display */}
-            <div className="absolute inset-0 flex items-center justify-center px-3 py-2">
+            {/* Image display — tap to toggle fullscreen */}
+            <div
+              className="absolute inset-0 flex items-center justify-center px-3 py-2 cursor-pointer"
+              onClick={(e) => {
+                // Only toggle fullscreen if tapping the background/canvas, not buttons inside
+                if ((e.target as HTMLElement).closest("button")) return;
+                setPreviewFullscreen((f) => !f);
+              }}
+            >
               <canvas
                 ref={displayCanvasRef}
                 className={`max-w-full max-h-full object-contain rounded-sm ${comparing ? "hidden" : ""}`}
@@ -587,8 +600,8 @@ export default function EditorPage() {
               {comparing && sourceUrl && <img src={sourceUrl} alt="Original" className="max-w-full max-h-full object-contain rounded-sm" draggable={false} />}
             </div>
 
-            {/* Crop overlay — shown when crop tab is active */}
-            {activeTab === "crop" && (
+            {/* Crop overlay — shown when crop sub-tab is active */}
+            {activeTab === "edit" && editSubTab === "crop" && (
               <CropOverlay
                 canvasEl={displayCanvasRef.current}
                 aspect={cropAspect}
@@ -597,7 +610,7 @@ export default function EditorPage() {
             )}
 
             {/* Source replace button — top-left, tappable */}
-            {hasImage && !comparing && activeTab === "transfer" && (
+            {!previewFullscreen && hasImage && !comparing && activeTab === "transfer" && (
               <button
                 onClick={() => sourceInputRef.current?.click()}
                 className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/40 active:text-white transition-colors"
@@ -610,21 +623,21 @@ export default function EditorPage() {
             )}
 
             {/* Step 2 hint — "add reference" (small floating pill) */}
-            {step === 2 && (
+            {!previewFullscreen && step === 2 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full">
                 <span className="text-[10px] text-white/50 tracking-[1px]">{t("editor_addRefHint")}</span>
               </div>
             )}
 
             {/* Step 3 hint — "tap apply" */}
-            {step === 3 && (
+            {!previewFullscreen && step === 3 && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full">
                 <span className="text-[10px] text-white/50 tracking-[1px]">{t("editor_tapApplyHint")}</span>
               </div>
             )}
 
-            {/* XY Pad — floating over image, bottom-right (like ColorBy) — only after transfer */}
-            {activeTab === "transfer" && hasTransferred && (
+            {/* XY Pad — floating over image, bottom-right — only after XY transfer (not camera/LUT) */}
+            {!previewFullscreen && activeTab === "transfer" && transferUsedXY && (
               <div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1.5">
                 <XYPad
                   x={params.color_strength}
@@ -648,7 +661,8 @@ export default function EditorPage() {
               </div>
             )}
 
-            {/* ── Bottom-left floating toolbar: Compare + Undo + Redo + Reset ── */}
+            {/* ── Bottom-left floating toolbar: Compare + Undo + Redo + Reset — hidden in fullscreen ── */}
+            {!previewFullscreen && (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10">
               {/* Compare (hold) */}
               {hasTransferred && (
@@ -693,6 +707,7 @@ export default function EditorPage() {
                 <IconReset size={14} />
               </button>
             </div>
+            )}
 
             {/* Comparing badge */}
             {comparing && (
@@ -748,10 +763,12 @@ export default function EditorPage() {
         )}
       </div>
 
-      {/* ── Control tray ── */}
-      <div className="shrink-0 bg-[#080808]" style={{ maxHeight: "40vh" }}>
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(40vh - 52px)" }}>
-          <div className="pt-2 pb-5">
+      {/* ── Control tray — hidden in fullscreen ── */}
+      {!previewFullscreen && (
+      <div className="shrink-0 bg-[#080808]" style={{ maxHeight: "45vh" }}>
+        {/* Scrollable panel content — fixed height with nav bar outside */}
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(45vh - 52px)" }}>
+          <div className="pt-2 pb-3">
             {activeTab === "transfer" && (
               <div className="flex flex-col gap-2 px-5 py-1">
                 {/* Reference thumbnails strip */}
@@ -921,87 +938,114 @@ export default function EditorPage() {
                 })()}
               </div>
             )}
-            {activeTab === "edit" && <AdjustmentPanel values={adjValues} activeTool={activeTool} onSelectTool={setActiveTool} onChangeValue={handleAdjChange} />}
-            {activeTab === "curves" && <CurveEditor curves={params.curve_points} onChange={(c) => setParams((p) => ({ ...p, curve_points: c }))} />}
-            {activeTab === "hsl" && <HSLPanel hsl7={params.hsl7} onChange={(h) => setParams((p) => ({ ...p, hsl7: h }))} />}
-            {activeTab === "crop" && (
-              <div className="flex flex-col items-center gap-4 px-5 py-3">
-                {/* Aspect ratio pills */}
-                <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                  {[
-                    { label: t("crop_free"), value: "free" },
-                    { label: "1:1", value: "1:1" },
-                    { label: "4:3", value: "4:3" },
-                    { label: "16:9", value: "16:9" },
-                    { label: "3:2", value: "3:2" },
-                    { label: "9:16", value: "9:16" },
-                  ].map((r) => (
+            {activeTab === "edit" && (
+              <div className="flex flex-col">
+                {/* ── Lightroom-style sub-tab bar ── */}
+                <div className="flex items-center gap-0.5 px-3 pb-2 overflow-x-auto no-scrollbar">
+                  {([
+                    { key: "light" as EditSubTab, label: t("adj_light"), icon: "☀" },
+                    { key: "color" as EditSubTab, label: t("adj_color"), icon: "🎨" },
+                    { key: "effects" as EditSubTab, label: t("adj_effects"), icon: "✦" },
+                    { key: "detail" as EditSubTab, label: t("adj_detail"), icon: "△" },
+                    { key: "curves" as EditSubTab, label: t("tab_curves"), icon: "⌇" },
+                    { key: "hsl" as EditSubTab, label: t("tab_hsl"), icon: "◎" },
+                    { key: "crop" as EditSubTab, label: t("tab_crop"), icon: "⬡" },
+                  ]).map((sub) => (
                     <button
-                      key={r.value}
-                      onClick={() => setCropAspect(r.value)}
-                      className={`px-3.5 py-1.5 rounded-full text-[11px] tracking-[0.5px] font-medium transition-all ${
-                        cropAspect === r.value
-                          ? "bg-white/10 text-white"
-                          : "text-white/35 bg-white/[0.03] hover:text-white/60"
+                      key={sub.key}
+                      onClick={() => setEditSubTab(sub.key)}
+                      className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+                        editSubTab === sub.key
+                          ? "bg-white/[0.08] text-white"
+                          : "text-white/35 active:bg-white/[0.04]"
                       }`}
                     >
-                      {r.label}
+                      <span className="text-[14px] leading-none">{sub.icon}</span>
+                      <span className="text-[9px] tracking-[0.5px] font-medium whitespace-nowrap">{sub.label}</span>
                     </button>
                   ))}
                 </div>
-                {/* Rotate + Flip — real ImageData operations */}
-                <div className="flex items-center gap-5">
-                  <button
-                    onClick={handleRotateCW}
-                    className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
-                  >
-                    <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
-                        <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-                      </svg>
+
+                {/* ── Sub-tab content ── */}
+                {(editSubTab === "light" || editSubTab === "color" || editSubTab === "effects" || editSubTab === "detail") && (
+                  <AdjustmentPanel
+                    values={adjValues}
+                    activeTool={activeTool}
+                    onSelectTool={setActiveTool}
+                    onChangeValue={handleAdjChange}
+                    category={editSubTab}
+                  />
+                )}
+                {editSubTab === "curves" && (
+                  <CurveEditor curves={params.curve_points} onChange={(c) => setParams((p) => ({ ...p, curve_points: c }))} />
+                )}
+                {editSubTab === "hsl" && (
+                  <HSLPanel hsl7={params.hsl7} onChange={(h) => setParams((p) => ({ ...p, hsl7: h }))} />
+                )}
+                {editSubTab === "crop" && (
+                  <div className="flex flex-col items-center gap-4 px-5 py-3">
+                    {/* Aspect ratio pills */}
+                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                      {[
+                        { label: t("crop_free"), value: "free" },
+                        { label: "1:1", value: "1:1" },
+                        { label: "4:3", value: "4:3" },
+                        { label: "16:9", value: "16:9" },
+                        { label: "3:2", value: "3:2" },
+                        { label: "9:16", value: "9:16" },
+                      ].map((r) => (
+                        <button
+                          key={r.value}
+                          onClick={() => setCropAspect(r.value)}
+                          className={`px-3.5 py-1.5 rounded-full text-[11px] tracking-[0.5px] font-medium transition-all ${
+                            cropAspect === r.value
+                              ? "bg-white/10 text-white"
+                              : "text-white/35 bg-white/[0.03] hover:text-white/60"
+                          }`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
                     </div>
-                    <span className="text-[10px] text-white/40 tracking-wider font-medium">90°</span>
-                  </button>
-                  <button
-                    onClick={handleFlipH}
-                    className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
-                  >
-                    <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
-                        <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
-                      </svg>
+                    {/* Rotate + Flip */}
+                    <div className="flex items-center gap-5">
+                      <button onClick={handleRotateCW} className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform">
+                        <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
+                            <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                          </svg>
+                        </div>
+                        <span className="text-[10px] text-white/40 tracking-wider font-medium">90°</span>
+                      </button>
+                      <button onClick={handleFlipH} className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform">
+                        <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
+                            <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
+                          </svg>
+                        </div>
+                        <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipH")}</span>
+                      </button>
+                      <button onClick={handleFlipV} className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform">
+                        <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60 rotate-90">
+                            <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
+                          </svg>
+                        </div>
+                        <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipV")}</span>
+                      </button>
+                      <button onClick={() => { setCropAspect("free"); }} className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform">
+                        <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
+                          <IconReset size={18} className="text-white/40" />
+                        </div>
+                        <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_reset")}</span>
+                      </button>
                     </div>
-                    <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipH")}</span>
-                  </button>
-                  <button
-                    onClick={handleFlipV}
-                    className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
-                  >
-                    <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60 rotate-90">
-                        <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
-                      </svg>
-                    </div>
-                    <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipV")}</span>
-                  </button>
-                  <button
-                    onClick={() => { setCropAspect("free"); }}
-                    className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform"
-                  >
-                    <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
-                      <IconReset size={18} className="text-white/40" />
-                    </div>
-                    <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_reset")}</span>
-                  </button>
-                </div>
-                {/* Apply Crop button */}
-                {hasImage && (
-                  <button
-                    onClick={handleCropApply}
-                    className="w-full py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all"
-                  >
-                    {t("crop_apply")}
-                  </button>
+                    {hasImage && (
+                      <button onClick={handleCropApply} className="w-full py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all">
+                        {t("crop_apply")}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -1009,6 +1053,7 @@ export default function EditorPage() {
         </div>
         <EditorTabBar active={activeTab} onSelect={setActiveTab} />
       </div>
+      )}
     </div>
   );
 }

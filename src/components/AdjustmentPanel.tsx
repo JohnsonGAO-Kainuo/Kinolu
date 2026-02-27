@@ -30,6 +30,8 @@ interface AdjustmentPanelProps {
   activeTool: AdjustmentTool;
   onSelectTool: (tool: AdjustmentTool) => void;
   onChangeValue: (tool: AdjustmentTool, value: number) => void;
+  /** Which category to show — controlled externally by parent sub-tabs */
+  category?: EditCategory;
 }
 
 type EditCategory = "light" | "color" | "effects" | "detail";
@@ -228,44 +230,51 @@ export default function AdjustmentPanel({
   activeTool,
   onSelectTool,
   onChangeValue,
+  category: externalCategory,
 }: AdjustmentPanelProps) {
   const { t } = useI18n();
-  const [activeCategory, setActiveCategory] = useState<EditCategory>("light");
+  const [internalCategory, setInternalCategory] = useState<EditCategory>("light");
+  const activeCategory = externalCategory ?? internalCategory;
   const categoryTools = CATEGORY_TOOLS[activeCategory];
 
   return (
-    <div className="w-full flex flex-col pb-4">
-      {/* Category tabs + Reset inline */}
-      <div className="flex items-center justify-between px-4 pb-2">
-        <div className="flex items-center gap-1">
-          {CATEGORIES.map((cat) => {
-            const isActive = cat.key === activeCategory;
-            const hasChanges = CATEGORY_TOOLS[cat.key].some(
-              (t) => values[t.key] !== 0
-            );
-            return (
-              <button
-                key={cat.key}
-                onClick={() => {
-                  setActiveCategory(cat.key);
-                  const first = CATEGORY_TOOLS[cat.key][0];
-                  if (first) onSelectTool(first.key);
-                }}
-                className={`relative px-3 py-1.5 rounded-full text-[11px] tracking-[0.5px] font-medium transition-all ${
-                  isActive
-                    ? "bg-white/10 text-white"
-                    : "text-white/30 hover:text-white/55"
-                }`}
-              >
-                {t(cat.labelKey)}
-                {hasChanges && !isActive && (
-                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-white/50" />
-                )}
-              </button>
-            );
-          })}
+    <div className="w-full flex flex-col pb-2">
+      {/* Category tabs — only shown when NOT controlled externally */}
+      {!externalCategory && (
+        <div className="flex items-center justify-between px-4 pb-2">
+          <div className="flex items-center gap-1">
+            {CATEGORIES.map((cat) => {
+              const isActive = cat.key === internalCategory;
+              const hasChanges = CATEGORY_TOOLS[cat.key].some(
+                (t) => values[t.key] !== 0
+              );
+              return (
+                <button
+                  key={cat.key}
+                  onClick={() => {
+                    setInternalCategory(cat.key);
+                    const first = CATEGORY_TOOLS[cat.key][0];
+                    if (first) onSelectTool(first.key);
+                  }}
+                  className={`relative px-3 py-1.5 rounded-full text-[11px] tracking-[0.5px] font-medium transition-all ${
+                    isActive
+                      ? "bg-white/10 text-white"
+                      : "text-white/30 hover:text-white/55"
+                  }`}
+                >
+                  {t(cat.labelKey)}
+                  {hasChanges && !isActive && (
+                    <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-white/50" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        {/* Reset — always visible, prominent pill */}
+      )}
+
+      {/* Reset — always visible */}
+      <div className="flex justify-end px-4 pb-1">
         <button
           onClick={() =>
             categoryTools.forEach((tl) => onChangeValue(tl.key, 0))
