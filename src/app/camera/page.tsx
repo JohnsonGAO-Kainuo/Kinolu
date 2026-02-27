@@ -56,6 +56,7 @@ export default function CameraPage() {
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [activePresetId, setActivePresetId] = useState<string>("");
   const [lutLoading, setLutLoading] = useState(false);
+  const [cameraLutTab, setCameraLutTab] = useState<"film" | "presets">("film");
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const [focusKey, setFocusKey] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
@@ -486,52 +487,72 @@ export default function CameraPage() {
           </div>
         )}
 
-        {/* Preset strip */}
+        {/* Preset strip with Film / My Presets toggle */}
         <div className="pointer-events-auto px-3 pb-2">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            <button onClick={() => setActivePresetId("")} className="shrink-0 flex flex-col items-center gap-1">
-              <div className={`w-[60px] h-[60px] rounded-xl border-2 overflow-hidden flex items-center justify-center transition-all ${
-                activePresetId === "" ? "border-white/60 bg-white/10" : "border-white/10 bg-black/30"}`}>
-                <span className="text-[9px] text-white/50 tracking-wider">{t("camera_original")}</span>
-              </div>
+          {/* Toggle: Film Filters | My Presets */}
+          <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg p-0.5 mb-2 self-start w-fit">
+            <button onClick={() => setCameraLutTab("film")}
+              className={`px-3 py-1 rounded-md text-[10px] font-medium tracking-wider transition-all ${cameraLutTab === "film" ? "bg-white/10 text-white" : "text-white/35"}`}>
+              {t("editor_filmTab")}
             </button>
-            {localLutItems.map((lut) => {
-              const meta = getBuiltinMeta(lut.name);
-              const locked = !isPro && meta && !meta.isFree;
-              return (
-                <button key={lut.id} onClick={() => {
-                  if (locked) { showToast(t("editor_proOnly")); return; }
-                  setActivePresetId(lut.id);
-                }} className={`shrink-0 flex flex-col items-center gap-1 ${locked ? "opacity-60" : ""}`}>
-                  <div className={`relative w-[60px] h-[60px] rounded-xl border-2 overflow-hidden transition-all ${
-                    activePresetId === lut.id ? "border-white/60 shadow-[0_0_10px_rgba(255,255,255,0.12)]" : "border-white/10"}`}>
-                    {thumbUrls[lut.id] ? (
-                      <img src={thumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className={`w-full h-full flex items-center justify-center ${
-                        meta?.category === "fuji" ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20"
-                        : meta?.category === "kodak" ? "bg-gradient-to-br from-amber-500/20 to-yellow-500/20"
-                        : meta ? "bg-gradient-to-br from-rose-500/20 to-purple-500/20"
-                        : "bg-gradient-to-br from-purple-500/20 to-blue-500/20"}`}>
-                        <span className="text-[8px] text-white/30">
-                          {meta ? (meta.category === "fuji" ? "F" : meta.category === "kodak" ? "K" : "✦") : "LUT"}
-                        </span>
-                      </div>
-                    )}
-                    {locked && (
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/50">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                          <path d="M7 11V7a5 5 0 0110 0v4" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <span className={`text-[8px] max-w-[60px] truncate ${locked ? "text-white/25" : "text-white/40"}`}>{meta?.i18nKey ? t(meta.i18nKey as Parameters<typeof t>[0]) : lut.name}</span>
-                </button>
-              );
-            })}
+            <button onClick={() => setCameraLutTab("presets")}
+              className={`px-3 py-1 rounded-md text-[10px] font-medium tracking-wider transition-all ${cameraLutTab === "presets" ? "bg-white/10 text-white" : "text-white/35"}`}>
+              {t("editor_presetsTab")}
+            </button>
           </div>
+          {(() => {
+            const builtins = localLutItems.filter((l) => getBuiltinMeta(l.name));
+            const userLuts = localLutItems.filter((l) => !getBuiltinMeta(l.name));
+            const showItems = cameraLutTab === "film" ? builtins : userLuts;
+            return (
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                <button onClick={() => setActivePresetId("")} className="shrink-0 flex flex-col items-center gap-1">
+                  <div className={`w-[60px] h-[60px] rounded-xl border-2 overflow-hidden flex items-center justify-center transition-all ${
+                    activePresetId === "" ? "border-white/60 bg-white/10" : "border-white/10 bg-black/30"}`}>
+                    <span className="text-[9px] text-white/50 tracking-wider">{t("camera_original")}</span>
+                  </div>
+                </button>
+                {showItems.length > 0 ? showItems.map((lut) => {
+                  const meta = getBuiltinMeta(lut.name);
+                  const locked = !isPro && meta && !meta.isFree;
+                  return (
+                    <button key={lut.id} onClick={() => {
+                      if (locked) { showToast(t("editor_proOnly")); return; }
+                      setActivePresetId(lut.id);
+                    }} className={`shrink-0 flex flex-col items-center gap-1 ${locked ? "opacity-60" : ""}`}>
+                      <div className={`relative w-[60px] h-[60px] rounded-xl border-2 overflow-hidden transition-all ${
+                        activePresetId === lut.id ? "border-white/60 shadow-[0_0_10px_rgba(255,255,255,0.12)]" : "border-white/10"}`}>
+                        {thumbUrls[lut.id] ? (
+                          <img src={thumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className={`w-full h-full flex items-center justify-center ${
+                            meta?.category === "fuji" ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20"
+                            : meta?.category === "kodak" ? "bg-gradient-to-br from-amber-500/20 to-yellow-500/20"
+                            : meta ? "bg-gradient-to-br from-rose-500/20 to-purple-500/20"
+                            : "bg-gradient-to-br from-purple-500/20 to-blue-500/20"}`}>
+                            <span className="text-[8px] text-white/30">LUT</span>
+                          </div>
+                        )}
+                        {locked && (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/50">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                              <path d="M7 11V7a5 5 0 0110 0v4" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <span className={`text-[8px] max-w-[60px] truncate ${locked ? "text-white/25" : "text-white/40"}`}>{meta?.i18nKey ? t(meta.i18nKey as Parameters<typeof t>[0]) : lut.name}</span>
+                    </button>
+                  );
+                }) : (
+                  <div className="flex items-center justify-center h-[60px] px-4">
+                    <span className="text-[10px] text-white/25">{cameraLutTab === "presets" ? t("lib_noLuts") : ""}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Focal-length strip */}

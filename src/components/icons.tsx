@@ -149,10 +149,10 @@ export function IconLibrary(p: IconProps) {
 export function IconTransfer(p: IconProps) {
   return (
     <svg {...s(p)}>
-      <polyline points="17 1 21 5 17 9" />
-      <path d="M3 11V9a4 4 0 014-4h14" />
-      <polyline points="7 23 3 19 7 15" />
-      <path d="M21 13v2a4 4 0 01-4 4H3" />
+      {/* Two overlapping photos — color transfer metaphor */}
+      <rect x="2" y="5" width="12" height="10" rx="1.5" />
+      <rect x="10" y="9" width="12" height="10" rx="1.5" />
+      <path d="M15 14l3-3m0 0l-3-3m3 3H8" strokeWidth="2" />
     </svg>
   );
 }
@@ -212,7 +212,53 @@ export function IconFilters(p: IconProps) {
   );
 }
 
-/* ── Adjustment Tool Icons ── */
+/* ── Sub-tab Icons (no emoji) ── */
+
+/** Light — sun symbol */
+export function IconLight(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <circle cx="12" cy="12" r="4" />
+      <line x1="12" y1="2" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+      <line x1="4.22" y1="4.22" x2="6.34" y2="6.34" />
+      <line x1="17.66" y1="17.66" x2="19.78" y2="19.78" />
+      <line x1="2" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="22" y2="12" />
+      <line x1="4.22" y1="19.78" x2="6.34" y2="17.66" />
+      <line x1="17.66" y1="6.34" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+/** Color — droplet / palette */
+export function IconColor(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
+    </svg>
+  );
+}
+
+/** Effects — sparkle (clean SVG, not emoji) */
+export function IconEffects(p: IconProps) {
+  return (
+    <svg {...s(p)} fill="currentColor" stroke="none">
+      <path d="M12 2l1.09 3.26L16 6l-2.91.74L12 10l-1.09-3.26L8 6l2.91-.74L12 2z" />
+      <path d="M18 10l.73 2.18L21 13l-2.27.82L18 16l-.73-2.18L15 13l2.27-.82L18 10z" />
+      <path d="M7 14l.55 1.64L9 16.5l-1.45.86L7 19l-.55-1.64L5 16.5l1.45-.86L7 14z" />
+    </svg>
+  );
+}
+
+/** Detail — triangle / sharpness */
+export function IconDetail(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <polygon points="12 3 22 21 2 21" />
+    </svg>
+  );
+}
 
 export function IconExposure(p: IconProps) {
   return (

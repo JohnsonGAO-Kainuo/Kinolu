@@ -24,6 +24,13 @@ import {
   IconReset,
   IconDownload,
   IconPlus,
+  IconLight,
+  IconColor,
+  IconEffects,
+  IconDetail,
+  IconCurves,
+  IconHSL,
+  IconCrop,
 } from "@/components/icons";
 import XYPad from "@/components/XYPad";
 import AdjustmentPanel from "@/components/AdjustmentPanel";
@@ -609,7 +616,17 @@ export default function EditorPage() {
               />
             )}
 
-            {/* Source replace button — top-left, tappable */}
+            {/* Reference image overlay — top-left, like ColorBy */}
+            {!previewFullscreen && hasTransferred && refImages[activeRefIdx] && (
+              <div className="absolute top-3 left-3 z-10 w-20 h-14 rounded-lg overflow-hidden border border-white/20 shadow-lg bg-black/30">
+                <img src={refImages[activeRefIdx]} alt="Reference" className="w-full h-full object-cover" draggable={false} />
+                <div className="absolute bottom-0 inset-x-0 bg-black/50 py-0.5">
+                  <span className="block text-center text-[7px] text-white/60 tracking-wider">REF</span>
+                </div>
+              </div>
+            )}
+
+            {/* Source replace button — top-right, tappable */}
             {!previewFullscreen && hasImage && !comparing && activeTab === "transfer" && (
               <button
                 onClick={() => sourceInputRef.current?.click()}
@@ -645,9 +662,6 @@ export default function EditorPage() {
                   onChange={updateXY}
                   onCommit={commitXY}
                   compact
-                  xLabel={t("xy_colorAxis")}
-                  yLabel={t("xy_toneAxis")}
-                  helpText={t("xy_helpText")}
                 />
                 <button
                   onClick={() => {
@@ -664,16 +678,17 @@ export default function EditorPage() {
             {/* ── Bottom-left floating toolbar: Compare + Undo + Redo + Reset — hidden in fullscreen ── */}
             {!previewFullscreen && (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10">
-              {/* Compare (hold) */}
+              {/* Original — hold to see original (prominent pill) */}
               {hasTransferred && (
                 <button
                   onPointerDown={() => setComparing(true)}
                   onPointerUp={() => setComparing(false)}
                   onPointerLeave={() => setComparing(false)}
-                  className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/50 active:text-white"
+                  className="h-9 px-3 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center gap-1.5 text-white/60 active:text-white border border-white/10"
                   title="Hold to compare original"
                 >
-                  <IconCompare size={16} />
+                  <IconCompare size={14} />
+                  <span className="text-[10px] tracking-wider font-medium">{t("editor_original")}</span>
                 </button>
               )}
               {/* Undo */}
@@ -943,13 +958,13 @@ export default function EditorPage() {
                 {/* ── Lightroom-style sub-tab bar ── */}
                 <div className="flex items-center gap-0.5 px-3 pb-2 overflow-x-auto no-scrollbar">
                   {([
-                    { key: "light" as EditSubTab, label: t("adj_light"), icon: "☀" },
-                    { key: "color" as EditSubTab, label: t("adj_color"), icon: "🎨" },
-                    { key: "effects" as EditSubTab, label: t("adj_effects"), icon: "✦" },
-                    { key: "detail" as EditSubTab, label: t("adj_detail"), icon: "△" },
-                    { key: "curves" as EditSubTab, label: t("tab_curves"), icon: "⌇" },
-                    { key: "hsl" as EditSubTab, label: t("tab_hsl"), icon: "◎" },
-                    { key: "crop" as EditSubTab, label: t("tab_crop"), icon: "⬡" },
+                    { key: "light" as EditSubTab, label: t("adj_light"), Icon: IconLight },
+                    { key: "color" as EditSubTab, label: t("adj_color"), Icon: IconColor },
+                    { key: "effects" as EditSubTab, label: t("adj_effects"), Icon: IconEffects },
+                    { key: "detail" as EditSubTab, label: t("adj_detail"), Icon: IconDetail },
+                    { key: "curves" as EditSubTab, label: t("tab_curves"), Icon: IconCurves },
+                    { key: "hsl" as EditSubTab, label: t("tab_hsl"), Icon: IconHSL },
+                    { key: "crop" as EditSubTab, label: t("tab_crop"), Icon: IconCrop },
                   ]).map((sub) => (
                     <button
                       key={sub.key}
@@ -960,7 +975,7 @@ export default function EditorPage() {
                           : "text-white/35 active:bg-white/[0.04]"
                       }`}
                     >
-                      <span className="text-[14px] leading-none">{sub.icon}</span>
+                      <sub.Icon size={16} className={editSubTab === sub.key ? "text-white" : "text-white/35"} />
                       <span className="text-[9px] tracking-[0.5px] font-medium whitespace-nowrap">{sub.label}</span>
                     </button>
                   ))}
