@@ -79,6 +79,21 @@ const zhTW: Record<TranslationKeys, string> = {
   editor_filmPresets: "膠片濾鏡",
   editor_proOnly: "升級 Pro 解鎖此濾鏡",
   editor_proBadge: "PRO",
+
+  /* ── 濾鏡名稱 ── */
+  lut_fuji_provia: "富士PROVIA",
+  lut_fuji_cc: "富士CC",
+  lut_fuji_nc: "富士NC",
+  lut_fuji_velvia: "富士Velvia",
+  lut_fuji_astia: "富士ASTIA",
+  lut_fuji_acros: "富士ACROS",
+  lut_fuji_eterna: "富士ETERNA",
+  lut_kodak_portra: "柯達Portra",
+  lut_kodak_ektar: "柯達Ektar",
+  lut_kodak_gold: "柯達Gold",
+  lut_kodachrome: "Kodachrome",
+  lut_polaroid: "拍立得",
+
   editor_replaceSource: "替換照片",
   editor_imageSaved: "圖片已儲存",
   editor_importPhotoFirst: "請先匯入一張照片",

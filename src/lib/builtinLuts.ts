@@ -16,8 +16,10 @@ import { parseCubeFile, importCubeFileLocal, listLocalLuts, applyLutToPixels, ty
 export interface BuiltinLutMeta {
   /** Filename in /luts/builtin/ */
   file: string;
-  /** Display name shown to users */
+  /** Internal name (stored in IndexedDB) */
   name: string;
+  /** i18n key for localized display name */
+  i18nKey: string;
   /** Category for grouping */
   category: "fuji" | "kodak" | "classic";
   /** Short description */
@@ -28,20 +30,20 @@ export interface BuiltinLutMeta {
 
 export const BUILTIN_LUTS: BuiltinLutMeta[] = [
   // ── Free tier (5) ──
-  { file: "fuji_provia.cube",         name: "Fuji PROVIA",  category: "fuji",    desc: "Standard / faithful color reproduction",   isFree: true },
-  { file: "fuji_classic_chrome.cube", name: "Fuji CC",      category: "fuji",    desc: "Classic Chrome / muted documentary tone",   isFree: true },
-  { file: "fuji_classic_neg.cube",    name: "Fuji NC",      category: "fuji",    desc: "Classic Neg / nostalgic film negative",     isFree: true },
-  { file: "kodak_portra_400.cube",    name: "Kodak Portra",  category: "kodak",   desc: "Natural skin tones / fine grain portrait", isFree: true },
-  { file: "kodak_gold_200.cube",      name: "Kodak Gold",    category: "kodak",   desc: "Warm everyday film classic",               isFree: true },
+  { file: "fuji_provia.cube",         name: "Fuji PROVIA",  i18nKey: "lut_fuji_provia",  category: "fuji",    desc: "Standard / faithful color reproduction",   isFree: true },
+  { file: "fuji_classic_chrome.cube", name: "Fuji CC",      i18nKey: "lut_fuji_cc",      category: "fuji",    desc: "Classic Chrome / muted documentary tone",   isFree: true },
+  { file: "fuji_classic_neg.cube",    name: "Fuji NC",      i18nKey: "lut_fuji_nc",      category: "fuji",    desc: "Classic Neg / nostalgic film negative",     isFree: true },
+  { file: "kodak_portra_400.cube",    name: "Kodak Portra",  i18nKey: "lut_kodak_portra", category: "kodak",   desc: "Natural skin tones / fine grain portrait", isFree: true },
+  { file: "kodak_gold_200.cube",      name: "Kodak Gold",    i18nKey: "lut_kodak_gold",   category: "kodak",   desc: "Warm everyday film classic",               isFree: true },
 
   // ── Pro (7) ──
-  { file: "fuji_velvia.cube",         name: "Fuji Velvia",  category: "fuji",    desc: "Vivid saturated landscapes",               isFree: false },
-  { file: "fuji_astia.cube",          name: "Fuji ASTIA",   category: "fuji",    desc: "Soft flattering portraits",                isFree: false },
-  { file: "fuji_acros.cube",          name: "Fuji ACROS",   category: "fuji",    desc: "Fine-grain monochrome",                    isFree: false },
-  { file: "fuji_eterna.cube",         name: "Fuji ETERNA",  category: "fuji",    desc: "Cinematic subdued color",                  isFree: false },
-  { file: "kodak_ektar_100.cube",     name: "Kodak Ektar",   category: "kodak",   desc: "Ultra-vivid punchy landscape",             isFree: false },
-  { file: "kodachrome.cube",          name: "Kodachrome",    category: "classic", desc: "Legendary warm slide film",                isFree: false },
-  { file: "polaroid_600.cube",        name: "Polaroid",      category: "classic", desc: "Instant film character",                   isFree: false },
+  { file: "fuji_velvia.cube",         name: "Fuji Velvia",  i18nKey: "lut_fuji_velvia",  category: "fuji",    desc: "Vivid saturated landscapes",               isFree: false },
+  { file: "fuji_astia.cube",          name: "Fuji ASTIA",   i18nKey: "lut_fuji_astia",   category: "fuji",    desc: "Soft flattering portraits",                isFree: false },
+  { file: "fuji_acros.cube",          name: "Fuji ACROS",   i18nKey: "lut_fuji_acros",   category: "fuji",    desc: "Fine-grain monochrome",                    isFree: false },
+  { file: "fuji_eterna.cube",         name: "Fuji ETERNA",  i18nKey: "lut_fuji_eterna",  category: "fuji",    desc: "Cinematic subdued color",                  isFree: false },
+  { file: "kodak_ektar_100.cube",     name: "Kodak Ektar",   i18nKey: "lut_kodak_ektar",  category: "kodak",   desc: "Ultra-vivid punchy landscape",             isFree: false },
+  { file: "kodachrome.cube",          name: "Kodachrome",    i18nKey: "lut_kodachrome",   category: "classic", desc: "Legendary warm slide film",                isFree: false },
+  { file: "polaroid_600.cube",        name: "Polaroid",      i18nKey: "lut_polaroid",     category: "classic", desc: "Instant film character",                   isFree: false },
 ];
 
 /** Names of free-tier builtins for quick lookup */

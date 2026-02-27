@@ -77,6 +77,21 @@ const en = {
   editor_filmPresets: "Film Presets",
   editor_proOnly: "Upgrade to Pro to unlock this preset",
   editor_proBadge: "PRO",
+
+  /* ── LUT display names ── */
+  lut_fuji_provia: "Fuji PROVIA",
+  lut_fuji_cc: "Fuji CC",
+  lut_fuji_nc: "Fuji NC",
+  lut_fuji_velvia: "Fuji Velvia",
+  lut_fuji_astia: "Fuji ASTIA",
+  lut_fuji_acros: "Fuji ACROS",
+  lut_fuji_eterna: "Fuji ETERNA",
+  lut_kodak_portra: "Kodak Portra",
+  lut_kodak_ektar: "Kodak Ektar",
+  lut_kodak_gold: "Kodak Gold",
+  lut_kodachrome: "Kodachrome",
+  lut_polaroid: "Polaroid",
+
   editor_replaceSource: "Replace photo",
   editor_imageSaved: "Image saved",
   editor_importPhotoFirst: "Import a photo first",

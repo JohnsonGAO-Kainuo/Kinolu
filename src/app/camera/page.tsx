@@ -527,7 +527,7 @@ export default function CameraPage() {
                       </div>
                     )}
                   </div>
-                  <span className={`text-[8px] max-w-[52px] truncate ${locked ? "text-white/25" : "text-white/40"}`}>{lut.name}</span>
+                  <span className={`text-[8px] max-w-[52px] truncate ${locked ? "text-white/25" : "text-white/40"}`}>{meta?.i18nKey ? t(meta.i18nKey as Parameters<typeof t>[0]) : lut.name}</span>
                 </button>
               );
             })}
