@@ -128,9 +128,9 @@ export default function XYPad({
           onPointerCancel={onPointerUp}
           onDoubleClick={onDoubleClick}
         >
-          {/* Warm gradient (like ColorBy — red/pink tint in bottom-right) */}
+          {/* Cool gradient — teal/blue tint for Kinolu identity */}
           <div className="absolute inset-0 pointer-events-none"
-            style={{ background: "linear-gradient(135deg, rgba(80,80,80,0.08) 0%, rgba(200,60,80,0.12) 100%)" }} />
+            style={{ background: "linear-gradient(135deg, rgba(60,60,70,0.06) 0%, rgba(50,160,180,0.10) 100%)" }} />
 
           {/* Dot grid */}
           <svg width={padSize} height={padSize} viewBox={`0 0 ${padSize} ${padSize}`}
@@ -139,9 +139,10 @@ export default function XYPad({
               const proximity = Math.max(0, 1 - d.dist * 2.8);
               const opacity = 0.08 + proximity * 0.5;
               const r = 1.2 + proximity * 1;
+              const fill = proximity > 0.15 ? `rgba(180,230,235,${opacity})` : `rgba(255,255,255,${opacity})`;
               return (
                 <circle key={i} cx={d.cx * padSize} cy={d.cy * padSize}
-                  r={r} fill="white" opacity={opacity} />
+                  r={r} fill={fill} />
               );
             })}
           </svg>
@@ -163,7 +164,7 @@ export default function XYPad({
             transition: dragging ? "none" : "transform 0.15s ease",
           }}>
             <div className="w-3.5 h-3.5 rounded-full bg-white"
-              style={{ boxShadow: "0 0 6px rgba(255,255,255,0.45), 0 0 14px rgba(255,255,255,0.1)" }} />
+              style={{ boxShadow: "0 0 6px rgba(140,220,230,0.5), 0 0 14px rgba(80,200,220,0.15)" }} />
           </div>
 
           {/* Axis labels — only shown when ? is toggled on */}

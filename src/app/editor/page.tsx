@@ -653,12 +653,12 @@ export default function EditorPage() {
       </header>
       )}
 
-      {/* ── Batch source strip — ColorBy style (top, below header) ── */}
+      {/* ── Batch source strip (top, below header) ── */}
       {!previewFullscreen && batchFiles.length > 0 && (
-        <div className="shrink-0 bg-[#080808] px-3 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-white/5">
+        <div className="shrink-0 bg-[#080808] px-3 py-1.5 flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-white/5">
           {/* Main source (active) */}
           {sourceUrl && (
-            <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 border-white/50">
+            <div className="shrink-0 w-11 h-11 rounded-2xl overflow-hidden border-2 border-cyan-400/40 ring-1 ring-cyan-400/10">
               <img src={sourceUrl} alt="" className="w-full h-full object-cover" draggable={false} />
             </div>
           )}
@@ -673,10 +673,10 @@ export default function EditorPage() {
                 transferredImageData.current = null; setHasTransferred(false);
                 setRenderTick((t) => t + 1);
               });
-            }} className="shrink-0 relative w-12 h-12 rounded-lg overflow-hidden border border-white/10">
+            }} className="shrink-0 relative w-11 h-11 rounded-2xl overflow-hidden border border-white/8">
               <img src={bf.resultUrl || bf.url} alt="" className="w-full h-full object-cover" draggable={false} />
               {bf.status === "done" && (
-                <div className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-green-500/80 flex items-center justify-center">
+                <div className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-emerald-500/80 flex items-center justify-center">
                   <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                 </div>
               )}
@@ -689,16 +689,16 @@ export default function EditorPage() {
           ))}
           {/* Add more */}
           <button onClick={() => batchInputRef.current?.click()}
-            className="shrink-0 w-12 h-12 rounded-lg border border-dashed border-white/15 flex items-center justify-center">
-            <IconPlus size={10} className="text-white/30" />
+            className="shrink-0 w-11 h-11 rounded-2xl border border-dashed border-white/12 flex items-center justify-center">
+            <IconPlus size={10} className="text-white/25" />
           </button>
           {/* Batch actions */}
           <div className="shrink-0 flex items-center gap-1 ml-auto">
             {!batchProcessing && batchFiles.some((f) => f.status === "idle" || f.status === "error") && (
-              <button onClick={runBatchTransfer} className="text-[8px] text-white/60 bg-white/10 px-2 py-1 rounded-lg active:bg-white/20 whitespace-nowrap">{t("batch_applyAll")}</button>
+              <button onClick={runBatchTransfer} className="text-[8px] text-white/60 bg-white/8 px-2.5 py-1 rounded-full active:bg-white/15 whitespace-nowrap">{t("batch_applyAll")}</button>
             )}
             {batchFiles.some((f) => f.status === "done") && (
-              <button onClick={downloadBatchAll} className="text-[8px] text-white/60 bg-white/10 px-2 py-1 rounded-lg active:bg-white/20 whitespace-nowrap">{t("batch_downloadAll")}</button>
+              <button onClick={downloadBatchAll} className="text-[8px] text-white/60 bg-white/8 px-2.5 py-1 rounded-full active:bg-white/15 whitespace-nowrap">{t("batch_downloadAll")}</button>
             )}
             <button onClick={() => setBatchFiles([])} className="text-[8px] text-white/30 px-1 py-1">✕</button>
           </div>
@@ -734,12 +734,12 @@ export default function EditorPage() {
               />
             )}
 
-            {/* Reference image overlay — top-left, like ColorBy */}
+            {/* Reference image overlay — circular thumbnail, bottom-left */}
             {!previewFullscreen && hasTransferred && refImages[activeRefIdx] && (
-              <div className="absolute top-3 left-3 z-10 w-[100px] h-[70px] rounded-xl overflow-hidden border border-white/20 shadow-lg bg-black/30">
+              <div className="absolute bottom-14 left-3 z-10 w-[56px] h-[56px] rounded-full overflow-hidden border-2 border-white/20 shadow-lg bg-black/30 ring-1 ring-black/40">
                 <img src={refImages[activeRefIdx]} alt="Reference" className="w-full h-full object-cover" draggable={false} />
-                <div className="absolute bottom-0.5 left-1">
-                  <span className="text-[8px] text-white/50 font-medium tracking-wider bg-black/40 px-1.5 py-0.5 rounded">REF</span>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
+                  <span className="text-[7px] text-white/50 font-semibold tracking-[1.5px] drop-shadow-sm">REF</span>
                 </div>
               </div>
             )}
