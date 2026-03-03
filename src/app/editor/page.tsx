@@ -113,6 +113,9 @@ export default function EditorPage() {
     h.push(next);
   }, []);
 
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+
   const [activeTab, setActiveTab] = useState<EditorTab>("transfer");
   const [editSubTab, setEditSubTab] = useState<EditSubTab>("light");
   const [activeTool, setActiveTool] = useState<AdjustmentTool>("exposure");
@@ -197,19 +200,65 @@ export default function EditorPage() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    canvas.width = data.width;
-    canvas.height = data.height;
+    // Only resize when dimensions change — resizing clears GPU buffer & forces realloc
+    if (canvas.width !== data.width || canvas.height !== data.height) {
+      canvas.width = data.width;
+      canvas.height = data.height;
+    }
     ctx.putImageData(data, 0, 0);
   }, []);
+
+  /* Half-res preview cache for responsive mobile slider drag */
+  const previewSmallCache = useRef<{ base: ImageData; data: ImageData } | null>(null);
+  const upscaleTmpCanvas = useRef<HTMLCanvasElement | null>(null);
 
   const renderPreview = useCallback(() => {
     cancelAnimationFrame(rafId.current);
     rafId.current = requestAnimationFrame(() => {
       const base = baseImageData.current;
+      const p = paramsRef.current;
+      const live = adjDraggingRef.current;
       if (!base) return;
-      paintCanvas(hasActiveEdits(params) ? applyEdits(base, params) : base);
+      if (!hasActiveEdits(p)) { paintCanvas(base); return; }
+
+      // Mobile fast-path: process at half resolution during slider drag
+      // Saves ~75% processing time (640K→160K pixels) + skips spatial filters
+      if (live && isMobile && base.width > 400) {
+        let small: ImageData;
+        if (previewSmallCache.current?.base === base) {
+          small = previewSmallCache.current.data;
+        } else {
+          const c = document.createElement("canvas");
+          c.width = base.width; c.height = base.height;
+          c.getContext("2d")!.putImageData(base, 0, 0);
+          const sw = Math.round(base.width / 2);
+          const sh = Math.round(base.height / 2);
+          const c2 = document.createElement("canvas");
+          c2.width = sw; c2.height = sh;
+          c2.getContext("2d")!.drawImage(c, 0, 0, sw, sh);
+          small = c2.getContext("2d")!.getImageData(0, 0, sw, sh);
+          previewSmallCache.current = { base, data: small };
+        }
+        const result = applyEdits(small, p, true);
+        // Upscale result to display canvas
+        const canvas = displayCanvasRef.current;
+        if (canvas) {
+          if (canvas.width !== base.width || canvas.height !== base.height) {
+            canvas.width = base.width; canvas.height = base.height;
+          }
+          if (!upscaleTmpCanvas.current) upscaleTmpCanvas.current = document.createElement("canvas");
+          const tmp = upscaleTmpCanvas.current;
+          tmp.width = result.width; tmp.height = result.height;
+          tmp.getContext("2d")!.putImageData(result, 0, 0);
+          const ctx = canvas.getContext("2d")!;
+          ctx.imageSmoothingEnabled = true;
+          ctx.drawImage(tmp, 0, 0, base.width, base.height);
+        }
+      } else {
+        paintCanvas(applyEdits(base, p, live));
+      }
     });
-  }, [params, paintCanvas]);
+  }, [paintCanvas, isMobile]);
 
   useEffect(() => { if (baseImageData.current) renderPreview(); }, [params, renderPreview, renderTick]);
 
@@ -462,7 +511,8 @@ export default function EditorPage() {
 
   const handleAdjCommit = useCallback(() => {
     adjDraggingRef.current = false;
-  }, []);
+    renderPreview(); // full-quality re-render with spatial filters
+  }, [renderPreview]);
 
   const handleReset = useCallback(() => {
     if (!window.confirm(t("editor_resetConfirm"))) return;

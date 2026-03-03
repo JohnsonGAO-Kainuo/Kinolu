@@ -118,7 +118,9 @@ function hsl7Weight(hue: number, center: number): number {
 /* ─── Main processing function ─── */
 export function applyEdits(
   sourceImageData: ImageData,
-  params: EditParams
+  params: EditParams,
+  /** Skip expensive spatial convolutions for responsive live drag preview */
+  liveMode = false,
 ): ImageData {
   const { width, height } = sourceImageData;
   const src = sourceImageData.data;
@@ -322,7 +324,7 @@ export function applyEdits(
   }
 
   // ── 10. Noise Reduction (selective 3×3 weighted blur) ──
-  if (params.noise > 0) {
+  if (params.noise > 0 && !liveMode) {
     const nStr = params.noise / 100;
     const blend = nStr * 0.6;
     const tmp = new Uint8ClampedArray(out);
@@ -349,7 +351,7 @@ export function applyEdits(
   }
 
   // ── 11. Texture (midtone detail enhancement via local contrast) ──
-  if (params.texture !== 0) {
+  if (params.texture !== 0 && !liveMode) {
     const tStr = params.texture / 100;
     const tmp2 = new Uint8ClampedArray(out);
     for (let y = 1; y < height - 1; y++) {
@@ -377,7 +379,7 @@ export function applyEdits(
   }
 
   // ── 12. Grain (post-process noise) ──
-  if (params.grain > 0) {
+  if (params.grain > 0 && !liveMode) {
     const amount = params.grain * 0.4; // max ~40 noise amplitude
     for (let i = 0; i < out.length; i += 4) {
       const noise = (Math.random() - 0.5) * amount;
@@ -388,7 +390,7 @@ export function applyEdits(
   }
 
   // ── 13. Sharpen (simple unsharp mask via 3×3 kernel) ──
-  if (params.sharpen > 0) {
+  if (params.sharpen > 0 && !liveMode) {
     const str = params.sharpen / 100;
     const tmp = new Uint8ClampedArray(out);
     for (let y = 1; y < height - 1; y++) {

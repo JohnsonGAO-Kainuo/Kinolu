@@ -123,6 +123,8 @@ const SliderRow = React.memo(function SliderRow({
   const Icon = tool.icon;
   const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  const pendingX = useRef(0);
+  const moveRafId = useRef(0);
 
   const updateFromPointer = useCallback(
     (clientX: number) => {
@@ -150,15 +152,30 @@ const SliderRow = React.memo(function SliderRow({
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!dragging.current) return;
-      updateFromPointer(e.clientX);
+      pendingX.current = e.clientX;
+      // Batch pointer events — at most 1 state update per animation frame
+      if (!moveRafId.current) {
+        moveRafId.current = requestAnimationFrame(() => {
+          moveRafId.current = 0;
+          updateFromPointer(pendingX.current);
+        });
+      }
     },
     [updateFromPointer]
   );
 
   const onPointerUp = useCallback(() => {
-    dragging.current = false;
+    // Flush pending RAF and apply final position synchronously
+    if (moveRafId.current) {
+      cancelAnimationFrame(moveRafId.current);
+      moveRafId.current = 0;
+    }
+    if (dragging.current) {
+      updateFromPointer(pendingX.current);
+      dragging.current = false;
+    }
     onDragEnd?.();
-  }, [onDragEnd]);
+  }, [onDragEnd, updateFromPointer]);
 
   const hasGradient = !!tool.gradient;
 
