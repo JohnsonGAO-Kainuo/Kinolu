@@ -30,6 +30,8 @@ interface AdjustmentPanelProps {
   activeTool: AdjustmentTool;
   onSelectTool: (tool: AdjustmentTool) => void;
   onChangeValue: (tool: AdjustmentTool, value: number) => void;
+  /** Called when a slider drag ends — use for committing undo boundary */
+  onDragEnd?: () => void;
   /** Which category to show — controlled externally by parent sub-tabs */
   category?: EditCategory;
 }
@@ -103,6 +105,7 @@ const SliderRow = React.memo(function SliderRow({
   isActive,
   onSelect,
   onChange,
+  onDragEnd,
 }: {
   tool: ToolDef;
   label: string;
@@ -110,6 +113,7 @@ const SliderRow = React.memo(function SliderRow({
   isActive: boolean;
   onSelect: () => void;
   onChange: (v: number) => void;
+  onDragEnd?: () => void;
 }) {
   const isBipolar = tool.min < 0;
   const pct = isBipolar
@@ -153,7 +157,8 @@ const SliderRow = React.memo(function SliderRow({
 
   const onPointerUp = useCallback(() => {
     dragging.current = false;
-  }, []);
+    onDragEnd?.();
+  }, [onDragEnd]);
 
   const hasGradient = !!tool.gradient;
 
@@ -230,6 +235,7 @@ export default function AdjustmentPanel({
   activeTool,
   onSelectTool,
   onChangeValue,
+  onDragEnd,
   category: externalCategory,
 }: AdjustmentPanelProps) {
   const { t } = useI18n();
@@ -276,9 +282,10 @@ export default function AdjustmentPanel({
       {/* Reset — always visible */}
       <div className="flex justify-end px-4 pb-1">
         <button
-          onClick={() =>
-            categoryTools.forEach((tl) => onChangeValue(tl.key, 0))
-          }
+          onClick={() => {
+            categoryTools.forEach((tl) => onChangeValue(tl.key, 0));
+            onDragEnd?.();
+          }}
           className="px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[10px] text-white/35 tracking-wider hover:text-white/60 hover:bg-white/10 transition-colors shrink-0"
         >
           {t("adj_resetCategory", { category: t(CATEGORIES.find((c) => c.key === activeCategory)?.labelKey ?? "adj_light") })}
@@ -296,6 +303,7 @@ export default function AdjustmentPanel({
             isActive={tl.key === activeTool}
             onSelect={() => onSelectTool(tl.key)}
             onChange={(v) => onChangeValue(tl.key, v)}
+            onDragEnd={onDragEnd}
           />
         ))}
       </div>

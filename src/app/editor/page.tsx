@@ -66,6 +66,14 @@ function useHistory<T>(initial: T) {
     });
   }, []);
 
+  const replace = useCallback((val: T) => {
+    setState((prev) => {
+      const stack = [...prev.stack];
+      stack[prev.idx] = val;
+      return { ...prev, stack };
+    });
+  }, []);
+
   const undo = useCallback(() => {
     setState((prev) => ({ ...prev, idx: Math.max(0, prev.idx - 1) }));
   }, []);
@@ -81,6 +89,7 @@ function useHistory<T>(initial: T) {
   return {
     current,
     push,
+    replace,
     undo,
     redo,
     reset,
@@ -383,7 +392,7 @@ export default function EditorPage() {
       showToast(t("editor_dailyLimitReached"));
       return;
     }
-    setProcessing(true); setErrorMsg(null);
+    setProcessing(true); setErrorMsg(null); setComparing(false);
     try {
       const resp = await transferImage(ref, source, params);
       const resultObjUrl = URL.createObjectURL(resp.imageBlob);
@@ -433,8 +442,26 @@ export default function EditorPage() {
     vignette: params.vignette, bloom: params.bloom,
     sharpen: params.sharpen, noise: params.noise,
   };
+
+  const replaceParams = useCallback((updater: EditParams | ((p: EditParams) => EditParams)) => {
+    const h = historyRef.current;
+    const next = typeof updater === "function" ? updater(h.current) : updater;
+    h.replace(next);
+  }, []);
+
+  const adjDraggingRef = useRef(false);
   const handleAdjChange = useCallback((tool: AdjustmentTool, value: number) => {
-    setParams((p) => ({ ...p, [TOOL_TO_PARAM[tool]]: value }));
+    const paramKey = TOOL_TO_PARAM[tool];
+    if (!adjDraggingRef.current) {
+      adjDraggingRef.current = true;
+      setParams((p) => ({ ...p, [paramKey]: value })); // push — creates undo boundary
+    } else {
+      replaceParams((p) => ({ ...p, [paramKey]: value })); // replace — update in-place
+    }
+  }, [setParams, replaceParams]);
+
+  const handleAdjCommit = useCallback(() => {
+    adjDraggingRef.current = false;
   }, []);
 
   const handleReset = useCallback(() => {
@@ -814,14 +841,16 @@ export default function EditorPage() {
             {/* ── Bottom-left floating toolbar: Compare + Undo + Redo + Reset — hidden in fullscreen ── */}
             {!previewFullscreen && (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10">
-              {/* Original — hold to see original */}
-              {hasTransferred && (
+              {/* Original — tap to toggle original view */}
+              {(hasTransferred || hasActiveEdits(params)) && (
                 <button
-                  onPointerDown={() => setComparing(true)}
-                  onPointerUp={() => setComparing(false)}
-                  onPointerLeave={() => setComparing(false)}
-                  className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/60 active:text-white border border-white/10"
-                  title="Hold to compare original"
+                  onClick={() => setComparing((c) => !c)}
+                  className={`w-9 h-9 rounded-full backdrop-blur-md flex items-center justify-center border transition-colors ${
+                    comparing
+                      ? "bg-white/20 text-white border-white/30"
+                      : "bg-black/50 text-white/60 border-white/10"
+                  }`}
+                  title="Toggle original"
                 >
                   <IconCompare size={15} />
                 </button>
@@ -1086,6 +1115,7 @@ export default function EditorPage() {
                     activeTool={activeTool}
                     onSelectTool={setActiveTool}
                     onChangeValue={handleAdjChange}
+                    onDragEnd={handleAdjCommit}
                     category={editSubTab}
                   />
                 )}
