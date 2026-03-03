@@ -234,7 +234,7 @@ const zhTW: Record<TranslationKeys, string> = {
   sub_free: "免費",
   sub_current: "目前",
   sub_5day: "5張/天",
-  sub_all12: "全部 12",
+  sub_all12: "12+",
   sub_comingSoon: "即將",
   sub_feat_transfer: "一鍵追色",
   sub_feat_filters: "膠片濾鏡",

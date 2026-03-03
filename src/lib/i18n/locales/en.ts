@@ -232,7 +232,7 @@ const en = {
   sub_free: "Free",
   sub_current: "CURRENT",
   sub_5day: "5 photos/day",
-  sub_all12: "All 12",
+  sub_all12: "12+",
   sub_comingSoon: "Soon",
   sub_feat_transfer: "Color transfer",
   sub_feat_filters: "Film presets",

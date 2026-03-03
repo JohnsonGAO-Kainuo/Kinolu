@@ -109,7 +109,7 @@ Kinolu/
 ### 4.2 LUT System
 - **12 builtin film LUTs** stored in IndexedDB (LS_KEY = `kinolu_builtin_luts_v6`)
 - Categories: Fuji (Pro 160C, Pro 400H, Superia 400, C200, Velvia), Kodak (Portra 400, Ektar, Gold 200, UltraMax), Cinematic (Chrome, Noir, Bleach Bypass)
-- Free users get 5 of 12; Pro users get all 12
+- Free users get 5; Pro users get 12+ (and growing)
 - Users can also import .cube LUT files
 
 ### 4.3 XY Pad
@@ -131,7 +131,7 @@ Kinolu/
 | Feature | Free | Pro |
 |---------|------|-----|
 | Color transfer | 5 photos/day | ∞ |
-| Film presets | 5 | All 12 |
+| Film presets | 5 | 12+ |
 | User presets | Max 5 | ∞ |
 | Camera & viewfinder | ✓ | ✓ |
 | Photo editor | ✓ | ✓ |

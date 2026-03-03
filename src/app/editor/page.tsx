@@ -96,10 +96,13 @@ export default function EditorPage() {
 
   const history = useHistory<EditParams>(DEFAULT_EDIT_PARAMS);
   const params = history.current;
+  const historyRef = useRef(history);
+  historyRef.current = history;
   const setParams = useCallback((updater: EditParams | ((p: EditParams) => EditParams)) => {
-    const next = typeof updater === "function" ? updater(history.current) : updater;
-    history.push(next);
-  }, [history]);
+    const h = historyRef.current;
+    const next = typeof updater === "function" ? updater(h.current) : updater;
+    h.push(next);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<EditorTab>("transfer");
   const [editSubTab, setEditSubTab] = useState<EditSubTab>("light");
@@ -732,7 +735,8 @@ export default function EditorPage() {
             >
               <canvas
                 ref={displayCanvasRef}
-                className={`max-w-full max-h-full object-contain rounded-sm ${comparing ? "hidden" : ""}`}
+                className="max-w-full max-h-full object-contain rounded-sm"
+                style={comparing ? { opacity: 0, position: 'absolute', pointerEvents: 'none' } : undefined}
               />
               {comparing && sourceUrl && <img src={sourceUrl} alt="Original" className="max-w-full max-h-full object-contain rounded-sm" draggable={false} />}
             </div>
