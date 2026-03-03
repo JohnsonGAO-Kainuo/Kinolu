@@ -346,30 +346,46 @@ function applyRegionAwareBlending(
       px[off + 2] = origPx[off + 2] + (px[off + 2] - origPx[off + 2]) * regionBlend;
     }
 
-    // ── Skin protection: limit chroma drift on face/skin ──
-    if (skinProtect && (face > 0.3 || skin > 0.5)) {
-      const skinW = Math.max(face, skin);
-      const maxChromaDrift = 12; // Max allowed chroma change on skin
+    // ── Skin protection: multi-layer chroma & luminance drift control ──
+    // Matches the backend's 3-layer skin protection pipeline.
+    if (skinProtect && (face > 0.15 || skin > 0.3)) {
+      // Face regions get boosted weight (faces are most noticeable)
+      const skinW = Math.min(1.0, Math.max(face * 1.3, skin));
 
-      // Compute chroma drift
-      const [, origA, origB] = rgb2lab(origPx[off], origPx[off + 1], origPx[off + 2]);
+      const [origL, origA, origB] = rgb2lab(origPx[off], origPx[off + 1], origPx[off + 2]);
       const [newL, newA, newB] = rgb2lab(px[off], px[off + 1], px[off + 2]);
-      const dA = newA - origA;
-      const dB = newB - origB;
-      const chromaDist = Math.sqrt(dA * dA + dB * dB);
 
-      if (chromaDist > maxChromaDrift) {
-        const scale = maxChromaDrift / chromaDist;
-        const clampedA = origA + dA * scale;
-        const clampedB = origB + dB * scale;
-        // Blend toward clamped based on skin confidence
-        const finalA = newA + (clampedA - newA) * skinW;
-        const finalB = newB + (clampedB - newB) * skinW;
-        const [r, g, b] = lab2rgb(newL, finalA, finalB);
-        px[off] = r;
-        px[off + 1] = g;
-        px[off + 2] = b;
-      }
+      // ── Layer 1: Reduce chroma transfer on skin ──
+      // Backend: c_alpha *= (1 - 0.90 * s * skin)  →  ~63% chroma reduction
+      // Client equivalent: blend chroma 70% back toward original
+      const chromaReduction = 0.70 * skinW;
+      let blendA = newA * (1 - chromaReduction) + origA * chromaReduction;
+      let blendB = newB * (1 - chromaReduction) + origB * chromaReduction;
+
+      // ── Layer 2: Per-channel hard cap on residual chroma drift ──
+      // Backend: limit_a ≈ 13, limit_b ≈ 15.6  (separate per-channel)
+      const maxDriftA = 12;
+      const maxDriftB = 14;
+      const dA = blendA - origA;
+      const dB = blendB - origB;
+      blendA = origA + Math.max(-maxDriftA, Math.min(maxDriftA, dA));
+      blendB = origB + Math.max(-maxDriftB, Math.min(maxDriftB, dB));
+
+      // ── Layer 3: Soft anchor toward original skin chroma ──
+      // Backend: anchor = 0.55 * s * skin  →  ~39% pull-back
+      const anchor = 0.40 * skinW;
+      const finalA = blendA * (1 - anchor) + origA * anchor;
+      const finalB = blendB * (1 - anchor) + origB * anchor;
+
+      // ── L-channel: mild luminance protection ──
+      // Backend: l_alpha *= (1 - 0.35 * s * skin)  →  ~25% L reduction
+      const lReduction = 0.25 * skinW;
+      const finalL = newL * (1 - lReduction) + origL * lReduction;
+
+      const [r, g, b] = lab2rgb(finalL, finalA, finalB);
+      px[off] = r;
+      px[off + 1] = g;
+      px[off + 2] = b;
     }
   }
 }
