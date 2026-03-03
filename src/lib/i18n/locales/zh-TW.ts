@@ -108,7 +108,7 @@ const zhTW: Record<TranslationKeys, string> = {
   editor_saveFailed: "儲存失敗 — 後端是否在執行？",
   editor_lutExportFailed: "LUT 匯出失敗 — 後端是否在執行？",
   editor_freePresetLimit: "免費用戶最多儲存5個預設，升級Pro解鎖無限制",
-  editor_dailyLimitReached: "今日已達上限（10次/天），升級Pro解鎖無限制",
+  editor_dailyLimitReached: "今日已達上限（5張/天），升級Pro解鎖無限制",
 
   /* ── 編輯器標籤頁 ── */
   tab_transfer: "轉移",
@@ -233,7 +233,7 @@ const zhTW: Record<TranslationKeys, string> = {
   sub_feature: "功能",
   sub_free: "免費",
   sub_current: "目前",
-  sub_10day: "10次/天",
+  sub_5day: "5張/天",
   sub_all12: "全部 12",
   sub_comingSoon: "即將",
   sub_feat_transfer: "一鍵追色",

@@ -108,7 +108,7 @@ const zhCN: Record<TranslationKeys, string> = {
   editor_saveFailed: "保存失败 — 后端是否在运行？",
   editor_lutExportFailed: "LUT 导出失败 — 后端是否在运行？",
   editor_freePresetLimit: "免费用户最多保存5个预设，升级Pro解锁无限制",
-  editor_dailyLimitReached: "今日已达上限（10次/天），升级Pro解锁无限制",
+  editor_dailyLimitReached: "今日已达上限（5张/天），升级Pro解锁无限制",
 
   /* ── 编辑器标签页 ── */
   tab_transfer: "转移",
@@ -233,7 +233,7 @@ const zhCN: Record<TranslationKeys, string> = {
   sub_feature: "功能",
   sub_free: "免费",
   sub_current: "当前",
-  sub_10day: "10次/天",
+  sub_5day: "5张/天",
   sub_all12: "全部 12",
   sub_comingSoon: "即将",
   sub_feat_transfer: "一键追色",

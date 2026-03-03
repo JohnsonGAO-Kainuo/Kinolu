@@ -106,7 +106,7 @@ const en = {
   editor_saveFailed: "Save failed — is the backend running?",
   editor_lutExportFailed: "LUT export failed — is the backend running?",
   editor_freePresetLimit: "Free users can save up to 5 presets. Upgrade to Pro for unlimited.",
-  editor_dailyLimitReached: "Daily limit reached (10/day). Upgrade to Pro for unlimited.",
+  editor_dailyLimitReached: "Daily limit reached (5 photos/day). Upgrade to Pro for unlimited.",
 
   /* ── Editor Tabs ── */
   tab_transfer: "Transfer",
@@ -231,7 +231,7 @@ const en = {
   sub_feature: "Feature",
   sub_free: "Free",
   sub_current: "CURRENT",
-  sub_10day: "10/day",
+  sub_5day: "5 photos/day",
   sub_all12: "All 12",
   sub_comingSoon: "Soon",
   sub_feat_transfer: "Color transfer",

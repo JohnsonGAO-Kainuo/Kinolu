@@ -130,7 +130,7 @@ Kinolu/
 
 | Feature | Free | Pro |
 |---------|------|-----|
-| Color transfer | 10/day | ∞ |
+| Color transfer | 5 photos/day | ∞ |
 | Film presets | 5 | All 12 |
 | User presets | Max 5 | ∞ |
 | Camera & viewfinder | ✓ | ✓ |

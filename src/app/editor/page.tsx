@@ -341,30 +341,42 @@ export default function EditorPage() {
     void runApplyPreset(pendingPresetId); setPendingPresetId("");
   }, [pendingPresetId, runApplyPreset]);
 
-  /* ── Daily transfer limit (client-side, localStorage) ── */
-  const getDailyTransferCount = useCallback(() => {
+  /* ── Daily transfer limit — per source image (client-side, localStorage) ── */
+  const getDailyTransferData = useCallback(() => {
     const today = new Date().toISOString().slice(0, 10);
     const stored = localStorage.getItem("kinolu_daily_transfers");
-    if (!stored) return 0;
+    if (!stored) return { date: today, sources: [] as string[] };
     try {
-      const { date, count } = JSON.parse(stored);
-      return date === today ? (count as number) : 0;
-    } catch { return 0; }
+      const data = JSON.parse(stored);
+      if (data.date === today && Array.isArray(data.sources)) return data as { date: string; sources: string[] };
+      return { date: today, sources: [] as string[] };
+    } catch { return { date: today, sources: [] as string[] }; }
   }, []);
 
-  const incrementDailyTransfer = useCallback(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const current = getDailyTransferCount();
-    localStorage.setItem("kinolu_daily_transfers", JSON.stringify({ date: today, count: current + 1 }));
-  }, [getDailyTransferCount]);
+  const getDailyTransferCount = useCallback(() => {
+    return getDailyTransferData().sources.length;
+  }, [getDailyTransferData]);
+
+  const isSourceAlreadyCounted = useCallback((fileName: string) => {
+    return getDailyTransferData().sources.includes(fileName);
+  }, [getDailyTransferData]);
+
+  const incrementDailyTransfer = useCallback((fileName: string) => {
+    const data = getDailyTransferData();
+    if (!data.sources.includes(fileName)) {
+      data.sources.push(fileName);
+      localStorage.setItem("kinolu_daily_transfers", JSON.stringify(data));
+    }
+  }, [getDailyTransferData]);
 
   /* ── Transfer ── */
   const runTransfer = useCallback(async (overrideRefIdx?: number) => {
     const idx = overrideRefIdx ?? activeRefIdx;
     const source = sourceFileRef.current; const ref = refFilesRef.current[idx];
     if (!source || !ref) return;
-    // Free user daily limit
-    if (!isPro && getDailyTransferCount() >= 10) {
+    // Free user daily limit — per source image, 5/day
+    const srcName = source.name || "unnamed";
+    if (!isPro && !isSourceAlreadyCounted(srcName) && getDailyTransferCount() >= 5) {
       showToast(t("editor_dailyLimitReached"));
       return;
     }
@@ -378,7 +390,7 @@ export default function EditorPage() {
       setHasTransferred(true);
       setTransferUsedXY(true);
       setRenderTick((t) => t + 1);
-      if (!isPro) incrementDailyTransfer();
+      if (!isPro) incrementDailyTransfer(srcName);
       if (params.auto_xy) setParams((p) => ({ ...p, color_strength: resp.autoX, tone_strength: resp.autoY }));
     } catch (err) {
       setErrorMsg(`${t("editor_transferFailed")}: ${err}`);
@@ -966,7 +978,12 @@ export default function EditorPage() {
 
                 {/* ── LUT/Preset strip with Film / Presets toggle ── */}
                 {availableLuts.length > 0 && sourceUrl && (() => {
-                  const builtins = availableLuts.filter((l) => getBuiltinMeta(l.name));
+                  const builtins = availableLuts.filter((l) => getBuiltinMeta(l.name))
+                    .sort((a, b) => {
+                      const aFree = getBuiltinMeta(a.name)?.isFree ? 0 : 1;
+                      const bFree = getBuiltinMeta(b.name)?.isFree ? 0 : 1;
+                      return aFree - bFree;
+                    });
                   const userLuts = availableLuts.filter((l) => !getBuiltinMeta(l.name));
                   const showItems = lutStripTab === "film" ? builtins : userLuts;
                   return (

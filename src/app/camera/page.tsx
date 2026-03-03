@@ -501,7 +501,12 @@ export default function CameraPage() {
             </button>
           </div>
           {(() => {
-            const builtins = localLutItems.filter((l) => getBuiltinMeta(l.name));
+            const builtins = localLutItems.filter((l) => getBuiltinMeta(l.name))
+              .sort((a, b) => {
+                const aFree = getBuiltinMeta(a.name)?.isFree ? 0 : 1;
+                const bFree = getBuiltinMeta(b.name)?.isFree ? 0 : 1;
+                return aFree - bFree;
+              });
             const userLuts = localLutItems.filter((l) => !getBuiltinMeta(l.name));
             const showItems = cameraLutTab === "film" ? builtins : userLuts;
             return (
