@@ -51,7 +51,7 @@ export const FREE_BUILTIN_NAMES = new Set(
   BUILTIN_LUTS.filter((m) => m.isFree).map((m) => m.name),
 );
 
-const LS_KEY = "kinolu_builtin_luts_v7"; // v7: vibrant sample with sky/skin/green for better LUT differentiation
+const LS_KEY = "kinolu_builtin_luts_v8"; // v8: reverted to car sample with slight desaturation for better LUT preview
 
 /**
  * Generate a preview thumbnail by applying the LUT to a sample image.
@@ -111,7 +111,7 @@ async function _ensureBuiltinLutsImpl(): Promise<string[]> {
   }
 
   // Clean up old version entries
-  for (const oldKey of ["kinolu_builtin_luts_v1", "kinolu_builtin_luts_v2", "kinolu_builtin_luts_v3", "kinolu_builtin_luts_v4", "kinolu_builtin_luts_v5", "kinolu_builtin_luts_v6"]) {
+  for (const oldKey of ["kinolu_builtin_luts_v1", "kinolu_builtin_luts_v2", "kinolu_builtin_luts_v3", "kinolu_builtin_luts_v4", "kinolu_builtin_luts_v5", "kinolu_builtin_luts_v6", "kinolu_builtin_luts_v7"]) {
     if (localStorage.getItem(oldKey)) {
       const oldIds = JSON.parse(localStorage.getItem(oldKey) || "[]") as string[];
       const { deleteLocalLut } = await import("./lutStore");

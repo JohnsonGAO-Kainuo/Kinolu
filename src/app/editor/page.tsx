@@ -978,22 +978,27 @@ export default function EditorPage() {
                 {/* Reference thumbnails strip */}
                 {refImages.length > 0 && (
                   <div className="flex items-center gap-2 overflow-x-auto py-1 -mx-1 px-1 no-scrollbar">
-                    {refImages.map((src, i) => (
+                    {refImages.map((src, i) => {
+                      // When a LUT preset is active, no ref should appear selected
+                      const isRefSelected = i === activeRefIdx && !activeLutId;
+                      return (
                       <div key={i} className="relative shrink-0">
                         <button onClick={() => {
                           setActiveRefIdx(i);
+                          // Tapping a ref clears any active LUT (mutual exclusion)
+                          if (activeLutId) setActiveLutId("");
                           // Auto-apply transfer when tapping a ref (no Apply button needed)
                           if (sourceFileRef.current && refFilesRef.current[i]) {
                             void runTransfer(i);
                           }
                         }}
                           className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
-                            i === activeRefIdx
+                            isRefSelected
                               ? "border-white/70 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
                               : "border-white/10 hover:border-white/25"
                           }`}>
                           <img src={src} alt="" className="w-full h-full object-cover" draggable={false} />
-                          {i === activeRefIdx && (
+                          {isRefSelected && (
                             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent h-4 flex items-end justify-center pb-0.5">
                               <div className="w-1 h-1 rounded-full bg-white" />
                             </div>
@@ -1004,7 +1009,8 @@ export default function EditorPage() {
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         </button>
                       </div>
-                    ))}
+                    );
+                    })}
                     <button onClick={() => refInputRef.current?.click()}
                       className="shrink-0 w-14 h-14 rounded-lg border border-dashed border-white/15 flex items-center justify-center hover:border-white/30 transition-colors">
                       <IconPlus size={12} className="text-white/30" />
