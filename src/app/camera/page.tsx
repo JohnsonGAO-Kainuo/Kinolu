@@ -222,6 +222,29 @@ export default function CameraPage() {
     return () => { running = false; cancelAnimationFrame(rafRef.current); };
   }, []);
 
+  /* ── Apple-style: after focus tap, any single-finger vertical drag adjusts brightness ── */
+  const vfBrightDragRef = useRef<{ startY: number; startVal: number; moved: boolean } | null>(null);
+
+  const handleVFBrightStart = useCallback((e: React.TouchEvent) => {
+    // Only activate brightness drag if focus point is visible and single finger
+    if (!focusPoint || e.touches.length !== 1) return;
+    vfBrightDragRef.current = { startY: e.touches[0].clientY, startVal: brightnessRef.current, moved: false };
+  }, [focusPoint]);
+
+  const handleVFBrightMove = useCallback((e: React.TouchEvent) => {
+    if (!vfBrightDragRef.current || e.touches.length !== 1) return;
+    const dy = vfBrightDragRef.current.startY - e.touches[0].clientY;
+    // Only start adjusting after 8px vertical movement (prevents accidental activation)
+    if (!vfBrightDragRef.current.moved && Math.abs(dy) < 8) return;
+    vfBrightDragRef.current.moved = true;
+    e.stopPropagation();
+    setBrightness(Math.min(2.0, Math.max(0.3, vfBrightDragRef.current.startVal + dy / 150)));
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    focusTimerRef.current = setTimeout(() => setFocusPoint(null), 3500);
+  }, []);
+
+  const handleVFBrightEnd = useCallback(() => { vfBrightDragRef.current = null; }, []);
+
   /* ════════════════ VIEWFINDER TOUCH ════════════════ */
 
   const handleVFTouchStart = useCallback((e: React.TouchEvent) => {
@@ -230,10 +253,12 @@ export default function CameraPage() {
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       pinchRef.current = { startDist: Math.hypot(dx, dy), startZoom: zoomRef.current };
       touchStartRef.current = null;
+      vfBrightDragRef.current = null;
     } else if (e.touches.length === 1) {
       touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+      handleVFBrightStart(e);
     }
-  }, []);
+  }, [handleVFBrightStart]);
 
   const handleVFTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && pinchRef.current) {
@@ -242,15 +267,21 @@ export default function CameraPage() {
       const dist = Math.hypot(dx, dy);
       setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinchRef.current.startZoom * (dist / pinchRef.current.startDist))));
     }
+    // Apple-style: after focus tap, vertical drag anywhere adjusts brightness
+    handleVFBrightMove(e);
     if (touchStartRef.current && e.touches.length === 1) {
       const dx = e.touches[0].clientX - touchStartRef.current.x;
       const dy = e.touches[0].clientY - touchStartRef.current.y;
       if (Math.hypot(dx, dy) > 10) touchStartRef.current = null;
     }
-  }, []);
+  }, [handleVFBrightMove]);
 
   const handleVFTouchEnd = useCallback((e: React.TouchEvent) => {
     if (e.touches.length < 2) pinchRef.current = null;
+    const wasBrightDrag = vfBrightDragRef.current?.moved;
+    handleVFBrightEnd();
+    // Skip focus-tap if user was dragging to adjust brightness
+    if (wasBrightDrag) { touchStartRef.current = null; return; }
     if (touchStartRef.current && e.touches.length === 0 && e.changedTouches.length === 1) {
       const elapsed = Date.now() - touchStartRef.current.time;
       if (elapsed < 300) {
@@ -279,7 +310,7 @@ export default function CameraPage() {
       }
       touchStartRef.current = null;
     }
-  }, []);
+  }, [handleVFBrightEnd]);
 
   /* ════════════════ BRIGHTNESS DRAG ════════════════ */
 

@@ -1,59 +1,68 @@
-"""
-Generate a neutral color-rich sample image for LUT preview thumbnails.
+#!/usr/bin/env python3
+"""Generate a vibrant sample image for LUT thumbnail differentiation."""
+from PIL import Image
+import numpy as np
+from scipy.ndimage import gaussian_filter
+from colorsys import rgb_to_hsv
 
-This creates a 200x200 image with bands of typical photographic colors
-(skin tones, sky, foliage, warm, cool, neutral gray) at medium saturation
-and flat contrast — ideal for showing LUT differences clearly.
-"""
+w, h = 400, 400
+img = np.zeros((h, w, 3), dtype=np.float32)
 
-from PIL import Image, ImageDraw, ImageFilter
-import colorsys
+for y in range(int(h * 0.35)):
+    t = y / (h * 0.35)
+    img[y, :] = [90 + 50 * t, 150 + 50 * t, 220 - 20 * t]
 
-W, H = 200, 200
-img = Image.new("RGB", (W, H))
-draw = ImageDraw.Draw(img)
+for y in range(int(h * 0.35), int(h * 0.50)):
+    t = (y - h * 0.35) / (h * 0.15)
+    for x in range(w):
+        noise = np.random.uniform(-12, 12)
+        img[y, x] = [40 + 30 * t + noise, 100 + 50 * (1 - t) + noise, 30 + 20 * t + noise]
 
-# Color palette: pairs of (hue_degrees, sat, lightness)
-# Each row is a horizontal band blending two related colors
-bands = [
-    # Sky: blue gradient
-    ((210, 0.35, 0.70), (195, 0.30, 0.80)),
-    # Foliage: green
-    ((120, 0.30, 0.50), (90, 0.25, 0.55)),
-    # Skin tone: warm peach
-    ((25, 0.35, 0.72), (15, 0.40, 0.65)),
-    # Warm: orange/golden
-    ((35, 0.40, 0.60), (45, 0.35, 0.55)),
-    # Neutral: gray ramp
-    ((0, 0.0, 0.35), (0, 0.0, 0.75)),
-    # Cool shadow: blue-purple
-    ((240, 0.20, 0.40), (270, 0.15, 0.50)),
-    # Sunset: pink-orange
-    ((350, 0.30, 0.65), (20, 0.35, 0.70)),
-    # Earth: brown-olive
-    ((30, 0.25, 0.45), (60, 0.20, 0.50)),
-]
+for y in range(int(h * 0.50), int(h * 0.70)):
+    t = (y - h * 0.50) / (h * 0.20)
+    img[y, :] = [170 + 30 * t, 130 + 10 * t, 90 - 10 * t]
 
-band_h = H // len(bands)
+for y in range(int(h * 0.70), h):
+    t = (y - h * 0.70) / (h * 0.30)
+    img[y, :] = [80 - 40 * t, 60 - 30 * t, 50 - 25 * t]
 
-for i, ((h1, s1, l1), (h2, s2, l2)) in enumerate(bands):
-    y0 = i * band_h
-    y1 = y0 + band_h
-    for x in range(W):
-        t = x / W
-        h = (h1 + (h2 - h1) * t) / 360.0
-        s = s1 + (s2 - s1) * t
-        l = l1 + (l2 - l1) * t
-        r, g, b = colorsys.hls_to_rgb(h, l, s)
-        draw.point((x, y0), (int(r * 255), int(g * 255), int(b * 255)))
-    # Fill band by repeating first row
-    row = img.crop((0, y0, W, y0 + 1))
-    for y in range(y0 + 1, y1):
-        img.paste(row, (0, y))
+cx, cy, r = w // 2, int(h * 0.42), int(h * 0.12)
+for y in range(max(0, cy - r), min(h, cy + r)):
+    for x in range(max(0, cx - r), min(w, cx + r)):
+        dist = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5
+        if dist < r:
+            alpha = max(0, 1 - dist / r)
+            skin = np.array([210.0, 170.0, 140.0])
+            img[y, x] = img[y, x] * (1 - alpha) + skin * alpha
 
-# Slight Gaussian blur to make it look natural, not banded
-img = img.filter(ImageFilter.GaussianBlur(radius=3))
+for y in range(int(h * 0.25), int(h * 0.45)):
+    for x in range(int(w * 0.6), int(w * 0.85)):
+        t = max(0, 1 - ((x - w * 0.72) ** 2 / (w * 0.12) ** 2 + (y - h * 0.35) ** 2 / (h * 0.08) ** 2) ** 0.5)
+        if t > 0:
+            img[y, x] = img[y, x] * (1 - t * 0.5) + np.array([255.0, 210.0, 140.0]) * t * 0.5
 
-out = "public/luts/sample.jpg"
-img.save(out, "JPEG", quality=92)
-print(f"✓ Generated {out} ({W}x{H})")
+for y in range(int(h * 0.55), int(h * 0.75)):
+    for x in range(int(w * 0.1), int(w * 0.35)):
+        t = max(0, 1 - ((x - w * 0.22) ** 2 / (w * 0.12) ** 2 + (y - h * 0.65) ** 2 / (h * 0.08) ** 2) ** 0.5)
+        if t > 0:
+            img[y, x] = img[y, x] * (1 - t * 0.4) + np.array([80.0, 70.0, 130.0]) * t * 0.4
+
+for y in range(int(h * 0.42), int(h * 0.52)):
+    for x in range(int(w * 0.75), int(w * 0.90)):
+        t = max(0, 1 - ((x - w * 0.82) ** 2 / (w * 0.06) ** 2 + (y - h * 0.47) ** 2 / (h * 0.04) ** 2) ** 0.5)
+        if t > 0:
+            img[y, x] = img[y, x] * (1 - t * 0.6) + np.array([220.0, 80.0, 60.0]) * t * 0.6
+
+img = gaussian_filter(img, sigma=[3, 3, 0])
+img = np.clip(img, 0, 255).astype(np.uint8)
+
+Image.fromarray(img).save("public/luts/sample.jpg", quality=90)
+
+sats = []
+for row in img[::4]:
+    for px in row[::4]:
+        _, s, _ = rgb_to_hsv(px[0] / 255, px[1] / 255, px[2] / 255)
+        sats.append(s)
+sats = np.array(sats)
+print(f"Mean sat: {sats.mean():.3f} (was 0.156), sat>0.3: {(sats > 0.3).mean() * 100:.1f}% (was 14%)")
+print("Done")
