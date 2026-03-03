@@ -8,12 +8,13 @@ import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, loading: authLoading } = useAuth();
+  const { signIn, resetPassword, loading: authLoading } = useAuth();
   const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +84,30 @@ export default function LoginPage() {
               minLength={6}
               className="w-full h-12 px-4 rounded-xl bg-white/[0.06] border border-white/10 text-[14px] text-white placeholder:text-white/30 outline-none focus:border-white/30 transition-colors"
             />
+
+            {/* Forgot password */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!email.trim()) { setError(t("auth_enterEmailFirst")); return; }
+                  setLoading(true); setError(null);
+                  const { error: err } = await resetPassword(email.trim());
+                  setLoading(false);
+                  if (err) { setError(err); } else { setResetSent(true); }
+                }}
+                className="text-[11px] text-white/40 hover:text-white/60 transition-colors"
+              >
+                {t("auth_forgotPassword")}
+              </button>
+            </div>
+
+            {resetSent && (
+              <div className="bg-emerald-900/30 border border-emerald-500/20 rounded-xl px-4 py-3 text-center">
+                <p className="text-[12px] text-emerald-300">{t("auth_resetEmailSent")}</p>
+                <p className="text-[10px] text-emerald-300/60 mt-1">{t("auth_resetEmailSentDesc")}</p>
+              </div>
+            )}
 
             {error && (
               <p className="text-[12px] text-red-400 text-center">{error}</p>

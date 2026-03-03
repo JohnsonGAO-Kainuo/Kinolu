@@ -218,6 +218,10 @@ const zhCN: Record<TranslationKeys, string> = {
   auth_checkEmailDesc: "我们已向你的邮箱发送了确认链接，请点击链接激活账户。",
   auth_backToLogin: "返回登录",
   auth_signInToSubscribe: "登录后订阅",
+  auth_forgotPassword: "忘记密码？",
+  auth_enterEmailFirst: "请先输入邮箱地址",
+  auth_resetEmailSent: "重置链接已发送！",
+  auth_resetEmailSentDesc: "请查收邮箱中的密码重置链接。",
 
   /* ── 个人资料 ── */
   profile_title: "个人资料",

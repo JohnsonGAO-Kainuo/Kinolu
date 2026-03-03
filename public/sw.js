@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "kinolu-mmaj20mn";
+const CACHE_NAME = "kinolu-mmakxjms";
 const PRECACHE = ["/", "/editor", "/camera", "/presets"];
 
 self.addEventListener("install", (event) => {

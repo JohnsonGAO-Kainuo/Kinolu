@@ -216,6 +216,10 @@ const en = {
   auth_checkEmailDesc: "We sent a confirmation link to your email. Please click it to activate your account.",
   auth_backToLogin: "Back to Login",
   auth_signInToSubscribe: "Sign in to subscribe",
+  auth_forgotPassword: "Forgot password?",
+  auth_enterEmailFirst: "Please enter your email first",
+  auth_resetEmailSent: "Reset link sent!",
+  auth_resetEmailSentDesc: "Check your inbox for a password reset link.",
 
   /* ── Profile ── */
   profile_title: "Profile",

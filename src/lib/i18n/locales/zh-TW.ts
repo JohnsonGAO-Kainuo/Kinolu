@@ -218,6 +218,10 @@ const zhTW: Record<TranslationKeys, string> = {
   auth_checkEmailDesc: "我們已向你的電子郵件傳送了確認連結，請點擊連結啟用帳戶。",
   auth_backToLogin: "返回登入",
   auth_signInToSubscribe: "登入後訂閱",
+  auth_forgotPassword: "忘記密碼？",
+  auth_enterEmailFirst: "請先輸入電子郵件",
+  auth_resetEmailSent: "重置連結已傳送！",
+  auth_resetEmailSentDesc: "請查收郵件中的密碼重置連結。",
 
   /* ── 個人資料 ── */
   profile_title: "個人資料",
