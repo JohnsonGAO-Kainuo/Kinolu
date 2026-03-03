@@ -28,6 +28,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  resendVerification: (email: string) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -42,6 +43,7 @@ const AuthContext = createContext<AuthState>({
   signIn: async () => ({ error: null }),
   signOut: async () => {},
   resetPassword: async () => ({ error: null }),
+  resendVerification: async () => ({ error: null }),
   refreshProfile: async () => {},
 });
 
@@ -159,6 +161,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [supabase],
   );
 
+  const resendVerification = useCallback(
+    async (email: string) => {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      return { error: error?.message ?? null };
+    },
+    [supabase],
+  );
+
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
@@ -177,9 +193,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signOut,
       resetPassword,
+      resendVerification,
       refreshProfile,
     }),
-    [user, session, profile, subscription, isPro, loading, signUp, signIn, signOut, resetPassword, refreshProfile],
+    [user, session, profile, subscription, isPro, loading, signUp, signIn, signOut, resetPassword, resendVerification, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

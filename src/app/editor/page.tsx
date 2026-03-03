@@ -10,12 +10,12 @@ import {
   exportLutFromTransfer,
   transferImage,
 } from "@/lib/api";
-import { applyEdits, hasActiveEdits, cropImageData, rotateImageData90CW, flipImageDataH, flipImageDataV } from "@/lib/imageProcessor";
+import { applyEdits, hasActiveEdits } from "@/lib/imageProcessor";
 import { saveRefImage, listRefImages, deleteRefImage } from "@/lib/refStore";
 import { listLocalLuts, type LutEntry } from "@/lib/lutStore";
 import { getBuiltinMeta } from "@/lib/builtinLuts";
+import { ensureBuiltinLuts } from "@/lib/builtinLuts";
 import { useAuth } from "@/components/AuthProvider";
-import CropOverlay, { type CropRect } from "@/components/CropOverlay";
 import { preloadSegmentationModels } from "@/lib/segmentation";
 import {
   IconBack,
@@ -30,7 +30,6 @@ import {
   IconDetail,
   IconCurves,
   IconHSL,
-  IconCrop,
 } from "@/components/icons";
 import XYPad from "@/components/XYPad";
 import AdjustmentPanel from "@/components/AdjustmentPanel";
@@ -136,9 +135,6 @@ export default function EditorPage() {
   const [transferUsedXY, setTransferUsedXY] = useState(false);
   const [pendingAutoTransfer, setPendingAutoTransfer] = useState(false);
 
-  /* Crop state */
-  const [cropAspect, setCropAspect] = useState("free");
-
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const sourceImageData = useRef<ImageData | null>(null);
   const transferredImageData = useRef<ImageData | null>(null);
@@ -159,9 +155,6 @@ export default function EditorPage() {
   const [availableLuts, setAvailableLuts] = useState<Omit<LutEntry, "data">[]>([]);
   const [lutThumbUrls, setLutThumbUrls] = useState<Record<string, string>>({});
   const [activeLutId, setActiveLutId] = useState<string>("");
-
-  /* Crop region */
-  const [cropRegion, setCropRegion] = useState<CropRect>({ x: 0, y: 0, w: 1, h: 1 });
 
   /* LUT strip toggle: film vs user presets */
   const [lutStripTab, setLutStripTab] = useState<"film" | "presets">("film");
@@ -450,6 +443,8 @@ export default function EditorPage() {
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setTransferUsedXY(true);
+      // Transfer and preset are mutually exclusive — clear LUT state
+      setActiveLutId("");
       setRenderTick((t) => t + 1);
       if (!isPro) incrementDailyTransfer(srcName);
       if (params.auto_xy) setParams((p) => ({ ...p, color_strength: resp.autoX, tone_strength: resp.autoY }));
@@ -517,7 +512,14 @@ export default function EditorPage() {
   const handleReset = useCallback(() => {
     if (!window.confirm(t("editor_resetConfirm"))) return;
     history.reset(DEFAULT_EDIT_PARAMS);
-    baseImageData.current = transferredImageData.current || sourceImageData.current;
+    // Revert to untouched source
+    baseImageData.current = sourceImageData.current;
+    transferredImageData.current = null;
+    // Clear all active selections
+    setActiveLutId("");
+    setHasTransferred(false);
+    setTransferUsedXY(false);
+    setComparing(false);
     setRenderTick((t) => t + 1);
   }, [history]);
 
@@ -583,7 +585,9 @@ export default function EditorPage() {
 
   /* ── Load available LUTs for preset strip ── */
   useEffect(() => {
-    void listLocalLuts().then((luts) => {
+    // Ensure built-in LUTs are installed before listing —
+    // fixes race where editor loads before BuiltinLutsInit finishes.
+    void ensureBuiltinLuts().then(() => listLocalLuts()).then((luts) => {
       setAvailableLuts(luts);
       const urls: Record<string, string> = {};
       for (const l of luts) {
@@ -631,6 +635,8 @@ export default function EditorPage() {
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setActiveLutId(lutId);
+      // Preset and transfer are mutually exclusive — clear transfer state
+      setTransferUsedXY(false);
       setRenderTick((t) => t + 1);
       showToast(t("editor_presetApplied"));
     } catch (err) { setErrorMsg(`Preset failed: ${err}`); }
@@ -676,39 +682,6 @@ export default function EditorPage() {
       a.click();
     });
   }, [batchFiles]);
-
-  /* ── Crop operations (real ImageData transforms) ── */
-  const applyTransformToAll = useCallback((fn: (d: ImageData) => ImageData) => {
-    for (const ref of [baseImageData, sourceImageData, transferredImageData]) {
-      if (ref.current) ref.current = fn(ref.current);
-    }
-    setRenderTick((t) => t + 1);
-  }, []);
-
-  const handleCropApply = useCallback(() => {
-    const base = baseImageData.current;
-    if (!base) return;
-    const r = cropRegion;
-    const px = Math.max(0, Math.round(r.x * base.width));
-    const py = Math.max(0, Math.round(r.y * base.height));
-    const pw = Math.max(1, Math.min(base.width - px, Math.round(r.w * base.width)));
-    const ph = Math.max(1, Math.min(base.height - py, Math.round(r.h * base.height)));
-    applyTransformToAll((d) => cropImageData(d, Math.round(r.x * d.width), Math.round(r.y * d.height), Math.max(1, Math.round(r.w * d.width)), Math.max(1, Math.round(r.h * d.height))));
-    setCropRegion({ x: 0, y: 0, w: 1, h: 1 });
-    showToast(t("crop_applied"));
-  }, [cropRegion, applyTransformToAll, showToast]);
-
-  const handleRotateCW = useCallback(() => {
-    applyTransformToAll(rotateImageData90CW);
-  }, [applyTransformToAll]);
-
-  const handleFlipH = useCallback(() => {
-    applyTransformToAll(flipImageDataH);
-  }, [applyTransformToAll]);
-
-  const handleFlipV = useCallback(() => {
-    applyTransformToAll(flipImageDataV);
-  }, [applyTransformToAll]);
 
   /* ═══════════ RENDER ═══════════ */
   return (
@@ -801,7 +774,7 @@ export default function EditorPage() {
       <div className="flex-1 min-h-0 relative">
         {hasImage ? (
           <>
-            {/* Image display — tap to toggle fullscreen */}
+            {/* Image display — tap to toggle fullscreen, long-press to compare original */}
             <div
               className="absolute inset-0 flex items-center justify-center px-3 py-2 cursor-pointer"
               onClick={(e) => {
@@ -809,6 +782,14 @@ export default function EditorPage() {
                 if ((e.target as HTMLElement).closest("button")) return;
                 setPreviewFullscreen((f) => !f);
               }}
+              onPointerDown={(e) => {
+                // Press-and-hold on canvas to show original (skip if tapping buttons)
+                if ((e.target as HTMLElement).closest("button")) return;
+                if (hasTransferred || hasActiveEdits(params)) setComparing(true);
+              }}
+              onPointerUp={() => setComparing(false)}
+              onPointerLeave={() => setComparing(false)}
+              onPointerCancel={() => setComparing(false)}
             >
               <canvas
                 ref={displayCanvasRef}
@@ -818,17 +799,8 @@ export default function EditorPage() {
               {comparing && sourceUrl && <img src={sourceUrl} alt="Original" className="max-w-full max-h-full object-contain rounded-sm" draggable={false} />}
             </div>
 
-            {/* Crop overlay — shown when crop sub-tab is active */}
-            {activeTab === "edit" && editSubTab === "crop" && (
-              <CropOverlay
-                canvasEl={displayCanvasRef.current}
-                aspect={cropAspect}
-                onChange={setCropRegion}
-              />
-            )}
-
-            {/* Reference image overlay — circular thumbnail, bottom-left */}
-            {!previewFullscreen && hasTransferred && refImages[activeRefIdx] && (
+            {/* Reference image overlay — circular thumbnail, bottom-left — only for transfer (not LUT presets) */}
+            {!previewFullscreen && hasTransferred && refImages[activeRefIdx] && !activeLutId && (
               <div className="absolute bottom-14 left-3 z-10 w-[56px] h-[56px] rounded-full overflow-hidden border-2 border-white/20 shadow-lg bg-black/30 ring-1 ring-black/40">
                 <img src={refImages[activeRefIdx]} alt="Reference" className="w-full h-full object-cover" draggable={false} />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
@@ -891,16 +863,19 @@ export default function EditorPage() {
             {/* ── Bottom-left floating toolbar: Compare + Undo + Redo + Reset — hidden in fullscreen ── */}
             {!previewFullscreen && (
             <div className="absolute bottom-2 left-2 flex items-center gap-1 z-10">
-              {/* Original — tap to toggle original view */}
+              {/* Original — press-and-hold to preview original, release to return */}
               {(hasTransferred || hasActiveEdits(params)) && (
                 <button
-                  onClick={() => setComparing((c) => !c)}
+                  onPointerDown={() => setComparing(true)}
+                  onPointerUp={() => setComparing(false)}
+                  onPointerLeave={() => setComparing(false)}
+                  onPointerCancel={() => setComparing(false)}
                   className={`w-9 h-9 rounded-full backdrop-blur-md flex items-center justify-center border transition-colors ${
                     comparing
                       ? "bg-white/20 text-white border-white/30"
                       : "bg-black/50 text-white/60 border-white/10"
                   }`}
-                  title="Toggle original"
+                  title="Hold to view original"
                 >
                   <IconCompare size={15} />
                 </button>
@@ -1141,7 +1116,6 @@ export default function EditorPage() {
                     { key: "detail" as EditSubTab, label: t("adj_detail"), Icon: IconDetail },
                     { key: "curves" as EditSubTab, label: t("tab_curves"), Icon: IconCurves },
                     { key: "hsl" as EditSubTab, label: t("tab_hsl"), Icon: IconHSL },
-                    { key: "crop" as EditSubTab, label: t("tab_crop"), Icon: IconCrop },
                   ]).map((sub) => (
                     <button
                       key={sub.key}
@@ -1174,71 +1148,6 @@ export default function EditorPage() {
                 )}
                 {editSubTab === "hsl" && (
                   <HSLPanel hsl7={params.hsl7} onChange={(h) => setParams((p) => ({ ...p, hsl7: h }))} />
-                )}
-                {editSubTab === "crop" && (
-                  <div className="flex flex-col items-center gap-4 px-5 py-3">
-                    {/* Aspect ratio pills */}
-                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                      {[
-                        { label: t("crop_free"), value: "free" },
-                        { label: "1:1", value: "1:1" },
-                        { label: "4:3", value: "4:3" },
-                        { label: "16:9", value: "16:9" },
-                        { label: "3:2", value: "3:2" },
-                        { label: "9:16", value: "9:16" },
-                      ].map((r) => (
-                        <button
-                          key={r.value}
-                          onClick={() => setCropAspect(r.value)}
-                          className={`px-3.5 py-1.5 rounded-full text-[11px] tracking-[0.5px] font-medium transition-all ${
-                            cropAspect === r.value
-                              ? "bg-white/10 text-white"
-                              : "text-white/35 bg-white/[0.03] hover:text-white/60"
-                          }`}
-                        >
-                          {r.label}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Rotate + Flip */}
-                    <div className="flex items-center gap-5">
-                      <button onClick={handleRotateCW} className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform">
-                        <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
-                            <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-                          </svg>
-                        </div>
-                        <span className="text-[10px] text-white/40 tracking-wider font-medium">90°</span>
-                      </button>
-                      <button onClick={handleFlipH} className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform">
-                        <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
-                            <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
-                          </svg>
-                        </div>
-                        <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipH")}</span>
-                      </button>
-                      <button onClick={handleFlipV} className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform">
-                        <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60 rotate-90">
-                            <path d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M12 20V4M15 7l-3-3-3 3M9 17l3 3 3-3" />
-                          </svg>
-                        </div>
-                        <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_flipV")}</span>
-                      </button>
-                      <button onClick={() => { setCropAspect("free"); }} className="flex flex-col items-center gap-1.5 group active:scale-95 transition-transform">
-                        <div className="w-11 h-11 rounded-full bg-white/[0.06] flex items-center justify-center group-active:bg-white/15 transition-colors">
-                          <IconReset size={18} className="text-white/40" />
-                        </div>
-                        <span className="text-[10px] text-white/40 tracking-wider font-medium">{t("crop_reset")}</span>
-                      </button>
-                    </div>
-                    {hasImage && (
-                      <button onClick={handleCropApply} className="w-full py-2.5 rounded-xl text-[11px] font-semibold tracking-wider bg-white text-black active:scale-[0.98] transition-all">
-                        {t("crop_apply")}
-                      </button>
-                    )}
-                  </div>
                 )}
               </div>
             )}

@@ -123,7 +123,7 @@ export type AdjustmentTool =
   | "noise";
 
 export type EditorTab = "transfer" | "edit";
-export type EditSubTab = "light" | "color" | "effects" | "detail" | "curves" | "hsl" | "crop";
+export type EditSubTab = "light" | "color" | "effects" | "detail" | "curves" | "hsl";
 
 export const DEFAULT_EDIT_PARAMS: EditParams = {
   method: "reinhard_lab",

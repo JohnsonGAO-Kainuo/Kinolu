@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { useAuth } from "@/components/AuthProvider";
@@ -8,7 +8,7 @@ import { useI18n } from "@/lib/i18n";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, resendVerification } = useAuth();
   const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +16,27 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
+
+  // Cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResend = useCallback(async () => {
+    if (resendCooldown > 0 || !email) return;
+    const { error: err } = await resendVerification(email);
+    if (err) {
+      setResendMsg(err);
+    } else {
+      setResendMsg(t("auth_resendSent"));
+    }
+    setResendCooldown(60);
+    setTimeout(() => setResendMsg(null), 4000);
+  }, [email, resendCooldown, resendVerification, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +91,19 @@ export default function RegisterPage() {
               >
                 {t("auth_backToLogin")}
               </button>
+              {/* Resend verification email */}
+              <button
+                onClick={handleResend}
+                disabled={resendCooldown > 0}
+                className="mt-2 px-6 py-2 text-[12px] text-white/50 underline underline-offset-2 disabled:text-white/25 disabled:no-underline transition-colors"
+              >
+                {resendCooldown > 0
+                  ? (t("auth_resendCooldown") as string).replace("{seconds}", String(resendCooldown))
+                  : t("auth_resendEmail")}
+              </button>
+              {resendMsg && (
+                <p className="text-[11px] text-green-400/80 text-center mt-1">{resendMsg}</p>
+              )}
             </div>
           ) : (
             <>

@@ -82,8 +82,23 @@ async function generatePreviewThumb(
  * Check and install built-in LUTs if not already done.
  * Should be called once on app startup (e.g., in a layout effect).
  * Returns the IDs of the installed built-in LUTs.
+ *
+ * Uses a singleton promise so multiple callers (layout + editor) share
+ * the same in-flight work and never race.
  */
-export async function ensureBuiltinLuts(): Promise<string[]> {
+let _ensurePromise: Promise<string[]> | null = null;
+
+export function ensureBuiltinLuts(): Promise<string[]> {
+  if (!_ensurePromise) {
+    _ensurePromise = _ensureBuiltinLutsImpl().catch((err) => {
+      _ensurePromise = null; // allow retry on failure
+      throw err;
+    });
+  }
+  return _ensurePromise;
+}
+
+async function _ensureBuiltinLutsImpl(): Promise<string[]> {
   // Quick check — already installed?
   if (typeof window === "undefined") return [];
   const flag = localStorage.getItem(LS_KEY);
