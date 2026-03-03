@@ -104,24 +104,16 @@ async function _ensureBuiltinLutsImpl(): Promise<string[]> {
   const flag = localStorage.getItem(LS_KEY);
   if (flag) {
     try {
-      return JSON.parse(flag) as string[];
+      const cached = JSON.parse(flag) as string[];
+      // Only trust the cache if it actually has entries — empty means a
+      // previous install failed mid-way and we should retry.
+      if (cached.length > 0) return cached;
     } catch {
       // corrupted flag, re-install
     }
   }
 
-  // Clean up old version entries
-  for (const oldKey of ["kinolu_builtin_luts_v1", "kinolu_builtin_luts_v2", "kinolu_builtin_luts_v3", "kinolu_builtin_luts_v4", "kinolu_builtin_luts_v5", "kinolu_builtin_luts_v6", "kinolu_builtin_luts_v7"]) {
-    if (localStorage.getItem(oldKey)) {
-      const oldIds = JSON.parse(localStorage.getItem(oldKey) || "[]") as string[];
-      const { deleteLocalLut } = await import("./lutStore");
-      for (const id of oldIds) {
-        try { await deleteLocalLut(id); } catch { /* ignore */ }
-      }
-      localStorage.removeItem(oldKey);
-    }
-  }
-
+  // ── Step 1: Install/find all builtins FIRST, before deleting old ones ──
   const existing = await listLocalLuts();
   const existingNames = new Set(existing.map((e) => e.name));
   const ids: string[] = [];
@@ -159,7 +151,30 @@ async function _ensureBuiltinLutsImpl(): Promise<string[]> {
     }
   }
 
-  localStorage.setItem(LS_KEY, JSON.stringify(ids));
+  // ── Step 2: Only if we got at least SOME LUTs, clean up old versions ──
+  // This prevents data loss if the server is down (503) — old presets
+  // stay visible until new ones are confirmed installed.
+  if (ids.length > 0) {
+    for (const oldKey of ["kinolu_builtin_luts_v1", "kinolu_builtin_luts_v2", "kinolu_builtin_luts_v3", "kinolu_builtin_luts_v4", "kinolu_builtin_luts_v5", "kinolu_builtin_luts_v6", "kinolu_builtin_luts_v7"]) {
+      if (localStorage.getItem(oldKey)) {
+        const oldIds = JSON.parse(localStorage.getItem(oldKey) || "[]") as string[];
+        const { deleteLocalLut } = await import("./lutStore");
+        // Only delete old entries that are NOT in the new set (may share IDs if names matched)
+        const newIdSet = new Set(ids);
+        for (const id of oldIds) {
+          if (!newIdSet.has(id)) {
+            try { await deleteLocalLut(id); } catch { /* ignore */ }
+          }
+        }
+        localStorage.removeItem(oldKey);
+      }
+    }
+  }
+
+  // Only persist the flag if installation was successful (got at least half)
+  if (ids.length >= Math.floor(BUILTIN_LUTS.length / 2)) {
+    localStorage.setItem(LS_KEY, JSON.stringify(ids));
+  }
   return ids;
 }
 
