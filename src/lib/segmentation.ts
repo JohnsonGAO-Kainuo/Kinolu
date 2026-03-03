@@ -332,8 +332,11 @@ export async function computeRegionMasks(imageData: ImageData): Promise<RegionMa
     Promise.resolve(computeVegetationMask(imageData)),
   ]);
 
-  // Build face mask from detections
-  const faceMask = createFaceMask(faces, width, height);
+  // Skip face mask if no person detected (landscape/still-life optimisation)
+  const personCoverage = personMask.reduce((s, v) => s + (v > 0.25 ? 1 : 0), 0) / n;
+  const faceMask = personCoverage > 0.005 || faces.length > 0
+    ? createFaceMask(faces, width, height)
+    : new Float32Array(n);
 
   // Background = inverse of person
   const bgMask = new Float32Array(n);

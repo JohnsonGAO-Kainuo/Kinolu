@@ -506,16 +506,45 @@ export async function clientTransfer(
     blobToImageData(sourceBlob, fullMax),
   ]);
 
-  // Keep a copy of original for region blending
-  const originalFull = semanticRegions
-    ? new ImageData(new Uint8ClampedArray(srcFull.data), srcFull.width, srcFull.height)
-    : null;
-
   const srcStats = computeLabStats(srcSmall);
   const refStats = computeLabStats(refSmall);
 
-  // Compute semantic masks in parallel (non-blocking)
-  const masksPromise = semanticRegions
+  // ── Quick semantic check on small image (256px) ──
+  // Determines whether person/face/skin exist before committing to
+  // the expensive full-resolution segmentation. Landscape / still-life
+  // photos skip MediaPipe inference entirely, saving ~100-200 ms on mobile.
+  let quickMasks: RegionMasks | null = null;
+  let hasSubject = false;
+  let faceRatio = 0, skinRatio = 0, subjectRatio = 0;
+
+  if (semanticRegions) {
+    try {
+      quickMasks = await computeRegionMasks(
+        new ImageData(new Uint8ClampedArray(srcSmall.data), srcSmall.width, srcSmall.height)
+      );
+      const n = srcSmall.width * srcSmall.height;
+      let faceCount = 0, skinCount = 0, personCount = 0;
+      for (let i = 0; i < n; i++) {
+        if (quickMasks.face[i] > 0.25) faceCount++;
+        if (quickMasks.skin[i] > 0.25) skinCount++;
+        if (quickMasks.person[i] > 0.25) personCount++;
+      }
+      faceRatio = faceCount / n;
+      skinRatio = skinCount / n;
+      subjectRatio = personCount / n;
+      // Consider subject present if >1% person pixels or >0.5% skin pixels or any face detected
+      hasSubject = subjectRatio > 0.01 || skinRatio > 0.005 || faceRatio > 0;
+    } catch { /* ignore — treat as no subject */ }
+  }
+
+  // Keep a copy of original only when subjects need blending
+  const originalFull = hasSubject
+    ? new ImageData(new Uint8ClampedArray(srcFull.data), srcFull.width, srcFull.height)
+    : null;
+
+  // Only run expensive full-res segmentation when a subject is detected;
+  // starts in parallel with LUT build so latency is hidden.
+  const masksPromise = hasSubject
     ? computeRegionMasks(srcFull).catch(() => null)
     : Promise.resolve(null);
 
@@ -546,29 +575,11 @@ export async function clientTransfer(
     let recColor = 96.0 - 24.0 * Math.min(chromaGap, 1.2);
     let recTone  = 96.0 - 18.0 * Math.min(toneGap, 1.2);
 
-    // Semantic-aware adjustment (if masks are being computed)
-    if (semanticRegions) {
-      try {
-        // Use the small image for fast mask estimation
-        const quickMasks = await computeRegionMasks(
-          new ImageData(new Uint8ClampedArray(srcSmall.data), srcSmall.width, srcSmall.height)
-        );
-        const n = srcSmall.width * srcSmall.height;
-        let faceCount = 0, skinCount = 0, personCount = 0;
-        for (let i = 0; i < n; i++) {
-          if (quickMasks.face[i] > 0.25) faceCount++;
-          if (quickMasks.skin[i] > 0.25) skinCount++;
-          if (quickMasks.person[i] > 0.25) personCount++;
-        }
-        const faceRatio = faceCount / n;
-        const skinRatio = skinCount / n;
-        const subjectRatio = personCount / n;
-
-        // Portrait-heavy frames: reduce to avoid over-transfer on faces
-        recColor -= 18.0 * Math.min(faceRatio / 0.15, 1.0) * Math.min(chromaGap, 1.0);
-        recColor -= 8.0  * Math.min(skinRatio / 0.25, 1.0) * Math.min(chromaGap, 1.0);
-        recTone  -= 8.0  * Math.min(subjectRatio / 0.45, 1.0) * Math.min(toneGap, 1.0);
-      } catch { /* ignore mask errors for auto XY */ }
+    // Semantic-aware adjustment using quickMasks (already computed)
+    if (hasSubject && quickMasks) {
+      recColor -= 18.0 * Math.min(faceRatio / 0.15, 1.0) * Math.min(chromaGap, 1.0);
+      recColor -= 8.0  * Math.min(skinRatio / 0.25, 1.0) * Math.min(chromaGap, 1.0);
+      recTone  -= 8.0  * Math.min(subjectRatio / 0.45, 1.0) * Math.min(toneGap, 1.0);
     }
 
     // Clamp to safe range [45, 98] then normalize to [0, 1]
