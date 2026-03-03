@@ -1065,14 +1065,16 @@ export default function EditorPage() {
                       </div>
                       {/* LUT strip */}
                       {showItems.length > 0 ? (
-                        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2 pt-1 px-0.5">
                           {showItems.map((lut) => {
                             const meta = getBuiltinMeta(lut.name);
                             const locked = !isPro && meta && !meta.isFree;
+                            const isActive = activeLutId === lut.id;
                             return (
                               <button key={lut.id} onClick={() => applyLutInline(lut.id)}
                                 className={`shrink-0 flex flex-col items-center gap-1 ${locked ? "opacity-60" : ""}`}>
-                                <div className={`relative w-16 h-16 rounded-xl overflow-hidden bg-black/40 transition-all ${activeLutId === lut.id ? "ring-2 ring-white border-transparent scale-105" : "border border-white/10"}`}>
+                                <div className={`relative w-16 h-16 rounded-xl bg-black/40 transition-all ${isActive ? "ring-[2.5px] ring-white scale-[1.06]" : "border border-white/10"}`}>
+                                  <div className="w-full h-full rounded-xl overflow-hidden">
                                   {lutThumbUrls[lut.id] ? (
                                     <img src={lutThumbUrls[lut.id]} alt={lut.name} className="w-full h-full object-cover" />
                                   ) : (
@@ -1085,8 +1087,9 @@ export default function EditorPage() {
                                       <span className="text-[8px] text-white/30">{meta ? (meta.category === "fuji" ? "F" : meta.category === "kodak" ? "K" : "✦") : "LUT"}</span>
                                     </div>
                                   )}
+                                  </div>
                                   {locked && (
-                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                    <div className="absolute inset-0 rounded-xl bg-black/30 flex items-center justify-center">
                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/50">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                                         <path d="M7 11V7a5 5 0 0110 0v4" />
@@ -1094,7 +1097,7 @@ export default function EditorPage() {
                                     </div>
                                   )}
                                 </div>
-                                <span className={`text-[8px] max-w-[64px] truncate transition-colors ${activeLutId === lut.id ? "text-white/80 font-medium" : locked ? "text-white/25" : "text-white/40"}`}>
+                                <span className={`text-[8px] max-w-[64px] truncate transition-colors ${isActive ? "text-white/80 font-medium" : locked ? "text-white/25" : "text-white/40"}`}>
                                   {meta?.i18nKey ? t(meta.i18nKey as Parameters<typeof t>[0]) : lut.name}
                                 </span>
                               </button>
