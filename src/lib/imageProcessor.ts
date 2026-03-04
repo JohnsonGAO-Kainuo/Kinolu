@@ -306,14 +306,21 @@ export function applyEdits(
     }
 
     // ── 9. Vignette ──
-    if (vigStrength > 0) {
+    if (vigStrength !== 0) {
       const px = (i / 4) % width;
       const py = Math.floor((i / 4) / width);
       const dist = Math.sqrt((px - cx) ** 2 + (py - cy) ** 2) / maxDist;
-      const vig = 1 - vigStrength * dist * dist;
-      r *= vig;
-      g *= vig;
-      b *= vig;
+      if (vigStrength > 0) {
+        const vig = 1 - vigStrength * dist * dist;
+        r *= vig;
+        g *= vig;
+        b *= vig;
+      } else {
+        const lift = -vigStrength * dist * dist;
+        r += (255 - r) * lift;
+        g += (255 - g) * lift;
+        b += (255 - b) * lift;
+      }
     }
 
     // ── Clamp and write ──
@@ -378,11 +385,13 @@ export function applyEdits(
     }
   }
 
-  // ── 12. Grain (post-process noise) ──
+  // ── 12. Grain (post-process noise — seeded PRNG for deterministic output) ──
   if (params.grain > 0 && !liveMode) {
     const amount = params.grain * 0.4; // max ~40 noise amplitude
+    let seed = 0x12345678;
+    const nextRand = () => { seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5; return ((seed >>> 0) / 0xFFFFFFFF) - 0.5; };
     for (let i = 0; i < out.length; i += 4) {
-      const noise = (Math.random() - 0.5) * amount;
+      const noise = nextRand() * amount;
       out[i] = Math.max(0, Math.min(255, out[i] + noise));
       out[i + 1] = Math.max(0, Math.min(255, out[i + 1] + noise));
       out[i + 2] = Math.max(0, Math.min(255, out[i + 2] + noise));

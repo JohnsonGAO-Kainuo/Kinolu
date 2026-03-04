@@ -221,10 +221,15 @@ function applyEdits(srcData, width, height, params, liveMode) {
     // Bloom
     if (bloomAmt > 0) { r+=(255-r)*bloomAmt; g+=(255-g)*bloomAmt; b+=(255-b)*bloomAmt; }
     // Vignette
-    if (vigStrength > 0) {
+    if (vigStrength !== 0) {
       const px = (i/4)%width, py = ((i/4)/width)|0;
       const dist = Math.sqrt((px-cx)**2+(py-cy)**2)/maxDist;
-      const vig = 1-vigStrength*dist*dist; r*=vig; g*=vig; b*=vig;
+      if (vigStrength > 0) {
+        const vig = 1-vigStrength*dist*dist; r*=vig; g*=vig; b*=vig;
+      } else {
+        const lift = -vigStrength*dist*dist;
+        r+=(255-r)*lift; g+=(255-g)*lift; b+=(255-b)*lift;
+      }
     }
     out[i]=Math.max(0,Math.min(255,Math.round(r)));
     out[i+1]=Math.max(0,Math.min(255,Math.round(g)));
@@ -263,11 +268,13 @@ function applyEdits(srcData, width, height, params, liveMode) {
         out[idx+2]=Math.max(0,Math.min(255,Math.round(tmp2[idx+2]+shift)));
       }
     }
-    // Grain
+    // Grain (seeded PRNG for deterministic output)
     if (params.grain > 0) {
       const amount = params.grain*0.4;
+      let seed = 0x12345678;
+      const nextRand = () => { seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5; return ((seed >>> 0) / 0xFFFFFFFF) - 0.5; };
       for (let i=0; i<out.length; i+=4) {
-        const noise=(Math.random()-0.5)*amount;
+        const noise=nextRand()*amount;
         out[i]=Math.max(0,Math.min(255,out[i]+noise));
         out[i+1]=Math.max(0,Math.min(255,out[i+1]+noise));
         out[i+2]=Math.max(0,Math.min(255,out[i+2]+noise));

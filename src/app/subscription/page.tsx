@@ -273,8 +273,9 @@ export default function SubscriptionPage() {
             <span className="text-white/10 text-[10px]">|</span>
             <button onClick={async () => {
               if (!user) { router.push("/auth/login"); return; }
-              await refreshProfile();
-              if (isPro) alert(t("sub_active"));
+              const freshProfile = await refreshProfile();
+              const nowPro = freshProfile?.subscription_tier === "pro";
+              if (nowPro) alert(t("sub_active"));
               else alert("No active subscription found. If you recently purchased, please wait a moment and try again.");
             }} className="text-[10px] text-white/30 underline underline-offset-2">
               {t("sub_restore")}

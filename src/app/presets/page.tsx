@@ -78,6 +78,7 @@ export default function PresetsPage() {
   useEffect(() => {
     refresh();
     refreshLocal();
+    return () => { Object.values(thumbUrls).forEach((u) => URL.revokeObjectURL(u)); };
   }, [refresh, refreshLocal]);
 
   const generated = useMemo(() => items.filter((x) => x.source_type === "generated"), [items]);

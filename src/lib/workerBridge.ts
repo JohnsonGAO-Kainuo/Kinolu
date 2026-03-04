@@ -12,9 +12,13 @@ import type { EditParams } from "./types";
 let _worker: Worker | null = null;
 let _workerFailed = false;
 let _idCounter = 0;
+let _consecutiveErrors = 0;
+const MAX_CONSECUTIVE_ERRORS = 3;
+const WORKER_TIMEOUT_MS = 10_000;
 const _pending = new Map<number, {
   resolve: (data: ImageData) => void;
   reject: (err: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
 }>();
 
 function getWorker(): Worker | null {
@@ -26,17 +30,24 @@ function getWorker(): Worker | null {
       const { id, buffer, width, height } = e.data;
       const cb = _pending.get(id);
       if (cb) {
+        clearTimeout(cb.timer);
         _pending.delete(id);
+        _consecutiveErrors = 0;
         const arr = new Uint8ClampedArray(buffer);
         cb.resolve(new ImageData(arr, width, height));
       }
     };
     _worker.onerror = () => {
-      _workerFailed = true;
+      _consecutiveErrors++;
+      _worker?.terminate();
       _worker = null;
       // Reject all pending
-      for (const [, cb] of _pending) cb.reject(new Error("Worker crashed"));
+      for (const [, cb] of _pending) {
+        clearTimeout(cb.timer);
+        cb.reject(new Error("Worker crashed"));
+      }
       _pending.clear();
+      if (_consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) _workerFailed = true;
     };
     return _worker;
   } catch {
@@ -64,7 +75,11 @@ export function workerApplyEdits(
 
   return new Promise((resolve, reject) => {
     const id = ++_idCounter;
-    _pending.set(id, { resolve, reject });
+    const timer = setTimeout(() => {
+      _pending.delete(id);
+      reject(new Error("Worker timeout"));
+    }, WORKER_TIMEOUT_MS);
+    _pending.set(id, { resolve, reject, timer });
 
     // Copy buffer so we don't transfer the source
     const copy = new Uint8ClampedArray(source.data);
@@ -103,7 +118,11 @@ export function workerApplyLut(
 
   return new Promise((resolve, reject) => {
     const id = ++_idCounter;
-    _pending.set(id, { resolve, reject });
+    const timer = setTimeout(() => {
+      _pending.delete(id);
+      reject(new Error("Worker timeout"));
+    }, WORKER_TIMEOUT_MS);
+    _pending.set(id, { resolve, reject, timer });
 
     const pxCopy = new Uint8ClampedArray(source.data);
     const lutCopy = new Float32Array(lutData);

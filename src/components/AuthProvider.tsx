@@ -29,7 +29,7 @@ interface AuthState {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   resendVerification: (email: string) => Promise<{ error: string | null }>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<Profile | null>;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -44,7 +44,7 @@ const AuthContext = createContext<AuthState>({
   signOut: async () => {},
   resetPassword: async () => ({ error: null }),
   resendVerification: async () => ({ error: null }),
-  refreshProfile: async () => {},
+  refreshProfile: async () => null,
 });
 
 export function useAuth() {
@@ -175,9 +175,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [supabase],
   );
 
-  const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
-  }, [user, fetchProfile]);
+  const refreshProfile = useCallback(async (): Promise<Profile | null> => {
+    if (!user) return null;
+    await fetchProfile(user.id);
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    return (data as Profile) ?? null;
+  }, [user, fetchProfile, supabase]);
 
   const isPro = profile?.subscription_tier === "pro";
 

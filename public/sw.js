@@ -31,10 +31,12 @@ async function trimCache() {
     const cache = await caches.open(CACHE_NAME);
     const keys = await cache.keys();
     if (keys.length > MAX_CACHE_ENTRIES) {
-      // Delete oldest entries (first in = first out)
+      // Protect precached entries from eviction
+      const precacheUrls = new Set(PRECACHE.map((p) => new URL(p, self.location.origin).href));
+      const evictable = keys.filter((k) => !precacheUrls.has(k.url));
       const toDelete = keys.length - MAX_CACHE_ENTRIES;
-      for (let i = 0; i < toDelete; i++) {
-        await cache.delete(keys[i]);
+      for (let i = 0; i < toDelete && i < evictable.length; i++) {
+        await cache.delete(evictable[i]);
       }
     }
   } catch { /* ignore */ }

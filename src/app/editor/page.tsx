@@ -269,9 +269,11 @@ export default function EditorPage() {
 
   /* ── Restore saved reference images ── */
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       try {
         const saved = await listRefImages();
+        if (cancelled) return;
         if (saved.length > 0 && refImages.length === 0) {
           const urls: string[] = [];
           const files: File[] = [];
@@ -288,6 +290,7 @@ export default function EditorPage() {
         }
       } catch { /* ignore */ }
     })();
+    return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Preset apply ── */
@@ -317,6 +320,7 @@ export default function EditorPage() {
     // First file → source image
     const file = arr[0];
     sourceFileRef.current = file;
+    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
     const url = URL.createObjectURL(file); setSourceUrl(url);
     const data = await loadImageToData(url);
     sourceImageData.current = data; baseImageData.current = data;
@@ -337,7 +341,7 @@ export default function EditorPage() {
     }
 
     if (pendingPresetId) { void runApplyPreset(pendingPresetId); setPendingPresetId(""); }
-  }, [loadImageToData, pendingPresetId, runApplyPreset]);
+  }, [loadImageToData, pendingPresetId, runApplyPreset, sourceUrl, isPro, showToast, t]);
 
   const handleRefUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files) return;
@@ -461,7 +465,7 @@ export default function EditorPage() {
       setErrorMsg(`${t("editor_transferFailed")}: ${err}`);
       setTimeout(() => setErrorMsg(null), 5000);
     } finally { setProcessing(false); }
-  }, [activeRefIdx, params, loadImageToData]);
+  }, [activeRefIdx, params, loadImageToData, isPro, showToast, t, isSourceAlreadyCounted, getDailyTransferCount, incrementDailyTransfer]);
 
   // Auto-apply transfer when first ref is uploaded
   useEffect(() => {
@@ -535,8 +539,10 @@ export default function EditorPage() {
   /* ── Export ── */
   const handleDownload = useCallback(async () => {
     const blob = await getCurrentCanvasBlob(); if (!blob) return;
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = objUrl;
     a.download = `kinolu_${Date.now()}.jpg`; a.click();
+    URL.revokeObjectURL(objUrl);
     showToast(t("editor_imageSaved"));
   }, [getCurrentCanvasBlob, showToast]);
 
@@ -579,8 +585,10 @@ export default function EditorPage() {
     setExportingLut(true);
     try {
       const cube = await exportLutFromTransfer(sourceFileRef.current, blob, 33);
-      const a = document.createElement("a"); a.href = URL.createObjectURL(cube);
+      const cubeUrl = URL.createObjectURL(cube);
+      const a = document.createElement("a"); a.href = cubeUrl;
       a.download = `kinolu_${Date.now()}.cube`; a.click();
+      URL.revokeObjectURL(cubeUrl);
       showToast(t("editor_lutExported"));
     } catch (err) { setErrorMsg(`${t("editor_lutExportFailed")} ${err}`); }
     finally { setExportingLut(false); }
@@ -774,7 +782,7 @@ export default function EditorPage() {
             {batchFiles.some((f) => f.status === "done") && (
               <button onClick={downloadBatchAll} className="text-[8px] text-white/60 bg-white/8 px-2.5 py-1 rounded-full active:bg-white/15 whitespace-nowrap">{t("batch_downloadAll")}</button>
             )}
-            <button onClick={() => setBatchFiles([])} className="text-[8px] text-white/30 px-1 py-1">✕</button>
+            <button onClick={() => { batchFiles.forEach((f) => { URL.revokeObjectURL(f.url); if (f.resultUrl) URL.revokeObjectURL(f.resultUrl); }); setBatchFiles([]); }} className="text-[8px] text-white/30 px-1 py-1">✕</button>
           </div>
         </div>
       )}

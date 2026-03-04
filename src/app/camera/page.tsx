@@ -125,7 +125,7 @@ export default function CameraPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => { if (!cancelled) await startCamera(); })();
-    return () => { cancelled = true; streamRef.current?.getTracks().forEach((tr) => tr.stop()); };
+    return () => { cancelled = true; streamRef.current?.getTracks().forEach((tr) => tr.stop()); if (focusTimerRef.current) clearTimeout(focusTimerRef.current); Object.values(thumbUrls).forEach((u) => URL.revokeObjectURL(u)); };
   }, [startCamera]);
 
   const flipCamera = useCallback(
@@ -173,8 +173,7 @@ export default function CameraPage() {
       if (!running) return;
       const lut = activeLutRef.current;
       if (!lut) {
-        /* No LUT — do nothing, <video> is visible natively */
-        rafRef.current = requestAnimationFrame(draw);
+        /* No LUT — stop the loop, <video> is visible natively */
         return;
       }
 
@@ -221,7 +220,7 @@ export default function CameraPage() {
     };
     rafRef.current = requestAnimationFrame(draw);
     return () => { running = false; cancelAnimationFrame(rafRef.current); };
-  }, []);
+  }, [activePresetId]);
 
   /* ── Apple-style: after focus tap, any single-finger vertical drag adjusts brightness ── */
   const vfBrightDragRef = useRef<{ startY: number; startVal: number; moved: boolean } | null>(null);
@@ -627,7 +626,7 @@ export default function CameraPage() {
       {capturedUrl && (
         <div className="absolute inset-0 z-30 bg-black flex flex-col">
           <div className="flex items-center justify-between px-5 h-[44px] safe-top">
-            <button onClick={() => setCapturedUrl(null)} className="text-white/70 text-[13px] font-medium tracking-wider">{t("camera_retake")}</button>
+            <button onClick={() => { if (capturedUrl) URL.revokeObjectURL(capturedUrl); setCapturedUrl(null); }} className="text-white/70 text-[13px] font-medium tracking-wider">{t("camera_retake")}</button>
             <button onClick={goEditorWithCapture} className="text-white text-[13px] font-semibold tracking-wider">{t("camera_usePhoto")}</button>
           </div>
           <div className="flex-1 flex items-center justify-center p-4">
