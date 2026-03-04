@@ -1,7 +1,8 @@
 /// <reference lib="webworker" />
 
 const CACHE_NAME = "kinolu-mmakxjms";
-const PRECACHE = ["/", "/editor", "/camera", "/presets"];
+const PRECACHE = ["/", "/editor", "/camera", "/presets", "/offline.html"];
+const MAX_CACHE_ENTRIES = 200; // Prevent unbounded cache growth
 
 /* ── Install: precache app shell ── */
 self.addEventListener("install", (event) => {
@@ -23,6 +24,30 @@ self.addEventListener("activate", (event) => {
   );
   self.clients.claim();
 });
+
+/* ── Cache eviction: keep cache size bounded ── */
+async function trimCache() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const keys = await cache.keys();
+    if (keys.length > MAX_CACHE_ENTRIES) {
+      // Delete oldest entries (first in = first out)
+      const toDelete = keys.length - MAX_CACHE_ENTRIES;
+      for (let i = 0; i < toDelete; i++) {
+        await cache.delete(keys[i]);
+      }
+    }
+  } catch { /* ignore */ }
+}
+
+/* ── Notify clients about new version ── */
+function notifyClients(type) {
+  self.clients.matchAll({ type: "window" }).then((clients) => {
+    for (const client of clients) {
+      client.postMessage({ type });
+    }
+  });
+}
 
 /* ── Fetch strategies ── */
 self.addEventListener("fetch", (event) => {
@@ -51,7 +76,9 @@ self.addEventListener("fetch", (event) => {
             caches.open(CACHE_NAME).then((c) => c.put(request, clone));
           }
           return response;
-        }).catch(() => new Response("Offline", { status: 503 }));
+        }).catch(() =>
+          caches.match("/offline.html").then((page) => page || new Response("Offline", { status: 503 }))
+        );
       })
     );
     return;
@@ -66,15 +93,25 @@ self.addEventListener("fetch", (event) => {
         // Only cache successful responses — NEVER cache 503/500/etc.
         if (response.ok) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+          caches.open(CACHE_NAME).then((c) => {
+            c.put(request, clone);
+            trimCache(); // Periodic eviction
+          });
         }
         return response;
       })
       .catch(() =>
         // Network failed (offline) → try cache
-        caches.match(request).then(
-          (cached) => cached || new Response("Offline", { status: 503 })
-        )
+        caches.match(request).then((cached) => {
+          if (cached) return cached;
+          // Navigation requests → branded offline page
+          if (request.mode === "navigate") {
+            return caches.match("/offline.html").then((page) =>
+              page || new Response("Offline", { status: 503 })
+            );
+          }
+          return new Response("Offline", { status: 503 });
+        })
       )
   );
 });

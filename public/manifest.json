@@ -27,5 +27,20 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Camera",
+      "short_name": "Camera",
+      "url": "/camera",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Editor",
+      "short_name": "Editor",
+      "url": "/editor",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
   ]
+}
 }

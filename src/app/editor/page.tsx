@@ -11,12 +11,12 @@ import {
   transferImage,
 } from "@/lib/api";
 import { applyEdits, hasActiveEdits } from "@/lib/imageProcessor";
+import { workerApplyEdits, warmupWorker } from "@/lib/workerBridge";
 import { saveRefImage, listRefImages, deleteRefImage } from "@/lib/refStore";
 import { listLocalLuts, type LutEntry } from "@/lib/lutStore";
 import { getBuiltinMeta } from "@/lib/builtinLuts";
 import { ensureBuiltinLuts } from "@/lib/builtinLuts";
 import { useAuth } from "@/components/AuthProvider";
-import { preloadSegmentationModels } from "@/lib/segmentation";
 import {
   IconBack,
   IconShare,
@@ -204,6 +204,7 @@ export default function EditorPage() {
   /* Half-res preview cache for responsive mobile slider drag */
   const previewSmallCache = useRef<{ base: ImageData; data: ImageData } | null>(null);
   const upscaleTmpCanvas = useRef<HTMLCanvasElement | null>(null);
+  const workerRenderGenRef = useRef(0);
 
   const renderPreview = useCallback(() => {
     cancelAnimationFrame(rafId.current);
@@ -247,16 +248,24 @@ export default function EditorPage() {
           ctx.imageSmoothingEnabled = true;
           ctx.drawImage(tmp, 0, 0, base.width, base.height);
         }
+      } else if (live) {
+        // Desktop live drag — synchronous main-thread (liveMode skips spatial filters)
+        paintCanvas(applyEdits(base, p, true));
       } else {
-        paintCanvas(applyEdits(base, p, live));
+        // Full-quality render (not dragging) — offload to Web Worker
+        const gen = ++workerRenderGenRef.current;
+        void workerApplyEdits(base, p, false).then((result) => {
+          // Only apply if this is still the latest render request
+          if (gen === workerRenderGenRef.current) paintCanvas(result);
+        });
       }
     });
   }, [paintCanvas, isMobile]);
 
   useEffect(() => { if (baseImageData.current) renderPreview(); }, [params, renderPreview, renderTick]);
 
-  /* ── Preload segmentation models (warm up GPU) ── */
-  useEffect(() => { void preloadSegmentationModels(); }, []);
+  /* ── Warm up Web Worker (fast), defer segmentation models until needed ── */
+  useEffect(() => { warmupWorker(); }, []);
 
   /* ── Restore saved reference images ── */
   useEffect(() => {

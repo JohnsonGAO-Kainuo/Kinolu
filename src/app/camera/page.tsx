@@ -188,8 +188,9 @@ export default function CameraPage() {
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         if (vw && vh) {
-          /* Cap canvas for mobile perf — 960px gives near-retina sharpness */
-          const maxDim = 960;
+          /* Cap canvas for mobile perf — lower res = faster LUT processing */
+          const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          const maxDim = isMobileDevice ? 640 : 960;
           let cw = vw, ch = vh;
           if (Math.max(vw, vh) > maxDim) {
             const s = maxDim / Math.max(vw, vh);
@@ -369,23 +370,20 @@ export default function CameraPage() {
     /* Reset transform before pixel ops */
     if (selfie) ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    /* Brightness */
+    /* Brightness + LUT in a single pass (avoid double getImageData/putImageData) */
     const br = brightnessRef.current;
-    if (br !== 1.0) {
+    const lut = activeLutRef.current;
+    if (br !== 1.0 || lut) {
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const d = imgData.data;
-      for (let i = 0; i < d.length; i += 4) {
-        d[i] = Math.min(255, d[i] * br);
-        d[i + 1] = Math.min(255, d[i + 1] * br);
-        d[i + 2] = Math.min(255, d[i + 2] * br);
+      if (br !== 1.0) {
+        for (let i = 0; i < d.length; i += 4) {
+          d[i] = Math.min(255, d[i] * br);
+          d[i + 1] = Math.min(255, d[i + 1] * br);
+          d[i + 2] = Math.min(255, d[i + 2] * br);
+        }
       }
-      ctx.putImageData(imgData, 0, 0);
-    }
-
-    /* LUT */
-    if (activeLutRef.current) {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      applyLutToPixels(imgData.data, activeLutRef.current.data, activeLutRef.current.size);
+      if (lut) applyLutToPixels(d, lut.data, lut.size);
       ctx.putImageData(imgData, 0, 0);
     }
 
