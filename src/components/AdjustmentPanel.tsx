@@ -32,6 +32,8 @@ interface AdjustmentPanelProps {
   onChangeValue: (tool: AdjustmentTool, value: number) => void;
   /** Called when a slider drag ends — use for committing undo boundary */
   onDragEnd?: () => void;
+  /** Reset all tools in a category to 0 in a single undo-able action */
+  onResetCategory?: (tools: AdjustmentTool[]) => void;
   /** Which category to show — controlled externally by parent sub-tabs */
   category?: EditCategory;
 }
@@ -311,6 +313,7 @@ export default function AdjustmentPanel({
   onSelectTool,
   onChangeValue,
   onDragEnd,
+  onResetCategory,
   category: externalCategory,
 }: AdjustmentPanelProps) {
   const { t } = useI18n();
@@ -358,8 +361,12 @@ export default function AdjustmentPanel({
       <div className="flex justify-end px-4 pb-1">
         <button
           onClick={() => {
-            categoryTools.forEach((tl) => onChangeValue(tl.key, 0));
-            onDragEnd?.();
+            if (onResetCategory) {
+              onResetCategory(categoryTools.map((tl) => tl.key));
+            } else {
+              categoryTools.forEach((tl) => onChangeValue(tl.key, 0));
+              onDragEnd?.();
+            }
           }}
           className="px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[10px] text-white/35 tracking-wider hover:text-white/60 hover:bg-white/10 transition-colors shrink-0"
         >

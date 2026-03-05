@@ -522,6 +522,19 @@ export default function EditorPage() {
     renderPreview(); // full-quality re-render with spatial filters
   }, [renderPreview]);
 
+  const handleResetCategory = useCallback((tools: AdjustmentTool[]) => {
+    // Build a single param update that zeros all tools in the category
+    setParams((p) => {
+      const next = { ...p };
+      for (const tool of tools) {
+        (next as Record<string, unknown>)[TOOL_TO_PARAM[tool]] = 0;
+      }
+      return next;
+    }); // single push — one undo boundary
+    adjDraggingRef.current = false;
+    renderPreview();
+  }, [setParams, renderPreview]);
+
   const handleReset = useCallback(() => {
     if (!window.confirm(t("editor_resetConfirm"))) return;
     history.reset(DEFAULT_EDIT_PARAMS);
@@ -791,24 +804,42 @@ export default function EditorPage() {
       <div className="flex-1 min-h-0 relative">
         {hasImage ? (
           <>
-            {/* Image display — tap to toggle fullscreen, long-press to compare original */}
+            {/* Image display — tap to toggle fullscreen, long-press (300ms) to compare original */}
             <div
               className="absolute inset-0 flex items-center justify-center px-3 py-2 cursor-pointer select-none"
               style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none" } as React.CSSProperties}
               onContextMenu={(e) => e.preventDefault()}
-              onClick={(e) => {
-                // Only toggle fullscreen if tapping the background/canvas, not buttons inside
-                if ((e.target as HTMLElement).closest("button")) return;
-                setPreviewFullscreen((f) => !f);
-              }}
               onPointerDown={(e) => {
-                // Press-and-hold on canvas to show original (skip if tapping buttons)
                 if ((e.target as HTMLElement).closest("button")) return;
-                if (hasTransferred || hasActiveEdits(params)) setComparing(true);
+                const canCompare = hasTransferred || hasActiveEdits(params);
+                // Start a 300ms timer — if held long enough, show original
+                const timer = setTimeout(() => {
+                  if (canCompare) setComparing(true);
+                  (e.currentTarget as HTMLElement).dataset.didCompare = "1";
+                }, 300);
+                (e.currentTarget as HTMLElement).dataset.pressTimer = String(timer);
+                (e.currentTarget as HTMLElement).dataset.didCompare = "";
               }}
-              onPointerUp={() => setComparing(false)}
-              onPointerLeave={() => setComparing(false)}
-              onPointerCancel={() => setComparing(false)}
+              onPointerUp={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                clearTimeout(Number(el.dataset.pressTimer || 0));
+                if (el.dataset.didCompare === "1") {
+                  // Was a long-press compare — just release, don't toggle fullscreen
+                  setComparing(false);
+                } else if (!(e.target as HTMLElement).closest("button")) {
+                  // Short tap — toggle fullscreen
+                  setPreviewFullscreen((f) => !f);
+                }
+                el.dataset.didCompare = "";
+              }}
+              onPointerLeave={(e) => {
+                clearTimeout(Number((e.currentTarget as HTMLElement).dataset.pressTimer || 0));
+                setComparing(false);
+              }}
+              onPointerCancel={(e) => {
+                clearTimeout(Number((e.currentTarget as HTMLElement).dataset.pressTimer || 0));
+                setComparing(false);
+              }}
             >
               <canvas
                 ref={displayCanvasRef}
@@ -1170,6 +1201,7 @@ export default function EditorPage() {
                     onSelectTool={setActiveTool}
                     onChangeValue={handleAdjChange}
                     onDragEnd={handleAdjCommit}
+                    onResetCategory={handleResetCategory}
                     category={editSubTab}
                   />
                 )}
