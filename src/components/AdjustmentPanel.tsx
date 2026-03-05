@@ -97,7 +97,17 @@ const CATEGORIES: { key: EditCategory; labelKey: TranslationKeys }[] = [
   { key: "detail", labelKey: "adj_detail" },
 ];
 
-/* ── Single slider row — memoized for performance ── */
+/* ── Single slider row — Lightroom-style direct-drag interaction ──
+ *
+ * The ENTIRE row is the drag zone — touch anywhere on the row and drag
+ * horizontally to adjust the value. No need to "select" first.
+ *
+ * Visual: icon + label on left, value on right, full-width slider bar
+ * beneath that doubles as background fill.
+ *
+ * Touch-area is the full row height (~52px), not just the 6px track,
+ * making it much easier to interact with on mobile.
+ */
 const SliderRow = React.memo(function SliderRow({
   tool,
   label,
@@ -121,16 +131,20 @@ const SliderRow = React.memo(function SliderRow({
     : (value / tool.max) * 100;
 
   const Icon = tool.icon;
-  const trackRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const pendingX = useRef(0);
   const moveRafId = useRef(0);
+  // Track whether we've moved enough to be a drag vs. a tap
+  const startX = useRef(0);
+  const hasMoved = useRef(false);
 
   const updateFromPointer = useCallback(
     (clientX: number) => {
-      const el = trackRef.current;
+      const el = rowRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
+      // Use full row width as the slider range
       const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const raw = tool.min + ratio * (tool.max - tool.min);
       onChange(Math.round(raw));
@@ -143,16 +157,21 @@ const SliderRow = React.memo(function SliderRow({
       e.preventDefault();
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       dragging.current = true;
-      onSelect();
-      updateFromPointer(e.clientX);
+      startX.current = e.clientX;
+      hasMoved.current = false;
+      pendingX.current = e.clientX;
+      onSelect(); // Select immediately on touch — no delay
     },
-    [onSelect, updateFromPointer]
+    [onSelect]
   );
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!dragging.current) return;
       pendingX.current = e.clientX;
+      // 4px dead zone before committing to drag (prevents accidental changes on tap)
+      if (!hasMoved.current && Math.abs(e.clientX - startX.current) < 4) return;
+      hasMoved.current = true;
       // Batch pointer events — at most 1 state update per animation frame
       if (!moveRafId.current) {
         moveRafId.current = requestAnimationFrame(() => {
@@ -170,78 +189,109 @@ const SliderRow = React.memo(function SliderRow({
       cancelAnimationFrame(moveRafId.current);
       moveRafId.current = 0;
     }
-    if (dragging.current) {
+    if (dragging.current && hasMoved.current) {
       updateFromPointer(pendingX.current);
-      dragging.current = false;
     }
+    dragging.current = false;
+    hasMoved.current = false;
     onDragEnd?.();
   }, [onDragEnd, updateFromPointer]);
 
   const hasGradient = !!tool.gradient;
+  const isNonZero = value !== 0;
 
   return (
     <div
-      className={`rounded-lg px-3 py-2.5 transition-colors ${isActive ? "bg-white/[0.04]" : ""}`}
-      onClick={onSelect}
+      ref={rowRef}
+      className="relative rounded-lg select-none touch-none cursor-pointer overflow-hidden"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
-      {/* Label row: icon + name + value */}
-      <div className="flex items-center gap-2 mb-2">
-        <Icon size={14} className={isActive ? "text-white/80" : "text-white/35"} />
+      {/* Background fill — shows the current value as a colored bar behind the row */}
+      {!hasGradient && isNonZero && (
+        <div className="absolute inset-0 pointer-events-none">
+          {isBipolar ? (
+            <div
+              className="absolute top-0 h-full bg-white/[0.06] rounded-lg"
+              style={{
+                left: value >= 0 ? "50%" : `${pct}%`,
+                width: `${Math.abs(pct - 50)}%`,
+              }}
+            />
+          ) : (
+            <div
+              className="absolute top-0 left-0 h-full bg-white/[0.06] rounded-lg"
+              style={{ width: `${pct}%` }}
+            />
+          )}
+        </div>
+      )}
+      {hasGradient && isNonZero && (
+        <div
+          className="absolute inset-0 pointer-events-none rounded-lg opacity-15"
+          style={{ background: tool.gradient }}
+        />
+      )}
+
+      {/* Content layer */}
+      <div className="relative px-3 py-3 flex items-center gap-2.5">
+        <Icon
+          size={15}
+          className={`shrink-0 transition-colors ${
+            isActive ? "text-white/90" : isNonZero ? "text-white/60" : "text-white/30"
+          }`}
+        />
         <span
           className={`text-[12px] flex-1 transition-colors ${
-            isActive ? "text-white font-medium" : "text-white/55"
+            isActive ? "text-white font-medium" : isNonZero ? "text-white/70" : "text-white/50"
           }`}
         >
           {label}
         </span>
-        <span className="text-[11px] text-white/40 font-mono tabular-nums min-w-[32px] text-right">
+        <span
+          className={`text-[11px] font-mono tabular-nums min-w-[32px] text-right transition-colors ${
+            isNonZero ? "text-white/60" : "text-white/25"
+          }`}
+        >
           {isBipolar && value > 0 ? "+" : ""}
           {value}
         </span>
       </div>
 
-      {/* Slider track — pointer-based for smooth performance */}
-      <div
-        ref={trackRef}
-        className="relative h-[6px] rounded-full select-none touch-none cursor-pointer"
-        style={{
-          background: hasGradient ? tool.gradient : "rgba(255,255,255,0.08)",
-        }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        {/* Fill (only for non-gradient tracks) */}
-        {!hasGradient && (
-          <>
-            {isBipolar ? (
-              <div
-                className="absolute top-0 h-full rounded-full bg-white/40"
-                style={{
-                  left: value >= 0 ? "50%" : `${pct}%`,
-                  width: `${Math.abs(pct - 50)}%`,
-                }}
-              />
-            ) : (
-              <div
-                className="absolute top-0 left-0 h-full rounded-full bg-white/40"
-                style={{ width: `${pct}%` }}
-              />
-            )}
-          </>
+      {/* Thin track line — visual indicator at bottom of row */}
+      <div className="absolute bottom-0 left-3 right-3 h-[2px]">
+        {/* Track background */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: hasGradient ? tool.gradient : "rgba(255,255,255,0.06)",
+          }}
+        />
+
+        {/* Fill on track */}
+        {!hasGradient && isNonZero && (
+          isBipolar ? (
+            <div
+              className="absolute top-0 h-full rounded-full bg-white/40"
+              style={{
+                left: value >= 0 ? "50%" : `${pct}%`,
+                width: `${Math.abs(pct - 50)}%`,
+              }}
+            />
+          ) : (
+            <div
+              className="absolute top-0 left-0 h-full rounded-full bg-white/40"
+              style={{ width: `${pct}%` }}
+            />
+          )
         )}
 
         {/* Center tick for bipolar */}
         {isBipolar && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1.5px] h-3 bg-white/20 rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-2 bg-white/15 rounded-full" />
         )}
-
-        {/* Thumb */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-[2.5px] border-white bg-[#111] shadow-[0_1px_4px_rgba(0,0,0,0.5)] pointer-events-none"
-          style={{ left: `calc(${pct}% - 10px)` }}
-        />
       </div>
     </div>
   );
@@ -310,7 +360,7 @@ export default function AdjustmentPanel({
       </div>
 
       {/* Slider list */}
-      <div className="flex flex-col gap-0">
+      <div className="flex flex-col gap-px px-1">
         {categoryTools.map((tl) => (
           <SliderRow
             key={tl.key}
