@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "kinolu-logo-v1";
-const PRECACHE = ["/", "/editor", "/camera", "/presets", "/offline.html", "/logo-icon.png", "/logo-icon-sm.png"];
+const CACHE_NAME = "kinolu-v2";
+const PRECACHE = ["/", "/editor", "/camera", "/presets", "/offline.html", "/logo-icon.png", "/logo-icon-sm.png", "/icon-192.png", "/icon-512.png"];
 const MAX_CACHE_ENTRIES = 200; // Prevent unbounded cache growth
 
 /* ── Install: precache app shell ── */

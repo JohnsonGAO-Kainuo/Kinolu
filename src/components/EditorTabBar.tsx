@@ -22,8 +22,9 @@ const TABS: { key: EditorTab; labelKey: TranslationKeys; icon: React.FC<{ size?:
 export default function EditorTabBar({ active, onSelect }: EditorTabBarProps) {
   const { t } = useI18n();
   return (
-    <div className="bg-[#0a0a0a] border-t border-white/5 safe-bottom pt-1.5">
-      <div className="flex h-[56px] items-center">
+    <div className="bg-[#0a0a0a] border-t border-white/5">
+      {/* Tab content — py-3 gives equal spacing above (from divider) and below (before safe area) */}
+      <div className="flex items-center py-3">
         {TABS.map((tab) => {
           const isActive = tab.key === active;
           const Icon = tab.icon;
@@ -50,6 +51,8 @@ export default function EditorTabBar({ active, onSelect }: EditorTabBarProps) {
           );
         })}
       </div>
+      {/* Safe area spacer for home indicator — separate from tab content */}
+      <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
     </div>
   );
 }
