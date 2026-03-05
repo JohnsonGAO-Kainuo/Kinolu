@@ -168,10 +168,10 @@ Kinolu/
 
 - **Account:** `acct_1SeyYoJTqJOgtjP4`
 - **Product:** Kinolu Pro (`prod_U35UTwnhTYPkFg`)
-- **Prices (multi-currency: USD + HKD):**
-  - Monthly: `price_1T7c2NJTqJOgtjP4Z6YCIFDh` ($2.99/mo, HK$23/mo)
-  - Annual: `price_1T7c2OJTqJOgtjP4OJL6hciI` ($29.99/yr, HK$233/yr)
-  - Lifetime: `price_1T7c2NJTqJOgtjP4eFKAoT3X` ($49.99 one-time, HK$388)
+- **Prices (multi-currency: USD + HKD + CNY):**
+  - Monthly: `price_1T7cWYJTqJOgtjP4I987GTiJ` ($2.99/mo)
+  - Annual: `price_1T7cWYJTqJOgtjP4Wor0wq2X` ($29.99/yr)
+  - Lifetime: `price_1T7cWYJTqJOgtjP4GWMQ4uX2` ($49.99 one-time)
 - **Payment Links:** Configured via `NEXT_PUBLIC_STRIPE_LINK_*` env vars (auto-select currency by IP)
 - **Webhook:** Supabase Edge Function `stripe-webhook` (v9) — handles checkout, subscription lifecycle, invoices
 
