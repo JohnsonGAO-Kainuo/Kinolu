@@ -13,11 +13,16 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
 
-// Price ID → plan type mapping
+// Price ID → plan type mapping (USD + HKD prices)
 const PRICE_TO_PLAN: Record<string, "monthly" | "annual" | "lifetime"> = {
+  // USD prices
   price_1T4zJUJTqJOgtjP4hPm3hos0: "monthly",
   price_1T4zJUJTqJOgtjP4U0CTHdvF: "annual",
   price_1T4zJUJTqJOgtjP4SvRct4RL: "lifetime",
+  // HKD prices
+  price_1T7bGiJTqJOgtjP42mvughtL: "monthly",
+  price_1T7bGiJTqJOgtjP4n52jLJq5: "annual",
+  price_1T7bGiJTqJOgtjP4dlFrqlKK: "lifetime",
 };
 
 // ── Stripe signature verification ──

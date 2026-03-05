@@ -8,11 +8,23 @@ import { useAuth } from "@/components/AuthProvider";
 
 type Plan = "monthly" | "annual" | "lifetime";
 
-const PAYMENT_LINKS: Record<Plan, string> = {
+const PAYMENT_LINKS_USD: Record<Plan, string> = {
   monthly: process.env.NEXT_PUBLIC_STRIPE_LINK_MONTHLY || "",
   annual: process.env.NEXT_PUBLIC_STRIPE_LINK_ANNUAL || "",
   lifetime: process.env.NEXT_PUBLIC_STRIPE_LINK_LIFETIME || "",
 };
+
+const PAYMENT_LINKS_HKD: Record<Plan, string> = {
+  monthly: process.env.NEXT_PUBLIC_STRIPE_LINK_MONTHLY_HKD || "",
+  annual: process.env.NEXT_PUBLIC_STRIPE_LINK_ANNUAL_HKD || "",
+  lifetime: process.env.NEXT_PUBLIC_STRIPE_LINK_LIFETIME_HKD || "",
+};
+
+/** Price display by currency */
+const PRICES = {
+  usd: { monthly: "$2.99", annual: "$29.99", annualPer: "$2.49", lifetime: "$49.99", symbol: "$", suffix: "USD" },
+  hkd: { monthly: "HK$23", annual: "HK$233", annualPer: "HK$19", lifetime: "HK$388", symbol: "HK$", suffix: "HKD" },
+} as const;
 
 export default function SubscriptionPage() {
   return (
@@ -25,9 +37,15 @@ export default function SubscriptionPage() {
 function SubscriptionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { user, isPro, profile, subscription, refreshProfile } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
+
+  // Chinese locales → HKD (enables Alipay/WeChat Pay)
+  const useHKD = locale === "zh-CN" || locale === "zh-TW";
+  const currency = useHKD ? "hkd" : "usd";
+  const prices = PRICES[currency];
+  const paymentLinks = useHKD ? PAYMENT_LINKS_HKD : PAYMENT_LINKS_USD;
 
   /* ── Post-payment auto-refresh ──
    * When user returns from Stripe with ?payment_success=1,
@@ -175,10 +193,10 @@ function SubscriptionContent() {
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-[18px] font-bold text-white">
-                    $29.99
+                    {prices.annual}
                   </span>
                   <span className="text-[10px] text-white/40">
-                    $2.49/{t("sub_mo")}
+                    {prices.annualPer}/{t("sub_mo")}
                   </span>
                 </div>
               </div>
@@ -210,7 +228,7 @@ function SubscriptionContent() {
                 </span>
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-[18px] font-bold text-white">
-                    $2.99
+                    {prices.monthly}
                   </span>
                   <span className="text-[10px] text-white/40">
                     /{t("sub_mo")}
@@ -253,7 +271,7 @@ function SubscriptionContent() {
                   </span>
                 </div>
                 <span className="text-[18px] font-bold text-white">
-                  $49.99
+                  {prices.lifetime}
                 </span>
               </div>
             </button>
@@ -280,7 +298,7 @@ function SubscriptionContent() {
                   router.push("/auth/login");
                   return;
                 }
-                const link = PAYMENT_LINKS[selectedPlan];
+                const link = paymentLinks[selectedPlan];
                 if (link) {
                   // Append prefilled email + client_reference_id for Stripe
                   const url = new URL(link);
