@@ -48,7 +48,7 @@ export default function CameraPage() {
   /* ── State ── */
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(false);
-  const [torchOn, setTorchOn] = useState(false);
+  const [flashMode, setFlashMode] = useState<"off" | "on" | "auto">("off");
   const [torchAvailable, setTorchAvailable] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [zoom, setZoom] = useState(1.0);
@@ -138,7 +138,7 @@ export default function CameraPage() {
   }, [startCamera]);
 
   const flipCamera = useCallback(
-    () => { setTorchOn(false); setFacingMode((p) => (p === "environment" ? "user" : "environment")); },
+    () => { setFlashMode("off"); setFacingMode((p) => (p === "environment" ? "user" : "environment")); },
     [],
   );
 
@@ -357,9 +357,24 @@ export default function CameraPage() {
 
   const handleFocalEnd = useCallback(() => { focalDragRef.current = null; }, []);
 
+  /* ════════════════ FLASH HELPERS ════════════════ */
+
+  const flashModeRef = useRef<"off" | "on" | "auto">("off");
+  useEffect(() => { flashModeRef.current = flashMode; }, [flashMode]);
+
+  /** Turn hardware torch on/off. Returns true if torch was actually toggled. */
+  const setTorch = useCallback((on: boolean): boolean => {
+    try {
+      const track = streamRef.current?.getVideoTracks()[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (track) { void track.applyConstraints({ advanced: [{ torch: on } as any] }); return true; }
+    } catch { /* not supported */ }
+    return false;
+  }, []);
+
   /* ════════════════ CAPTURE ════════════════ */
 
-  const capture = useCallback(() => {
+  const captureFrame = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
@@ -381,7 +396,7 @@ export default function CameraPage() {
     /* Reset transform before pixel ops */
     if (selfie) ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    /* Brightness + LUT in a single pass (avoid double getImageData/putImageData) */
+    /* Brightness + LUT in a single pass */
     const br = brightnessRef.current;
     const lut = activeLutRef.current;
     if (br !== 1.0 || lut) {
@@ -400,6 +415,24 @@ export default function CameraPage() {
 
     canvas.toBlob((blob) => { if (blob) setCapturedUrl(URL.createObjectURL(blob)); }, "image/jpeg", 0.95);
   }, []);
+
+  /** Capture with flash support: torch on → wait for exposure → capture → torch off */
+  const capture = useCallback(() => {
+    const mode = flashModeRef.current;
+    const shouldFlash = torchAvailable && (mode === "on" || (mode === "auto" && brightnessRef.current <= 0.8));
+
+    if (shouldFlash) {
+      // Turn on torch, wait 150ms for camera to adjust exposure, then capture
+      setTorch(true);
+      setTimeout(() => {
+        captureFrame();
+        // Turn off torch after capture
+        setTimeout(() => setTorch(false), 100);
+      }, 150);
+    } else {
+      captureFrame();
+    }
+  }, [torchAvailable, setTorch, captureFrame]);
 
   const goEditorWithCapture = useCallback(() => {
     if (!capturedUrl) return;
@@ -486,16 +519,15 @@ export default function CameraPage() {
           <div className="flex items-center gap-2">
             {torchAvailable && (
               <button onClick={() => {
-                const next = !torchOn;
-                setTorchOn(next);
-                try {
-                  const track = streamRef.current?.getVideoTracks()[0];
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  if (track) void track.applyConstraints({ advanced: [{ torch: next } as any] });
-                } catch { /* not supported */ }
+                setFlashMode((m) => m === "off" ? "on" : m === "on" ? "auto" : "off");
               }}
-                className={`w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${torchOn ? "text-yellow-300" : "text-white/40"}`}>
-                {torchOn ? <IconFlash size={16} /> : <IconFlashOff size={16} />}
+                className={`relative w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${
+                  flashMode === "off" ? "text-white/40" : "text-yellow-300"
+                }`}>
+                {flashMode === "off" ? <IconFlashOff size={16} /> : <IconFlash size={16} />}
+                {flashMode === "auto" && (
+                  <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 text-[7px] font-bold text-yellow-300 leading-none">A</span>
+                )}
               </button>
             )}
             <button onClick={() => setShowGrid(!showGrid)}
