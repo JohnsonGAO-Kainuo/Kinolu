@@ -137,7 +137,6 @@ Kinolu/
 | Photo editor | ✓ | ✓ |
 | LUT import/export | ✓ | ✓ |
 | Batch processing | — | ✓ |
-| Cloud sync | — | Coming soon |
 
 ### Enforcement Points
 - **Daily transfer limit**: Client-side localStorage counter in `runTransfer()` (editor/page.tsx)
@@ -196,9 +195,8 @@ Kinolu/
 4. **Daily transfer limit** is client-side only (localStorage) — can be bypassed. Server-side enforcement would be more robust but requires the Python backend.
 
 ### 💡 Future
-5. Cloud sync (presets, ref images)
-6. Server-side Stripe subscription verification
-7. Push notifications for subscription expiry
+5. Server-side Stripe subscription verification
+6. Push notifications for subscription expiry
 
 ---
 

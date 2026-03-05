@@ -116,7 +116,6 @@ function SubscriptionContent() {
               { key: "sub_feat_editor", free: "✓", pro: "✓" },
               { key: "sub_feat_lutImport", free: "✓", pro: "✓" },
               { key: "sub_feat_batch", free: "—", pro: "✓" },
-              { key: "sub_feat_cloudSync", free: "—", pro: t("sub_comingSoon") },
             ].map((row, i) => (
               <div
                 key={row.key}
