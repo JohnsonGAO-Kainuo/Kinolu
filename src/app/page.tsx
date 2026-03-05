@@ -80,8 +80,8 @@ export default function HomePage() {
         >
           <IconMenu size={18} />
         </button>
-        <div className="flex items-center gap-1.5">
-          <img src="/logo-icon-sm.png" alt="" width={22} height={22} className="w-[22px] h-[22px] drop-shadow-lg" />
+        <div className="flex items-center gap-2">
+          <img src="/logo-icon-sm.png" alt="" width={28} height={28} className="w-7 h-7 drop-shadow-lg" />
           <span className="text-[13px] font-bold tracking-[4px] text-white/90 drop-shadow-lg">
             KINOLU
           </span>
