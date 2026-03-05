@@ -220,6 +220,8 @@ const zhCN: Record<TranslationKeys, string> = {
   auth_resendEmail: "重新发送验证邮件",
   auth_resendSent: "验证邮件已重新发送！",
   auth_resendCooldown: "{seconds}秒后可重新发送",
+  auth_emailNotVerified: "你的邮箱尚未验证。",
+  auth_resendVerification: "重新发送验证邮件",
   auth_signInToSubscribe: "登录后订阅",
   auth_forgotPassword: "忘记密码？",
   auth_enterEmailFirst: "请先输入邮箱地址",
@@ -258,6 +260,7 @@ const zhCN: Record<TranslationKeys, string> = {
   sub_monthly: "月度订阅",
   sub_lifetime: "终身买断",
   sub_lifetimeSub: "一次付费，永久使用",
+  sub_lifetimeLimited: "限时优惠",
   sub_mo: "月",
   sub_subscribe: "订阅 Pro",
   sub_active: "Pro 已激活",
@@ -265,6 +268,8 @@ const zhCN: Record<TranslationKeys, string> = {
   sub_terms: "服务条款",
   sub_privacy: "隐私政策",
   sub_restore: "恢复购买",
+  sub_restoreNotFound: "未找到有效订阅。如果您刚完成购买，请稍等片刻后重试。",
+  sub_verifyingPayment: "正在确认支付…",
 
   /* ── 反馈 ── */
   feedback_title: "反馈",

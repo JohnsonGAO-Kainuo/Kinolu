@@ -63,14 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /* Fetch profile + active subscription from DB */
   const fetchProfile = useCallback(
-    async (userId: string) => {
+    async (userId: string): Promise<Profile | null> => {
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
 
-      if (profileData) setProfile(profileData as Profile);
+      const p = (profileData as Profile) ?? null;
+      setProfile(p);
 
       const { data: subData } = await supabase
         .from("subscriptions")
@@ -82,6 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       setSubscription((subData as Subscription) ?? null);
+
+      return p;
     },
     [supabase],
   );
@@ -177,14 +180,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = useCallback(async (): Promise<Profile | null> => {
     if (!user) return null;
-    await fetchProfile(user.id);
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-    return (data as Profile) ?? null;
-  }, [user, fetchProfile, supabase]);
+    return fetchProfile(user.id);
+  }, [user, fetchProfile]);
 
   const isPro = profile?.subscription_tier === "pro";
 

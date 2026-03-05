@@ -220,6 +220,8 @@ const zhTW: Record<TranslationKeys, string> = {
   auth_resendEmail: "重新傳送驗證郵件",
   auth_resendSent: "驗證郵件已重新傳送！",
   auth_resendCooldown: "{seconds}秒後可重新傳送",
+  auth_emailNotVerified: "你的電子郵件尚未驗證。",
+  auth_resendVerification: "重新傳送驗證郵件",
   auth_signInToSubscribe: "登入後訂閱",
   auth_forgotPassword: "忘記密碼？",
   auth_enterEmailFirst: "請先輸入電子郵件",
@@ -258,6 +260,7 @@ const zhTW: Record<TranslationKeys, string> = {
   sub_monthly: "月度訂閱",
   sub_lifetime: "終身買斷",
   sub_lifetimeSub: "一次付費，永久使用",
+  sub_lifetimeLimited: "限時優惠",
   sub_mo: "月",
   sub_subscribe: "訂閱 Pro",
   sub_active: "Pro 已啟用",
@@ -265,6 +268,8 @@ const zhTW: Record<TranslationKeys, string> = {
   sub_terms: "服務條款",
   sub_privacy: "隱私政策",
   sub_restore: "恢復購買",
+  sub_restoreNotFound: "未找到有效訂閱。如果您剛完成購買，請稍等片刻後重試。",
+  sub_verifyingPayment: "正在確認付款…",
 
   /* ── 回饋 ── */
   feedback_title: "回饋",

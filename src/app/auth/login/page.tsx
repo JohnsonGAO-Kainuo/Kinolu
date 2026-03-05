@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { useAuth } from "@/components/AuthProvider";
@@ -8,20 +8,46 @@ import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, resetPassword, loading: authLoading } = useAuth();
+  const { signIn, resetPassword, resendVerification, loading: authLoading } = useAuth();
   const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
+
+  // Cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResend = useCallback(async () => {
+    if (resendCooldown > 0 || !email) return;
+    const { error: err } = await resendVerification(email);
+    if (err) {
+      setResendMsg(err);
+    } else {
+      setResendMsg(t("auth_resendSent"));
+    }
+    setResendCooldown(60);
+    setTimeout(() => setResendMsg(null), 4000);
+  }, [email, resendCooldown, resendVerification, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setEmailNotVerified(false);
     setLoading(true);
     const { error: err } = await signIn(email, password);
     if (err) {
+      // Detect unverified email error
+      const isNotConfirmed = err.toLowerCase().includes("email not confirmed") || err.toLowerCase().includes("not confirmed");
+      setEmailNotVerified(isNotConfirmed);
       setError(err);
       setLoading(false);
     } else {
@@ -109,6 +135,26 @@ export default function LoginPage() {
 
             {error && (
               <p className="text-[12px] text-red-400 text-center">{error}</p>
+            )}
+
+            {/* Resend verification for unverified users */}
+            {emailNotVerified && (
+              <div className="bg-amber-900/20 border border-amber-500/20 rounded-xl px-4 py-3 text-center">
+                <p className="text-[12px] text-amber-300 mb-2">{t("auth_emailNotVerified")}</p>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendCooldown > 0}
+                  className="text-[12px] text-amber-200 underline underline-offset-2 disabled:text-amber-200/40 disabled:no-underline transition-colors"
+                >
+                  {resendCooldown > 0
+                    ? (t("auth_resendCooldown") as string).replace("{seconds}", String(resendCooldown))
+                    : t("auth_resendVerification")}
+                </button>
+                {resendMsg && (
+                  <p className="text-[11px] text-green-400/80 mt-1.5">{resendMsg}</p>
+                )}
+              </div>
             )}
 
             <button

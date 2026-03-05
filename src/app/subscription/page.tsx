@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/components/AuthProvider";
@@ -15,10 +15,50 @@ const PAYMENT_LINKS: Record<Plan, string> = {
 };
 
 export default function SubscriptionPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-col w-full h-full bg-black" />}>
+      <SubscriptionContent />
+    </Suspense>
+  );
+}
+
+function SubscriptionContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useI18n();
   const { user, isPro, profile, subscription, refreshProfile } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
+
+  /* ── Post-payment auto-refresh ──
+   * When user returns from Stripe with ?payment_success=1,
+   * poll refreshProfile every 3s for up to 30s until isPro becomes true. */
+  const pollingRef = useRef(false);
+  const [paymentPending, setPaymentPending] = useState(false);
+
+  const pollForProStatus = useCallback(async () => {
+    if (pollingRef.current) return;
+    pollingRef.current = true;
+    setPaymentPending(true);
+
+    const maxAttempts = 10; // 10 × 3s = 30s
+    for (let i = 0; i < maxAttempts; i++) {
+      const freshProfile = await refreshProfile();
+      if (freshProfile?.subscription_tier === "pro") {
+        setPaymentPending(false);
+        pollingRef.current = false;
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    setPaymentPending(false);
+    pollingRef.current = false;
+  }, [refreshProfile]);
+
+  useEffect(() => {
+    if (searchParams.get("payment_success") === "1" && !isPro) {
+      pollForProStatus();
+    }
+  }, [searchParams, isPro, pollForProStatus]);
 
   return (
     <div className="flex flex-col w-full h-full bg-black">
@@ -182,12 +222,16 @@ export default function SubscriptionPage() {
             {/* Lifetime */}
             <button
               onClick={() => setSelectedPlan("lifetime" as Plan)}
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
+              className={`relative flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
                 selectedPlan === ("lifetime" as Plan)
                   ? "border-white/40 bg-white/[0.06]"
                   : "border-white/10 bg-white/[0.02]"
               }`}
             >
+              {/* Limited-time badge */}
+              <div className="absolute -top-2.5 right-4 px-2 py-0.5 bg-amber-500 text-black text-[9px] font-bold rounded-full tracking-wider uppercase">
+                {t("sub_lifetimeLimited")}
+              </div>
               <div
                 className={`shrink-0 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-colors ${
                   selectedPlan === ("lifetime" as Plan)
@@ -225,6 +269,10 @@ export default function SubscriptionPage() {
                 </span>
               )}
             </div>
+          ) : paymentPending ? (
+            <div className="w-full py-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl text-[13px] font-medium tracking-wide text-center animate-pulse">
+              {t("sub_verifyingPayment")}
+            </div>
           ) : (
             <button
               onClick={() => {
@@ -234,11 +282,13 @@ export default function SubscriptionPage() {
                 }
                 const link = PAYMENT_LINKS[selectedPlan];
                 if (link) {
-                  // Append prefilled email for Stripe
+                  // Append prefilled email + client_reference_id for Stripe
                   const url = new URL(link);
                   if (profile?.email) {
                     url.searchParams.set("prefilled_email", profile.email);
                   }
+                  // client_reference_id lets the webhook reliably link payment to user
+                  url.searchParams.set("client_reference_id", user.id);
                   window.location.href = url.toString();
                 }
               }}
@@ -274,7 +324,7 @@ export default function SubscriptionPage() {
               const freshProfile = await refreshProfile();
               const nowPro = freshProfile?.subscription_tier === "pro";
               if (nowPro) alert(t("sub_active"));
-              else alert("No active subscription found. If you recently purchased, please wait a moment and try again.");
+              else alert(t("sub_restoreNotFound"));
             }} className="text-[10px] text-white/30 underline underline-offset-2">
               {t("sub_restore")}
             </button>

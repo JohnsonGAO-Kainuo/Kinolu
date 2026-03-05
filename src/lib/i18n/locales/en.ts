@@ -218,6 +218,8 @@ const en = {
   auth_resendEmail: "Resend verification email",
   auth_resendSent: "Verification email resent!",
   auth_resendCooldown: "Resend in {seconds}s",
+  auth_emailNotVerified: "Your email hasn't been verified yet.",
+  auth_resendVerification: "Resend verification email",
   auth_signInToSubscribe: "Sign in to subscribe",
   auth_forgotPassword: "Forgot password?",
   auth_enterEmailFirst: "Please enter your email first",
@@ -256,6 +258,7 @@ const en = {
   sub_monthly: "Monthly",
   sub_lifetime: "Lifetime",
   sub_lifetimeSub: "Pay once, own forever",
+  sub_lifetimeLimited: "Limited-time offer",
   sub_mo: "mo",
   sub_subscribe: "Subscribe to Pro",
   sub_active: "Pro Active",
@@ -263,6 +266,8 @@ const en = {
   sub_terms: "Terms",
   sub_privacy: "Privacy",
   sub_restore: "Restore Purchase",
+  sub_restoreNotFound: "No active subscription found. If you recently purchased, please wait a moment and try again.",
+  sub_verifyingPayment: "Verifying your payment…",
 
   /* ── Feedback ── */
   feedback_title: "Feedback",
