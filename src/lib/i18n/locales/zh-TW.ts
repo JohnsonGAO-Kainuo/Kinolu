@@ -235,6 +235,7 @@ const zhTW: Record<TranslationKeys, string> = {
   profile_signIn: "登入",
   profile_signOut: "登出",
   profile_upgradePro: "升級到 Pro",
+  profile_manageSubscription: "管理訂閱",
 
   /* ── 訂閱 ── */
   sub_title: "訂閱",

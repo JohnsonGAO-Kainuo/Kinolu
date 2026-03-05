@@ -235,6 +235,7 @@ const zhCN: Record<TranslationKeys, string> = {
   profile_signIn: "登录",
   profile_signOut: "退出登录",
   profile_upgradePro: "升级到 Pro",
+  profile_manageSubscription: "管理订阅",
 
   /* ── 订阅 ── */
   sub_title: "订阅",

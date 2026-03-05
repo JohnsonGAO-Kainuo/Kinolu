@@ -346,15 +346,20 @@ Deno.serve(async (req: Request) => {
   const sig = req.headers.get("stripe-signature");
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
-  // Verify signature if secret is configured
-  if (webhookSecret && sig) {
-    const valid = await verifyStripeSignature(body, sig, webhookSecret);
-    if (!valid) {
-      console.error("Invalid Stripe signature");
-      return new Response("Invalid signature", { status: 400 });
-    }
-  } else if (webhookSecret && !sig) {
-    return new Response("Missing signature", { status: 400 });
+  // SECURITY: Always require webhook secret in production
+  if (!webhookSecret) {
+    console.error("STRIPE_WEBHOOK_SECRET not configured — rejecting request");
+    return new Response("Webhook secret not configured", { status: 500 });
+  }
+
+  if (!sig) {
+    return new Response("Missing stripe-signature header", { status: 400 });
+  }
+
+  const valid = await verifyStripeSignature(body, sig, webhookSecret);
+  if (!valid) {
+    console.error("Invalid Stripe signature");
+    return new Response("Invalid signature", { status: 400 });
   }
 
   let event: { type: string; data: { object: Record<string, unknown> } };

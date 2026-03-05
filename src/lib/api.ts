@@ -106,9 +106,16 @@ export async function transferImage(
 
 /* ─── Capabilities ─── */
 export async function getCapabilities(): Promise<Capabilities> {
-  const res = await fetch(`${API_BASE}/api/capabilities`);
-  if (!res.ok) throw new Error("Failed to fetch capabilities");
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/capabilities`);
+    if (!res.ok) throw new Error("Failed to fetch capabilities");
+    return res.json();
+  } catch {
+    // Client-side fallback: return minimal capabilities
+    return {
+      methods: ["reinhard"],
+    };
+  }
 }
 
 /* ─── Health ─── */
@@ -123,10 +130,15 @@ export async function healthCheck(): Promise<boolean> {
 
 /* ─── Presets ─── */
 export async function listPresets(): Promise<PresetItem[]> {
-  const res = await fetch(`${API_BASE}/api/presets`);
-  if (!res.ok) throw new Error("Failed to list presets");
-  const data = await res.json();
-  return Array.isArray(data?.items) ? data.items : [];
+  try {
+    const res = await fetch(`${API_BASE}/api/presets`);
+    if (!res.ok) throw new Error("Failed to list presets");
+    const data = await res.json();
+    return Array.isArray(data?.items) ? data.items : [];
+  } catch {
+    // Client-side fallback: no server presets available
+    return [];
+  }
 }
 
 export async function importCubePreset(file: File, name?: string): Promise<PresetItem> {

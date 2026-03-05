@@ -4,11 +4,44 @@ import { useRouter } from "next/navigation";
 import { IconBack } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/components/AuthProvider";
+import { createClient } from "@/lib/supabase";
+import { useState } from "react";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { t } = useI18n();
   const { user, profile, isPro, subscription, signOut, loading } = useAuth();
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const openCustomerPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-portal-session`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          },
+          body: JSON.stringify({ return_url: window.location.href }),
+        },
+      );
+
+      if (!res.ok) throw new Error("Portal session failed");
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } catch (err) {
+      console.error("Portal error:", err);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col w-full h-full bg-black">
@@ -69,6 +102,16 @@ export default function ProfilePage() {
                 className="px-6 py-2.5 bg-white text-black rounded-xl text-[12px] font-semibold tracking-[1px]"
               >
                 {t("profile_upgradePro")}
+              </button>
+            )}
+
+            {isPro && (
+              <button
+                onClick={openCustomerPortal}
+                disabled={portalLoading}
+                className="px-6 py-2.5 bg-white/[0.06] text-white/80 rounded-xl text-[12px] font-medium tracking-[1px] border border-white/10 disabled:opacity-40 transition-all active:scale-[0.98]"
+              >
+                {portalLoading ? t("loading") : t("profile_manageSubscription")}
               </button>
             )}
 

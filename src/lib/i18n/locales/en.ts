@@ -233,6 +233,7 @@ const en = {
   profile_signIn: "Sign In",
   profile_signOut: "Sign Out",
   profile_upgradePro: "Upgrade to Pro",
+  profile_manageSubscription: "Manage Subscription",
 
   /* ── Subscription ── */
   sub_title: "Subscription",
