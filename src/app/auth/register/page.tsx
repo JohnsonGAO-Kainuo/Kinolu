@@ -109,9 +109,7 @@ export default function RegisterPage() {
             <>
               {/* Logo */}
               <div className="flex flex-col items-center mb-8">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center mb-3">
-                  <span className="text-[20px] font-bold text-white">K</span>
-                </div>
+                <img src="/logo-icon.png" alt="Kinolu" width={56} height={56} className="w-14 h-14 rounded-2xl mb-3" />
                 <h2 className="text-[18px] font-bold text-white">
                   {t("auth_createAccount")}
                 </h2>

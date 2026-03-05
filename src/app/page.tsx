@@ -80,9 +80,12 @@ export default function HomePage() {
         >
           <IconMenu size={18} />
         </button>
-        <span className="text-[13px] font-bold tracking-[4px] text-white/90 drop-shadow-lg">
-          KINOLU
-        </span>
+        <div className="flex items-center gap-1.5">
+          <img src="/logo-icon-sm.png" alt="" width={22} height={22} className="w-[22px] h-[22px] drop-shadow-lg" />
+          <span className="text-[13px] font-bold tracking-[4px] text-white/90 drop-shadow-lg">
+            KINOLU
+          </span>
+        </div>
         {canInstall ? (
           <button onClick={promptInstall} className="pointer-events-auto text-[9px] tracking-[1.5px] text-white/50 border border-white/15 rounded-full px-2.5 py-1 hover:text-white/80 transition-colors">
             {t("install")}

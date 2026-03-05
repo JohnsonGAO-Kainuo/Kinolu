@@ -58,9 +58,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       >
         {/* Header */}
         <div className="h-[60px] safe-top flex items-center justify-between px-6">
-          <span className="text-[14px] font-bold tracking-[4px] text-white/90 uppercase">
-            {t("appName")}
-          </span>
+          <div className="flex items-center gap-2">
+            <img src="/logo-icon-sm.png" alt="" width={24} height={24} className="w-6 h-6" />
+            <span className="text-[14px] font-bold tracking-[4px] text-white/90 uppercase">
+              {t("appName")}
+            </span>
+          </div>
           {user && profile && (
             <div className="flex items-center gap-2">
               {isPro && (
