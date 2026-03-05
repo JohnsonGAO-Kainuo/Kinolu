@@ -39,6 +39,25 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Prevent long-press callout & unwanted text selection on app chrome.
+   Input/textarea elements are excluded so users can still select text in forms. */
+body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Block image save/copy context menu on all images in the app */
+img, canvas {
+  -webkit-touch-callout: none;
+  pointer-events: auto;
+}
+
 html, body {
   background: var(--k-bg);
   color: var(--k-text);

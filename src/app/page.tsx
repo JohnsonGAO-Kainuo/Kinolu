@@ -14,7 +14,7 @@ const CARD_DEFS = [
     descKey: "home_cameraDesc" as const,
     href: "/camera",
     icon: IconCamera,
-    bg: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1200&auto=format&fit=crop",
+    bg: "/heroes/camera.jpg",
   },
   {
     id: "editor",
@@ -22,7 +22,7 @@ const CARD_DEFS = [
     descKey: "home_editorDesc" as const,
     href: "/editor",
     icon: IconEdit,
-    bg: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1200&auto=format&fit=crop",
+    bg: "/heroes/editor.jpg",
   },
   {
     id: "library",
@@ -30,7 +30,7 @@ const CARD_DEFS = [
     descKey: "home_libraryDesc" as const,
     href: "/presets",
     icon: IconLibrary,
-    bg: "https://images.unsplash.com/photo-1447703693928-9cd89c8d3ac5?q=80&w=1200&auto=format&fit=crop",
+    bg: "/heroes/presets.jpg",
   },
 ] as const;
 

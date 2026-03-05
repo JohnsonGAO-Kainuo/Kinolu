@@ -97,16 +97,19 @@ const CATEGORIES: { key: EditCategory; labelKey: TranslationKeys }[] = [
   { key: "detail", labelKey: "adj_detail" },
 ];
 
-/* ── Single slider row — Lightroom-style direct-drag interaction ──
+/* ── Single slider row ──
  *
- * The ENTIRE row is the drag zone — touch anywhere on the row and drag
- * horizontally to adjust the value. No need to "select" first.
+ * Hybrid approach: label row on top, full-width slider track below.
+ * The slider has a visible thumb (like before) but the TRACK area is
+ * tall enough (28px touch target) that you can start dragging directly
+ * without needing to precisely hit the thumb.
  *
- * Visual: icon + label on left, value on right, full-width slider bar
- * beneath that doubles as background fill.
- *
- * Touch-area is the full row height (~52px), not just the 6px track,
- * making it much easier to interact with on mobile.
+ * Key UX fixes:
+ * - Vertical dead-zone: if finger moves more vertically than horizontally
+ *   in the first 8px of movement, the drag is cancelled so scrolling works.
+ * - Horizontal drag commits immediately once past 4px dead-zone.
+ * - touch-action: pan-y — lets the browser handle vertical scrolling
+ *   unless we explicitly capture the pointer for horizontal drag.
  */
 const SliderRow = React.memo(function SliderRow({
   tool,
@@ -131,20 +134,20 @@ const SliderRow = React.memo(function SliderRow({
     : (value / tool.max) * 100;
 
   const Icon = tool.icon;
-  const rowRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  const captured = useRef(false);
   const pendingX = useRef(0);
   const moveRafId = useRef(0);
-  // Track whether we've moved enough to be a drag vs. a tap
   const startX = useRef(0);
-  const hasMoved = useRef(false);
+  const startY = useRef(0);
+  const decided = useRef(false); // Have we decided drag vs scroll?
 
   const updateFromPointer = useCallback(
     (clientX: number) => {
-      const el = rowRef.current;
+      const el = trackRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      // Use full row width as the slider range
       const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const raw = tool.min + ratio * (tool.max - tool.min);
       onChange(Math.round(raw));
@@ -154,13 +157,14 @@ const SliderRow = React.memo(function SliderRow({
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      // Don't prevent default yet — let browser decide scroll vs drag
       dragging.current = true;
+      captured.current = false;
+      decided.current = false;
       startX.current = e.clientX;
-      hasMoved.current = false;
+      startY.current = e.clientY;
       pendingX.current = e.clientX;
-      onSelect(); // Select immediately on touch — no delay
+      onSelect();
     },
     [onSelect]
   );
@@ -168,11 +172,29 @@ const SliderRow = React.memo(function SliderRow({
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!dragging.current) return;
+      const dx = Math.abs(e.clientX - startX.current);
+      const dy = Math.abs(e.clientY - startY.current);
+
+      if (!decided.current) {
+        // Need at least 6px of movement to decide direction
+        if (dx < 6 && dy < 6) return;
+        decided.current = true;
+
+        if (dy > dx) {
+          // User is scrolling vertically — abort drag completely
+          dragging.current = false;
+          return;
+        }
+        // Horizontal drag confirmed — capture pointer
+        try {
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        } catch { /* ignore */ }
+        captured.current = true;
+      }
+
+      if (!captured.current) return;
+
       pendingX.current = e.clientX;
-      // 4px dead zone before committing to drag (prevents accidental changes on tap)
-      if (!hasMoved.current && Math.abs(e.clientX - startX.current) < 4) return;
-      hasMoved.current = true;
-      // Batch pointer events — at most 1 state update per animation frame
       if (!moveRafId.current) {
         moveRafId.current = requestAnimationFrame(() => {
           moveRafId.current = 0;
@@ -183,115 +205,101 @@ const SliderRow = React.memo(function SliderRow({
     [updateFromPointer]
   );
 
-  const onPointerUp = useCallback(() => {
-    // Flush pending RAF and apply final position synchronously
-    if (moveRafId.current) {
-      cancelAnimationFrame(moveRafId.current);
-      moveRafId.current = 0;
-    }
-    if (dragging.current && hasMoved.current) {
-      updateFromPointer(pendingX.current);
-    }
-    dragging.current = false;
-    hasMoved.current = false;
-    onDragEnd?.();
-  }, [onDragEnd, updateFromPointer]);
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (moveRafId.current) {
+        cancelAnimationFrame(moveRafId.current);
+        moveRafId.current = 0;
+      }
+      if (dragging.current && captured.current) {
+        updateFromPointer(pendingX.current);
+        try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* */ }
+      }
+      dragging.current = false;
+      captured.current = false;
+      decided.current = false;
+      onDragEnd?.();
+    },
+    [onDragEnd, updateFromPointer]
+  );
 
   const hasGradient = !!tool.gradient;
   const isNonZero = value !== 0;
 
   return (
     <div
-      ref={rowRef}
-      className="relative rounded-lg select-none touch-none cursor-pointer overflow-hidden"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      className={`rounded-lg px-3 py-2 select-none transition-colors ${isActive ? "bg-white/[0.04]" : ""}`}
+      onClick={onSelect}
     >
-      {/* Background fill — shows the current value as a colored bar behind the row */}
-      {!hasGradient && isNonZero && (
-        <div className="absolute inset-0 pointer-events-none">
-          {isBipolar ? (
-            <div
-              className="absolute top-0 h-full bg-white/[0.06] rounded-lg"
-              style={{
-                left: value >= 0 ? "50%" : `${pct}%`,
-                width: `${Math.abs(pct - 50)}%`,
-              }}
-            />
-          ) : (
-            <div
-              className="absolute top-0 left-0 h-full bg-white/[0.06] rounded-lg"
-              style={{ width: `${pct}%` }}
-            />
-          )}
-        </div>
-      )}
-      {hasGradient && isNonZero && (
-        <div
-          className="absolute inset-0 pointer-events-none rounded-lg opacity-15"
-          style={{ background: tool.gradient }}
-        />
-      )}
-
-      {/* Content layer */}
-      <div className="relative px-3 py-3 flex items-center gap-2.5">
+      {/* Label row: icon + name + value */}
+      <div className="flex items-center gap-2 mb-1.5">
         <Icon
-          size={15}
+          size={14}
           className={`shrink-0 transition-colors ${
-            isActive ? "text-white/90" : isNonZero ? "text-white/60" : "text-white/30"
+            isActive ? "text-white/80" : isNonZero ? "text-white/50" : "text-white/30"
           }`}
         />
         <span
           className={`text-[12px] flex-1 transition-colors ${
-            isActive ? "text-white font-medium" : isNonZero ? "text-white/70" : "text-white/50"
+            isActive ? "text-white font-medium" : isNonZero ? "text-white/65" : "text-white/45"
           }`}
         >
           {label}
         </span>
-        <span
-          className={`text-[11px] font-mono tabular-nums min-w-[32px] text-right transition-colors ${
-            isNonZero ? "text-white/60" : "text-white/25"
-          }`}
-        >
+        <span className={`text-[11px] font-mono tabular-nums min-w-[32px] text-right transition-colors ${isNonZero ? "text-white/50" : "text-white/20"}`}>
           {isBipolar && value > 0 ? "+" : ""}
           {value}
         </span>
       </div>
 
-      {/* Thin track line — visual indicator at bottom of row */}
-      <div className="absolute bottom-0 left-3 right-3 h-[2px]">
-        {/* Track background */}
+      {/* Slider track — tall touch target with visible thumb */}
+      <div
+        ref={trackRef}
+        className="relative h-7 flex items-center cursor-pointer"
+        style={{ touchAction: "pan-y" }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        {/* Visual track bar (thin line centered in the touch area) */}
         <div
-          className="absolute inset-0 rounded-full"
+          className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[5px] rounded-full"
           style={{
-            background: hasGradient ? tool.gradient : "rgba(255,255,255,0.06)",
+            background: hasGradient ? tool.gradient : "rgba(255,255,255,0.08)",
           }}
+        >
+          {/* Fill (only for non-gradient tracks) */}
+          {!hasGradient && (
+            <>
+              {isBipolar ? (
+                <div
+                  className="absolute top-0 h-full rounded-full bg-white/35"
+                  style={{
+                    left: value >= 0 ? "50%" : `${pct}%`,
+                    width: `${Math.abs(pct - 50)}%`,
+                  }}
+                />
+              ) : (
+                <div
+                  className="absolute top-0 left-0 h-full rounded-full bg-white/35"
+                  style={{ width: `${pct}%` }}
+                />
+              )}
+            </>
+          )}
+
+          {/* Center tick for bipolar */}
+          {isBipolar && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1.5px] h-3 bg-white/20 rounded-full" />
+          )}
+        </div>
+
+        {/* Thumb */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full border-[2px] border-white bg-[#111] shadow-[0_1px_4px_rgba(0,0,0,0.5)] pointer-events-none"
+          style={{ left: `calc(${pct}% - 9px)` }}
         />
-
-        {/* Fill on track */}
-        {!hasGradient && isNonZero && (
-          isBipolar ? (
-            <div
-              className="absolute top-0 h-full rounded-full bg-white/40"
-              style={{
-                left: value >= 0 ? "50%" : `${pct}%`,
-                width: `${Math.abs(pct - 50)}%`,
-              }}
-            />
-          ) : (
-            <div
-              className="absolute top-0 left-0 h-full rounded-full bg-white/40"
-              style={{ width: `${pct}%` }}
-            />
-          )
-        )}
-
-        {/* Center tick for bipolar */}
-        {isBipolar && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-2 bg-white/15 rounded-full" />
-        )}
       </div>
     </div>
   );
@@ -360,7 +368,7 @@ export default function AdjustmentPanel({
       </div>
 
       {/* Slider list */}
-      <div className="flex flex-col gap-px px-1">
+      <div className="flex flex-col gap-0.5 px-1">
         {categoryTools.map((tl) => (
           <SliderRow
             key={tl.key}

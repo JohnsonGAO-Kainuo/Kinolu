@@ -793,7 +793,9 @@ export default function EditorPage() {
           <>
             {/* Image display — tap to toggle fullscreen, long-press to compare original */}
             <div
-              className="absolute inset-0 flex items-center justify-center px-3 py-2 cursor-pointer"
+              className="absolute inset-0 flex items-center justify-center px-3 py-2 cursor-pointer select-none"
+              style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none" } as React.CSSProperties}
+              onContextMenu={(e) => e.preventDefault()}
               onClick={(e) => {
                 // Only toggle fullscreen if tapping the background/canvas, not buttons inside
                 if ((e.target as HTMLElement).closest("button")) return;
@@ -810,8 +812,10 @@ export default function EditorPage() {
             >
               <canvas
                 ref={displayCanvasRef}
-                className="max-w-full max-h-full object-contain rounded-sm"
-                style={comparing ? { opacity: 0, position: 'absolute', pointerEvents: 'none' } : undefined}
+                className="max-w-full max-h-full object-contain rounded-sm select-none"
+                style={comparing ? { opacity: 0, position: 'absolute', pointerEvents: 'none' } : { WebkitTouchCallout: 'none' } as React.CSSProperties}
+                onContextMenu={(e) => e.preventDefault()}
+                draggable={false}
               />
               {comparing && sourceUrl && <img src={sourceUrl} alt="Original" className="max-w-full max-h-full object-contain rounded-sm" draggable={false} />}
             </div>
