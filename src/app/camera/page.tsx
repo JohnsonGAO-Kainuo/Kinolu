@@ -416,19 +416,34 @@ export default function CameraPage() {
     canvas.toBlob((blob) => { if (blob) setCapturedUrl(URL.createObjectURL(blob)); }, "image/jpeg", 0.95);
   }, []);
 
-  /** Capture with flash support: torch on → wait for exposure → capture → torch off */
+  /** Capture with flash: pre-flash (metering) → main flash (capture) → off
+   *
+   *  Real camera flash sequence:
+   *  1. Pre-flash pulse: quick on/off so camera auto-exposure can meter
+   *  2. Brief pause for AE to settle
+   *  3. Main flash on + capture frame
+   *  4. Flash off
+   */
   const capture = useCallback(() => {
     const mode = flashModeRef.current;
     const shouldFlash = torchAvailable && (mode === "on" || (mode === "auto" && brightnessRef.current <= 0.8));
 
     if (shouldFlash) {
-      // Turn on torch, wait 150ms for camera to adjust exposure, then capture
+      // ① Pre-flash pulse for metering (50ms on → 80ms off)
       setTorch(true);
       setTimeout(() => {
-        captureFrame();
-        // Turn off torch after capture
-        setTimeout(() => setTorch(false), 100);
-      }, 150);
+        setTorch(false);
+        setTimeout(() => {
+          // ② Main flash on
+          setTorch(true);
+          setTimeout(() => {
+            // ③ Capture after 120ms (camera AE has adjusted to flash)
+            captureFrame();
+            // ④ Brief hold then off (total flash visible ~200ms, feels natural)
+            setTimeout(() => setTorch(false), 80);
+          }, 120);
+        }, 80);
+      }, 50);
     } else {
       captureFrame();
     }
