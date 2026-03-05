@@ -150,7 +150,7 @@ input[type="range"].k-slider-center::-webkit-slider-thumb {
 
 /* ── Safe-area paddings ── */
 .safe-top {
-  padding-top: max(20px, var(--k-safe-top));
+  padding-top: max(20px, calc(var(--k-safe-top) + 8px));
 }
 .safe-bottom {
   padding-bottom: max(10px, var(--k-safe-bottom));

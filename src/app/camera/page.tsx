@@ -192,7 +192,7 @@ export default function CameraPage() {
            * Desktop: 1280px (close to native 1080p)
            */
           const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          const maxDim = isMobileDevice ? 960 : 1280;
+          const maxDim = isMobileDevice ? 1280 : 1920;
           let cw = vw, ch = vh;
           if (Math.max(vw, vh) > maxDim) {
             const s = maxDim / Math.max(vw, vh);
@@ -628,7 +628,7 @@ export default function CameraPage() {
       {/* Capture preview */}
       {capturedUrl && (
         <div className="absolute inset-0 z-30 bg-black flex flex-col">
-          <div className="flex items-center justify-between px-5 h-[44px] safe-top">
+          <div className="flex items-center justify-between px-5 min-h-[44px] safe-top">
             <button onClick={() => { if (capturedUrl) URL.revokeObjectURL(capturedUrl); setCapturedUrl(null); }} className="text-white/70 text-[13px] font-medium tracking-wider">{t("camera_retake")}</button>
             <button onClick={goEditorWithCapture} className="text-white text-[13px] font-semibold tracking-wider">{t("camera_usePhoto")}</button>
           </div>

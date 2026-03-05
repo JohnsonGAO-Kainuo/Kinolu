@@ -180,7 +180,10 @@ export default function EditorPage() {
           let w = img.naturalWidth, h = img.naturalHeight;
           if (w > MAX || h > MAX) { const s = MAX / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
           const c = document.createElement("canvas"); c.width = w; c.height = h;
-          const ctx = c.getContext("2d")!; ctx.drawImage(img, 0, 0, w, h);
+          const ctx = c.getContext("2d")!;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, w, h);
           resolve(ctx.getImageData(0, 0, w, h));
         };
         img.onerror = reject;
@@ -248,6 +251,7 @@ export default function EditorPage() {
           tmp.getContext("2d")!.putImageData(result, 0, 0);
           const ctx = canvas.getContext("2d")!;
           ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
           ctx.drawImage(tmp, 0, 0, base.width, base.height);
         }
       } else if (live) {
@@ -324,7 +328,9 @@ export default function EditorPage() {
     sourceFileRef.current = file;
     if (sourceUrl) URL.revokeObjectURL(sourceUrl);
     const url = URL.createObjectURL(file); setSourceUrl(url);
+    setProcessing(true);
     const data = await loadImageToData(url);
+    setProcessing(false);
     sourceImageData.current = data; baseImageData.current = data;
     transferredImageData.current = null; setHasTransferred(false);
     setRenderTick((t) => t + 1);
@@ -382,7 +388,9 @@ export default function EditorPage() {
     const res = await fetch(url); const blob = await res.blob();
     sourceFileRef.current = new File([blob], fileName, { type: blob.type || "image/jpeg" });
     setSourceUrl(url);
+    setProcessing(true);
     const data = await loadImageToData(url);
+    setProcessing(false);
     sourceImageData.current = data; baseImageData.current = data;
     transferredImageData.current = null; setHasTransferred(false);
     setRenderTick((t) => t + 1);
@@ -724,7 +732,7 @@ export default function EditorPage() {
 
       {/* ── Header — hidden in fullscreen ── */}
       {!previewFullscreen && (
-      <header className="flex items-center justify-between h-[44px] px-4 safe-top shrink-0 z-10">
+      <header className="flex items-center justify-between min-h-[44px] px-4 safe-top shrink-0 z-10">
         <button onClick={() => {
             if (window.history.length > 1) router.back();
             else router.push("/");
@@ -978,15 +986,15 @@ export default function EditorPage() {
           /* ── Empty state — step 1 ── */
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 px-8">
             <button onClick={() => sourceInputRef.current?.click()}
-              className="w-24 h-24 rounded-3xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 hover:border-white/25 hover:bg-white/[0.02] transition-all active:scale-95">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-white/25">
+              className="w-32 h-32 rounded-3xl border-[1.5px] border-dashed border-white/15 flex flex-col items-center justify-center gap-3 hover:border-white/30 hover:bg-white/[0.02] transition-all active:scale-95">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-white/30">
                 <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
               </svg>
-              <span className="text-[10px] text-white/25 tracking-[1px]">{t("editor_importPhoto")}</span>
+              <span className="text-[12px] text-white/30 tracking-[1px]">{t("editor_importPhoto")}</span>
             </button>
-            <div className="flex flex-col items-center gap-1.5">
-              <span className="text-[13px] text-white/50 font-medium">{t("editor_importFirst")}</span>
-              <span className="text-[10px] text-white/25 leading-relaxed text-center max-w-[220px]">
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-[15px] text-white/50 font-medium">{t("editor_importFirst")}</span>
+              <span className="text-[11px] text-white/30 leading-relaxed text-center max-w-[240px]">
                 {t("editor_importHint")}
               </span>
             </div>

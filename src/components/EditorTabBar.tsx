@@ -22,7 +22,7 @@ const TABS: { key: EditorTab; labelKey: TranslationKeys; icon: React.FC<{ size?:
 export default function EditorTabBar({ active, onSelect }: EditorTabBarProps) {
   const { t } = useI18n();
   return (
-    <div className="bg-[#0a0a0a] border-t border-white/5 safe-bottom">
+    <div className="bg-[#0a0a0a] border-t border-white/5 safe-bottom pt-1.5">
       <div className="flex h-[56px] items-center">
         {TABS.map((tab) => {
           const isActive = tab.key === active;

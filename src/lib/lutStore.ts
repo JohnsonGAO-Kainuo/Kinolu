@@ -319,13 +319,47 @@ export function applyLutToPixels(
   lutData: Float32Array,
   lutSize: number,
 ): void {
-  for (let i = 0; i < px.length; i += 4) {
-    const r = px[i] / 255;
-    const g = px[i + 1] / 255;
-    const b = px[i + 2] / 255;
-    const [nr, ng, nb] = trilinearSample(lutData, lutSize, r, g, b);
-    px[i] = Math.round(clamp01(nr) * 255);
-    px[i + 1] = Math.round(clamp01(ng) * 255);
-    px[i + 2] = Math.round(clamp01(nb) * 255);
+  const maxIdx = lutSize - 1;
+  const sizeSq = lutSize * lutSize;
+  const len = px.length;
+
+  for (let i = 0; i < len; i += 4) {
+    const rS = (px[i] / 255) * maxIdx;
+    const gS = (px[i + 1] / 255) * maxIdx;
+    const bS = (px[i + 2] / 255) * maxIdx;
+
+    const r0 = rS | 0;
+    const g0 = gS | 0;
+    const b0 = bS | 0;
+    const r1 = r0 < maxIdx ? r0 + 1 : maxIdx;
+    const g1 = g0 < maxIdx ? g0 + 1 : maxIdx;
+    const b1 = b0 < maxIdx ? b0 + 1 : maxIdx;
+
+    const rd = rS - r0;
+    const gd = gS - g0;
+    const bd = bS - b0;
+    const rd1 = 1 - rd, gd1 = 1 - gd, bd1 = 1 - bd;
+
+    // Pre-compute 8 corner indices into flat LUT array
+    const i000 = (b0 * sizeSq + g0 * lutSize + r0) * 3;
+    const i100 = (b0 * sizeSq + g0 * lutSize + r1) * 3;
+    const i010 = (b0 * sizeSq + g1 * lutSize + r0) * 3;
+    const i110 = (b0 * sizeSq + g1 * lutSize + r1) * 3;
+    const i001 = (b1 * sizeSq + g0 * lutSize + r0) * 3;
+    const i101 = (b1 * sizeSq + g0 * lutSize + r1) * 3;
+    const i011 = (b1 * sizeSq + g1 * lutSize + r0) * 3;
+    const i111 = (b1 * sizeSq + g1 * lutSize + r1) * 3;
+
+    // Inline trilinear interpolation — no array alloc, no function calls
+    for (let c = 0; c < 3; c++) {
+      const c00 = lutData[i000 + c] * rd1 + lutData[i100 + c] * rd;
+      const c10 = lutData[i010 + c] * rd1 + lutData[i110 + c] * rd;
+      const c01 = lutData[i001 + c] * rd1 + lutData[i101 + c] * rd;
+      const c11 = lutData[i011 + c] * rd1 + lutData[i111 + c] * rd;
+      const c0 = c00 * gd1 + c10 * gd;
+      const c1 = c01 * gd1 + c11 * gd;
+      let v = (c0 * bd1 + c1 * bd) * 255 + 0.5;
+      px[i + c] = v > 255 ? 255 : v < 0 ? 0 : v | 0;
+    }
   }
 }
