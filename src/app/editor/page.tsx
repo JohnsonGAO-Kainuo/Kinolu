@@ -724,6 +724,7 @@ export default function EditorPage() {
   /* ── Batch add more (appends to existing batch) ── */
   const handleBatchAddMore = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files) return;
+    if (!isPro) { showToast(t("batch_proOnly")); e.target.value = ""; return; }
     setBatchFiles((prev) => [
       ...prev,
       ...Array.from(files).slice(0, Math.max(0, 9 - prev.length)).map((f) => ({
@@ -731,9 +732,10 @@ export default function EditorPage() {
       })),
     ]);
     e.target.value = "";
-  }, []);
+  }, [isPro, showToast, t]);
 
   const runBatchTransfer = useCallback(async () => {
+    if (!isPro) { showToast(t("batch_proOnly")); return; }
     const ref = refFilesRef.current[activeRefIdx];
     if (!ref || batchFiles.length === 0) return;
     setBatchProcessing(true);
@@ -749,7 +751,7 @@ export default function EditorPage() {
     }
     setBatchProcessing(false);
     showToast(t("batch_complete"));
-  }, [batchFiles, activeRefIdx, params, showToast]);
+  }, [isPro, batchFiles, activeRefIdx, params, showToast, t]);
 
   const downloadBatchAll = useCallback(() => {
     batchFiles.forEach((f, i) => {
