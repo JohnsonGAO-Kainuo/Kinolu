@@ -187,9 +187,12 @@ export default function CameraPage() {
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         if (vw && vh) {
-          /* Cap canvas for mobile perf — lower res = faster LUT processing */
+          /* Scale preview canvas — balance sharpness vs LUT processing cost.
+           * Mobile: 960px gives sharp retina-quality preview on most phones
+           * Desktop: 1280px (close to native 1080p)
+           */
           const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          const maxDim = isMobileDevice ? 640 : 960;
+          const maxDim = isMobileDevice ? 960 : 1280;
           let cw = vw, ch = vh;
           if (Math.max(vw, vh) > maxDim) {
             const s = maxDim / Math.max(vw, vh);

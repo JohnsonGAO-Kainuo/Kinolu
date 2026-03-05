@@ -173,8 +173,10 @@ export default function EditorPage() {
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
-          // Lower cap on mobile to reduce memory pressure and prevent tab crashes
-          const MAX = isMobile ? 800 : 1200;
+          // Scale down very large images — but keep high enough for sharp preview
+          // Mobile: 1600px (sharp on retina, ~5MP working data — well within RAM budget)
+          // Desktop: 2400px (~11MP — fast enough with Web Worker)
+          const MAX = isMobile ? 1600 : 2400;
           let w = img.naturalWidth, h = img.naturalHeight;
           if (w > MAX || h > MAX) { const s = MAX / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
           const c = document.createElement("canvas"); c.width = w; c.height = h;
@@ -217,7 +219,7 @@ export default function EditorPage() {
 
       // Mobile fast-path: process at half resolution during slider drag
       // Saves ~75% processing time (640K→160K pixels) + skips spatial filters
-      if (live && isMobile && base.width > 400) {
+      if (live && isMobile && base.width > 600) {
         let small: ImageData;
         if (previewSmallCache.current?.base === base) {
           small = previewSmallCache.current.data;
