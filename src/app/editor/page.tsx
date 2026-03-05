@@ -485,12 +485,50 @@ export default function EditorPage() {
     }
   }, [pendingAutoTransfer, runTransfer]);
 
+  /* ── XY Pad: live blend preview during drag ── */
+  const xyDraggingRef = useRef(false);
+  const xyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Fast client-side blend between original source and transferred result.
+   *  blend = average of x,y → alpha between source & transfer.
+   *  ~2ms for 1600×1200 — fully real-time at 60fps. */
+  const blendXYPreview = useCallback((x: number, y: number) => {
+    const src = sourceImageData.current;
+    const xfr = transferredImageData.current;
+    if (!src || !xfr || src.data.length !== xfr.data.length) return;
+    // Blend factor: average of color_strength (x) and tone_strength (y)
+    const alpha = (x + y) / 2;
+    const sd = src.data, td = xfr.data;
+    const out = new Uint8ClampedArray(sd.length);
+    for (let i = 0; i < sd.length; i += 4) {
+      out[i]     = sd[i]     + (td[i]     - sd[i])     * alpha;
+      out[i + 1] = sd[i + 1] + (td[i + 1] - sd[i + 1]) * alpha;
+      out[i + 2] = sd[i + 2] + (td[i + 2] - sd[i + 2]) * alpha;
+      out[i + 3] = 255;
+    }
+    const blended = new ImageData(out, src.width, src.height);
+    baseImageData.current = blended;
+    paintCanvas(hasActiveEdits(paramsRef.current) ? applyEdits(blended, paramsRef.current, true) : blended);
+  }, [paintCanvas]);
+
   const updateXY = useCallback((x: number, y: number) => {
     setParams((p) => ({ ...p, color_strength: x, tone_strength: y, auto_xy: false }));
-  }, []);
+    // Live preview: fast client-side blend
+    if (!xyDraggingRef.current) xyDraggingRef.current = true;
+    blendXYPreview(x, y);
+    // Debounced server re-transfer (600ms after last drag movement)
+    if (xyDebounceRef.current) clearTimeout(xyDebounceRef.current);
+    xyDebounceRef.current = setTimeout(() => {
+      const source = sourceFileRef.current;
+      const ref = refFilesRef.current[activeRefIdx];
+      if (source && ref) void runTransfer();
+    }, 600);
+  }, [blendXYPreview, activeRefIdx, runTransfer]);
 
-  /** Re-run transfer with new XY values (called on pointer-up from XYPad) */
+  /** Final commit on pointer-up — cancel debounce, do immediate re-transfer */
   const commitXY = useCallback((_x: number, _y: number) => {
+    xyDraggingRef.current = false;
+    if (xyDebounceRef.current) { clearTimeout(xyDebounceRef.current); xyDebounceRef.current = null; }
     const source = sourceFileRef.current;
     const ref = refFilesRef.current[activeRefIdx];
     if (!source || !ref) return;

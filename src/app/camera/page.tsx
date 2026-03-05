@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { IconBack, IconFlip, IconGrid } from "@/components/icons";
+import { IconBack, IconFlip, IconGrid, IconFlash, IconFlashOff } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 import {
   listLocalLuts,
@@ -48,6 +48,8 @@ export default function CameraPage() {
   /* ── State ── */
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchAvailable, setTorchAvailable] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [zoom, setZoom] = useState(1.0);
   const [brightness, setBrightness] = useState(1.0);
@@ -98,6 +100,13 @@ export default function CameraPage() {
       });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
+      // Check torch capability
+      try {
+        const track = stream.getVideoTracks()[0];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const caps = track.getCapabilities?.() as any;
+        setTorchAvailable(!!caps?.torch);
+      } catch { setTorchAvailable(false); }
     } catch (err) {
       const msg =
         err instanceof DOMException && err.name === "NotFoundError"
@@ -129,7 +138,7 @@ export default function CameraPage() {
   }, [startCamera]);
 
   const flipCamera = useCallback(
-    () => setFacingMode((p) => (p === "environment" ? "user" : "environment")),
+    () => { setTorchOn(false); setFacingMode((p) => (p === "environment" ? "user" : "environment")); },
     [],
   );
 
@@ -474,10 +483,26 @@ export default function CameraPage() {
             className="w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center text-white/90">
             <IconBack size={18} />
           </button>
-          <button onClick={() => setShowGrid(!showGrid)}
-            className={`w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${showGrid ? "text-white" : "text-white/40"}`}>
-            <IconGrid size={16} />
-          </button>
+          <div className="flex items-center gap-2">
+            {torchAvailable && (
+              <button onClick={() => {
+                const next = !torchOn;
+                setTorchOn(next);
+                try {
+                  const track = streamRef.current?.getVideoTracks()[0];
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  if (track) void track.applyConstraints({ advanced: [{ torch: next } as any] });
+                } catch { /* not supported */ }
+              }}
+                className={`w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${torchOn ? "text-yellow-300" : "text-white/40"}`}>
+                {torchOn ? <IconFlash size={16} /> : <IconFlashOff size={16} />}
+              </button>
+            )}
+            <button onClick={() => setShowGrid(!showGrid)}
+              className={`w-9 h-9 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center transition-colors ${showGrid ? "text-white" : "text-white/40"}`}>
+              <IconGrid size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Viewfinder touch area */}
