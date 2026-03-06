@@ -1,9 +1,0 @@
-LICENSE.txt
-README.md
-setup.cfg
-setup.py
-color_transfer/__init__.py
-color_transfer.egg-info/PKG-INFO
-color_transfer.egg-info/SOURCES.txt
-color_transfer.egg-info/dependency_links.txt
-color_transfer.egg-info/top_level.txt
