@@ -324,6 +324,8 @@ const zhCN: Record<TranslationKeys, string> = {
   landing_heroDesc: "一键匹配参考图色调。经典胶片滤镜。专业工具，无需下载。",
   landing_ctaEditor: "打开编辑器",
   landing_ctaCamera: "打开相机",
+  landing_ctaTry: "免费试用 Kinolu",
+  landing_ctaLearnMore: "了解更多",
   landing_featuresLabel: "功能特性",
   landing_featuresTitle: "一应俱全",
   landing_feat1Title: "一键追色",

@@ -178,17 +178,17 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 mt-8 justify-center">
             <button
-              onClick={() => router.push("/editor")}
-              className="px-8 py-3 bg-white text-black text-[12px] font-bold tracking-[3px] rounded-full uppercase hover:bg-white/90 transition-colors"
+              onClick={() => router.push("/")}
+              className="px-10 py-3 bg-white text-black text-[12px] font-bold tracking-[3px] rounded-full uppercase hover:bg-white/90 transition-colors"
             >
-              {t("landing_ctaEditor")}
+              {t("landing_ctaTry")}
             </button>
-            <button
-              onClick={() => router.push("/camera")}
-              className="px-8 py-3 border border-white/25 text-[12px] font-bold tracking-[3px] rounded-full uppercase text-white/80 hover:bg-white/10 transition-colors"
+            <a
+              href="#features"
+              className="px-8 py-3 border border-white/25 text-[12px] font-bold tracking-[3px] rounded-full uppercase text-white/60 hover:bg-white/10 transition-colors"
             >
-              {t("landing_ctaCamera")}
-            </button>
+              {t("landing_ctaLearnMore")}
+            </a>
           </div>
         </div>
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
@@ -199,7 +199,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Features Grid ─── */}
-      <section className="max-w-6xl mx-auto px-5 py-20">
+      <section id="features" className="max-w-6xl mx-auto px-5 py-20 scroll-mt-16">
         <h2 className="text-[11px] tracking-[4px] text-white/40 uppercase text-center mb-2">{t("landing_featuresLabel")}</h2>
         <h3 className="text-[24px] md:text-[32px] font-bold tracking-[2px] text-center mb-12">{t("landing_featuresTitle")}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">

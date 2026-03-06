@@ -323,6 +323,8 @@ const en = {
   landing_heroDesc: "Match any color grade from reference photos. One-tap film presets. Professional tools in your browser.",
   landing_ctaEditor: "Open Editor",
   landing_ctaCamera: "Open Camera",
+  landing_ctaTry: "Try Kinolu Free",
+  landing_ctaLearnMore: "Learn More",
   landing_featuresLabel: "Features",
   landing_featuresTitle: "Everything You Need",
   landing_feat1Title: "Color Transfer",
