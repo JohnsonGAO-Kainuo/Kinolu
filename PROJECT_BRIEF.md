@@ -1,6 +1,6 @@
 # Kinolu — Project Brief for AI Assistant Context
 
-> **Last updated:** 2026-02-28
+> **Last updated:** 2026-03-06
 > **GitHub:** JohnsonGAO-Kainuo/Kinolu.git
 > **Production:** https://kinolu.cam (Vercel)
 
@@ -28,11 +28,11 @@ Kinolu is a **mobile-first PWA** (Progressive Web App) for photo color grading /
 | UI | **React 19.2.3** + **Tailwind CSS v4** |
 | Language | **TypeScript** (strict) |
 | Auth | **Supabase** (email/password, auth.users → profiles table) |
-| Payments | **Stripe** (Payment Links, no webhooks yet ⚠️) |
+| Payments | **Stripe** (Payment Links + webhook via Supabase Edge Function) |
 | Database | **Supabase PostgreSQL** (profiles, subscriptions, feedback tables) |
 | Storage | **IndexedDB** (LUTs, ref images — all client-side) |
-| Backend | **Python FastAPI** (optional, local only — for advanced color transfer via `/api/*` proxy) |
-| Deploy | **Vercel** (Next.js only; Python backend is local-only) |
+| Image Processing | **Client-side only** — Canvas API, Web Workers, MediaPipe |
+| Deploy | **Vercel** (auto on git push) |
 | PWA | Service worker + manifest.json, installable on iOS/Android |
 
 ---
@@ -91,10 +91,9 @@ Kinolu/
 │   ├── icons/                  # PWA icons
 │   ├── manifest.json           # PWA manifest
 │   └── sw.js                   # Service worker
-├── backend/                    # Python FastAPI (local dev only)
-├── third_party/color_transfer/ # Python color transfer lib
-├── tools/                      # Python dev utility scripts
-├── archive/                    # Archived old files (gitignored)
+├── scripts/                    # Build scripts (SW version injection)
+├── supabase/functions/         # Stripe Edge Functions (webhook, portal)
+├── archive/                    # Archived legacy files (gitignored, local only)
 └── [config files]              # next.config.ts, tsconfig.json, package.json, etc.
 ```
 
@@ -172,7 +171,7 @@ Kinolu/
   - Annual: `price_1T7cWYJTqJOgtjP4Wor0wq2X` ($29.99/yr)
   - Lifetime: `price_1T7cWYJTqJOgtjP4GWMQ4uX2` ($49.99 one-time)
 - **Payment Links:** Configured via `NEXT_PUBLIC_STRIPE_LINK_*` env vars (auto-select currency by IP)
-- **Webhook:** Supabase Edge Function `stripe-webhook` (v9) — handles checkout, subscription lifecycle, invoices
+- **Webhook:** Supabase Edge Function `stripe-webhook` (v10) — handles checkout.session.completed, subscription lifecycle (updated/deleted), invoice events → updates profiles.subscription_tier
 
 ---
 
@@ -186,17 +185,18 @@ Kinolu/
 
 ## 9. Known TODOs / Issues
 
-### 🔴 Critical
-1. **Stripe webhook needed** — Users pay but `subscription_tier` is never updated to `'pro'` in DB. Need a Supabase Edge Function or API route to handle `checkout.session.completed`.
+### ✅ Resolved
+1. ~~**Stripe webhook**~~ — Done (Supabase Edge Function v10, handles full subscription lifecycle)
+2. ~~**Service worker cache version**~~ — Auto-injected via `scripts/inject-sw-version.mjs` on each build
 
 ### 🟡 Should Fix
-2. **PWA manifest** missing `maskable` icon for Android adaptive icons
-3. **Service worker** cache version hardcoded as `kinolu-v1` — should bump on deploys
-4. **Daily transfer limit** is client-side only (localStorage) — can be bypassed. Server-side enforcement would be more robust but requires the Python backend.
+3. **PWA manifest** missing `maskable` icon for Android adaptive icons
+4. **Daily transfer limit** is client-side only (localStorage) — can be bypassed by clearing storage
 
 ### 💡 Future
-5. Server-side Stripe subscription verification
+5. Server-side Stripe subscription verification on protected routes
 6. Push notifications for subscription expiry
+7. Social auth (Google, Apple Sign In)
 
 ---
 
@@ -206,11 +206,8 @@ Kinolu/
 # Install dependencies
 npm install
 
-# Dev server (Next.js only — color transfer uses client-side fallback)
+# Dev server
 npm run dev
-
-# Full stack (Next.js + Python backend for advanced transfer)
-./start.sh
 
 # Build for production
 npx next build
