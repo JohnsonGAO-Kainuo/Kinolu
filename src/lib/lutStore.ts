@@ -281,9 +281,9 @@ export async function applyLutToImage(
   const bitmap = await createImageBitmap(imageBlob);
   let { width, height } = bitmap;
 
-  // Cap resolution on mobile to prevent tab crash
+  // Cap resolution to match editor working resolution
   const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const maxDim = isMobile ? 800 : 1600;
+  const maxDim = isMobile ? 1600 : 2400;
   if (Math.max(width, height) > maxDim) {
     const s = maxDim / Math.max(width, height);
     width = Math.round(width * s);
@@ -304,8 +304,7 @@ export async function applyLutToImage(
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob failed"))),
-      "image/jpeg",
-      0.92
+      "image/png"
     );
   });
 }

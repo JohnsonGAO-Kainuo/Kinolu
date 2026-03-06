@@ -75,6 +75,8 @@ export type HSL7Data = Record<HSL7Key, HSL7Band>;
 
 export interface TransferResponse {
   imageBlob: Blob;
+  /** Direct lossless ImageData — skip JPEG decode when available */
+  imageData?: ImageData;
   autoX: number;
   autoY: number;
   selectedMethod: string;

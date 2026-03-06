@@ -297,6 +297,50 @@ function refineChromaHistogram(img: ImageData, refData: ImageData, amount = 0.18
 import type { RegionMasks } from "./segmentation";
 
 /**
+ * Bilinear upscale a Float32Array mask from (sw, sh) to (tw, th).
+ * Segmentation masks are smooth confidence values — upscaling is accurate.
+ */
+function upscaleMask(src: Float32Array, sw: number, sh: number, tw: number, th: number): Float32Array {
+  const dst = new Float32Array(tw * th);
+  const xR = sw / tw;
+  const yR = sh / th;
+  for (let ty = 0; ty < th; ty++) {
+    const sy = ty * yR;
+    const y0 = Math.min(Math.floor(sy), sh - 1);
+    const y1 = Math.min(y0 + 1, sh - 1);
+    const yd = sy - y0;
+    for (let tx = 0; tx < tw; tx++) {
+      const sx = tx * xR;
+      const x0 = Math.min(Math.floor(sx), sw - 1);
+      const x1 = Math.min(x0 + 1, sw - 1);
+      const xd = sx - x0;
+      const c00 = src[y0 * sw + x0];
+      const c10 = src[y0 * sw + x1];
+      const c01 = src[y1 * sw + x0];
+      const c11 = src[y1 * sw + x1];
+      dst[ty * tw + tx] = (c00 * (1 - xd) + c10 * xd) * (1 - yd)
+                         + (c01 * (1 - xd) + c11 * xd) * yd;
+    }
+  }
+  return dst;
+}
+
+/** Upscale all region masks from quick (256px) to target resolution */
+function upscaleRegionMasks(masks: RegionMasks, tw: number, th: number): RegionMasks {
+  const sw = masks.width, sh = masks.height;
+  return {
+    person: upscaleMask(masks.person, sw, sh, tw, th),
+    face: upscaleMask(masks.face, sw, sh, tw, th),
+    skin: upscaleMask(masks.skin, sw, sh, tw, th),
+    sky: upscaleMask(masks.sky, sw, sh, tw, th),
+    vegetation: upscaleMask(masks.vegetation, sw, sh, tw, th),
+    background: upscaleMask(masks.background, sw, sh, tw, th),
+    width: tw,
+    height: th,
+  };
+}
+
+/**
  * Apply per-region strength modulation + skin protection.
  * This is the client-side equivalent of backend's `blend_xy_strength`.
  *
@@ -497,9 +541,10 @@ export async function clientTransfer(
   skinProtect = true,
   semanticRegions = true,
 ): Promise<TransferResponse> {
-  // Decode images: small for stats, capped for output (800px on mobile to prevent OOM)
+  // Decode images: small for stats, full working resolution for output
+  // Match editor's loadImageToData caps so no re-downscale occurs
   const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const fullMax = isMobile ? 800 : 1200;
+  const fullMax = isMobile ? 1600 : 2400;
   const [srcSmall, refSmall, srcFull] = await Promise.all([
     blobToImageData(sourceBlob, 256),
     blobToImageData(referenceBlob, 256),
@@ -542,11 +587,12 @@ export async function clientTransfer(
     ? new ImageData(new Uint8ClampedArray(srcFull.data), srcFull.width, srcFull.height)
     : null;
 
-  // Only run expensive full-res segmentation when a subject is detected;
-  // starts in parallel with LUT build so latency is hidden.
-  const masksPromise = hasSubject
-    ? computeRegionMasks(srcFull).catch(() => null)
-    : Promise.resolve(null);
+  // Upscale quick masks (256px) to full resolution instead of re-running
+  // expensive MediaPipe inference at full res. Segmentation masks are
+  // low-frequency confidence values — bilinear upscale is accurate enough.
+  const upscaledMasks: RegionMasks | null = (hasSubject && quickMasks)
+    ? upscaleRegionMasks(quickMasks, srcFull.width, srcFull.height)
+    : null;
 
   // ── Auto XY strength recommendation ──
   // Ported from backend's recommend_xy_strength():
@@ -596,22 +642,23 @@ export async function clientTransfer(
 
   // ── Chroma histogram refinement ──
   // Match a/b channel histograms toward reference (amount=0.18)
-  const refFull = await blobToImageData(referenceBlob, Math.max(srcFull.width, srcFull.height));
-  refineChromaHistogram(srcFull, refFull, 0.18);
+  // Histogram distributions are resolution-independent — reuse the 256px reference
+  refineChromaHistogram(srcFull, refSmall, 0.18);
 
   // ── Cinematic tone enhancement ──
   applyCinematicTone(srcFull, refStats);
 
   // ── Segmentation-aware blending + skin protection ──
-  const masks = await masksPromise;
-  if (masks && originalFull) {
-    applyRegionAwareBlending(srcFull, originalFull, masks, skinProtect);
+  if (upscaledMasks && originalFull) {
+    applyRegionAwareBlending(srcFull, originalFull, upscaledMasks, skinProtect);
   }
 
-  const imageBlob = await imageDataToBlob(srcFull);
+  // Return ImageData directly — caller uses it as-is (no JPEG round-trip)
+  const imageBlob = await imageDataToBlob(srcFull, 0.95);
 
   return {
     imageBlob,
+    imageData: srcFull,
     autoX,
     autoY,
     selectedMethod: "reinhard_lab",

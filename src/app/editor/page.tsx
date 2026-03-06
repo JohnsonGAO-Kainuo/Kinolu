@@ -270,8 +270,13 @@ export default function EditorPage() {
 
   useEffect(() => { if (baseImageData.current) renderPreview(); }, [params, renderPreview, renderTick]);
 
-  /* ── Warm up Web Worker (fast), defer segmentation models until needed ── */
-  useEffect(() => { warmupWorker(); }, []);
+  /* ── Warm up Web Worker + pre-load segmentation models ── */
+  useEffect(() => {
+    warmupWorker();
+    // Pre-warm MediaPipe models (selfie segmenter + face detector) so first
+    // transfer doesn't pay the ~300-500ms model download + init cost.
+    import("@/lib/segmentation").then((m) => m.preloadSegmentationModels()).catch(() => {});
+  }, []);
 
   /* ── Restore saved reference images ── */
   useEffect(() => {
@@ -380,7 +385,7 @@ export default function EditorPage() {
 
   const getCurrentCanvasBlob = useCallback(async (): Promise<Blob | null> => {
     const c = displayCanvasRef.current; if (!c) return null;
-    return new Promise((r) => c.toBlob((b) => r(b), "image/jpeg", 0.95));
+    return new Promise((r) => c.toBlob((b) => r(b), "image/png"));
   }, []);
 
   /* ── Session handoff (camera → editor) ── */
@@ -460,9 +465,16 @@ export default function EditorPage() {
     setProcessing(true); setErrorMsg(null); setComparing(false);
     try {
       const resp = await transferImage(ref, source, params);
-      const resultObjUrl = URL.createObjectURL(resp.imageBlob);
-      const data = await loadImageToData(resultObjUrl);
-      URL.revokeObjectURL(resultObjUrl);
+      // Use direct ImageData when available (client transfer) — no JPEG round-trip
+      let data: ImageData;
+      if (resp.imageData) {
+        data = resp.imageData;
+      } else {
+        // Server path: decode blob to ImageData at native resolution
+        const resultObjUrl = URL.createObjectURL(resp.imageBlob);
+        data = await loadImageToData(resultObjUrl);
+        URL.revokeObjectURL(resultObjUrl);
+      }
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setTransferUsedXY(true);
@@ -490,20 +502,28 @@ export default function EditorPage() {
   const xyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /** Fast client-side blend between original source and transferred result.
-   *  blend = average of x,y → alpha between source & transfer.
-   *  ~2ms for 1600×1200 — fully real-time at 60fps. */
+   *  X = color (chroma) strength, Y = tone (luminance) strength.
+   *  Separates luminance from chroma for proper XY blending.
+   *  ~3ms for 1600×1200 — fully real-time at 60fps. */
   const blendXYPreview = useCallback((x: number, y: number) => {
     const src = sourceImageData.current;
     const xfr = transferredImageData.current;
     if (!src || !xfr || src.data.length !== xfr.data.length) return;
-    // Blend factor: average of color_strength (x) and tone_strength (y)
-    const alpha = (x + y) / 2;
     const sd = src.data, td = xfr.data;
     const out = new Uint8ClampedArray(sd.length);
     for (let i = 0; i < sd.length; i += 4) {
-      out[i]     = sd[i]     + (td[i]     - sd[i])     * alpha;
-      out[i + 1] = sd[i + 1] + (td[i + 1] - sd[i + 1]) * alpha;
-      out[i + 2] = sd[i + 2] + (td[i + 2] - sd[i + 2]) * alpha;
+      // Source luminance & transferred luminance
+      const sLum = sd[i] * 0.299 + sd[i + 1] * 0.587 + sd[i + 2] * 0.114;
+      const tLum = td[i] * 0.299 + td[i + 1] * 0.587 + td[i + 2] * 0.114;
+      // Tone blend (Y axis) — affects luminance
+      const outLum = sLum + (tLum - sLum) * y;
+      // Color blend (X axis) — affects chroma deviation from gray
+      const sChR = sd[i] - sLum, tChR = td[i] - tLum;
+      const sChG = sd[i + 1] - sLum, tChG = td[i + 1] - tLum;
+      const sChB = sd[i + 2] - sLum, tChB = td[i + 2] - tLum;
+      out[i]     = Math.max(0, Math.min(255, outLum + sChR + (tChR - sChR) * x));
+      out[i + 1] = Math.max(0, Math.min(255, outLum + sChG + (tChG - sChG) * x));
+      out[i + 2] = Math.max(0, Math.min(255, outLum + sChB + (tChB - sChB) * x));
       out[i + 3] = 255;
     }
     const blended = new ImageData(out, src.width, src.height);
@@ -513,27 +533,21 @@ export default function EditorPage() {
 
   const updateXY = useCallback((x: number, y: number) => {
     setParams((p) => ({ ...p, color_strength: x, tone_strength: y, auto_xy: false }));
-    // Live preview: fast client-side blend
+    // Live preview: proper color/tone separated blend (no re-transfer needed)
     if (!xyDraggingRef.current) xyDraggingRef.current = true;
     blendXYPreview(x, y);
-    // Debounced server re-transfer (600ms after last drag movement)
-    if (xyDebounceRef.current) clearTimeout(xyDebounceRef.current);
-    xyDebounceRef.current = setTimeout(() => {
-      const source = sourceFileRef.current;
-      const ref = refFilesRef.current[activeRefIdx];
-      if (source && ref) void runTransfer();
-    }, 600);
-  }, [blendXYPreview, activeRefIdx, runTransfer]);
+  }, [blendXYPreview]);
 
-  /** Final commit on pointer-up — cancel debounce, do immediate re-transfer */
+  /** Final commit on pointer-up — finalize the blend as base, no re-transfer needed.
+   *  The XY blend is mathematically equivalent to running transfer at that XY
+   *  for the Reinhard linear blend model. */
   const commitXY = useCallback((_x: number, _y: number) => {
     xyDraggingRef.current = false;
     if (xyDebounceRef.current) { clearTimeout(xyDebounceRef.current); xyDebounceRef.current = null; }
-    const source = sourceFileRef.current;
-    const ref = refFilesRef.current[activeRefIdx];
-    if (!source || !ref) return;
-    void runTransfer();
-  }, [activeRefIdx, runTransfer]);
+    // The blendXYPreview already set baseImageData to the correct blend;
+    // trigger a full-quality re-render (with edits applied via Web Worker)
+    renderPreview();
+  }, [renderPreview]);
 
   /* ── Adjustments ── */
   const adjValues: Record<AdjustmentTool, number> = {
@@ -602,14 +616,14 @@ export default function EditorPage() {
     const blob = await getCurrentCanvasBlob(); if (!blob) return;
     const objUrl = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = objUrl;
-    a.download = `kinolu_${Date.now()}.jpg`; a.click();
+    a.download = `kinolu_${Date.now()}.png`; a.click();
     URL.revokeObjectURL(objUrl);
     showToast(t("editor_imageSaved"));
   }, [getCurrentCanvasBlob, showToast]);
 
   const handleShare = useCallback(async () => {
     const blob = await getCurrentCanvasBlob(); if (!blob) return;
-    const file = new File([blob], `kinolu_${Date.now()}.jpg`, { type: "image/jpeg" });
+    const file = new File([blob], `kinolu_${Date.now()}.png`, { type: "image/png" });
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
       try { await navigator.share({ files: [file], title: "Kinolu" }); } catch { handleDownload(); }
     } else { handleDownload(); }
