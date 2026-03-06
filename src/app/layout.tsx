@@ -6,9 +6,33 @@ import BuiltinLutsInit from "@/components/BuiltinLutsInit";
 import WhatsNew from "@/components/WhatsNew";
 
 export const metadata: Metadata = {
-  title: "Kinolu",
-  description: "Photo color grading, reimagined.",
+  title: {
+    default: "Kinolu — Photo Color Grading, Reimagined",
+    template: "%s — Kinolu",
+  },
+  description: "Match any color grade from reference photos. One-tap film presets. Professional editing tools — all in your browser. No download needed.",
+  keywords: [
+    "color grading", "photo editor", "color transfer", "film preset", "LUT",
+    "photo color matching", "Fuji film emulation", "Kodak preset",
+    "online photo editor", "browser photo editor", "PWA photo app",
+    "调色", "一键追色", "胶片滤镜", "色彩迁移",
+  ],
   manifest: "/manifest.json",
+  metadataBase: new URL("https://kinolu.cam"),
+  openGraph: {
+    title: "Kinolu — Photo Color Grading, Reimagined",
+    description: "Match any color grade from reference photos. One-tap film presets. Professional tools in your browser.",
+    url: "https://kinolu.cam",
+    siteName: "Kinolu",
+    type: "website",
+    images: [{ url: "/heroes/editor.jpg", width: 1200, height: 630, alt: "Kinolu Editor" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kinolu — Photo Color Grading, Reimagined",
+    description: "Match any color grade from reference photos. One-tap film presets. Professional tools in your browser.",
+    images: ["/heroes/editor.jpg"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
