@@ -89,7 +89,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <SidebarItem label={t("sidebar_editor")} desc={t("sidebar_editorDesc")} onClick={() => navigate("/editor")} />
           <SidebarItem label={t("sidebar_camera")} desc={t("sidebar_cameraDesc")} onClick={() => navigate("/camera")} />
           <SidebarItem label={t("sidebar_library")} desc={t("sidebar_libraryDesc")} onClick={() => navigate("/presets")} />
-          <SidebarItem label={t("sidebar_community")} desc={t("sidebar_communityDesc")} onClick={() => navigate("/community")} />
+          <SidebarItem label={t("sidebar_community")} desc={t("sidebar_communityDesc")} onClick={() => navigate("/landing#community")} />
 
           <div className="my-4 mx-3 h-px bg-white/[0.06]" />
 
