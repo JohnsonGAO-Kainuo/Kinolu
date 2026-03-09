@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation";
 import { deletePresetById, importCubePreset, listPresets, presetCubeDownloadUrl, renamePreset } from "@/lib/api";
 import type { PresetItem } from "@/lib/types";
-import { IconBack, IconChevronRight, IconLUT, IconPlus } from "@/components/icons";
+import { IconBack, IconChevronRight, IconClose, IconLUT, IconPlus, IconRename } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/components/AuthProvider";
 import {
@@ -310,7 +310,7 @@ export default function PresetsPage() {
                   <div className="px-2.5 py-2">
                     <div className="truncate text-[11px] font-semibold text-white/90">{entry.name}</div>
                     <div className="text-[8px] text-white/30 mt-0.5">
-                      {entry.sourceType === "generated" ? "✨ Generated" : `CUBE ${entry.size}³`} · {new Date(entry.createdAt).toLocaleDateString()}
+                      {entry.sourceType === "generated" ? "Generated" : `CUBE ${entry.size}³`} · {new Date(entry.createdAt).toLocaleDateString()}
                     </div>
                     <div className="mt-1.5 flex items-center gap-1">
                       <button
@@ -320,12 +320,12 @@ export default function PresetsPage() {
                       >
                         <IconLUT size={9} />
                       </button>
-                      <button onClick={() => onRenameLocal(entry)} className="rounded-md border border-white/[0.06] px-2 py-1 text-[8px] text-white/40 hover:text-white/70 transition-colors">
-                        ✏️
+                      <button onClick={() => onRenameLocal(entry)} className="rounded-md border border-white/[0.06] px-2 py-1 text-white/40 hover:text-white/70 transition-colors">
+                        <IconRename size={10} />
                       </button>
                       <div className="flex-1" />
-                      <button onClick={() => onDeleteLocal(entry)} className="rounded-md border border-white/[0.06] px-2 py-1 text-[8px] text-red-400/60 hover:text-red-300 transition-colors">
-                        ✕
+                      <button onClick={() => onDeleteLocal(entry)} className="rounded-md border border-white/[0.06] px-2 py-1 text-red-400/60 hover:text-red-300 transition-colors">
+                        <IconClose size={10} />
                       </button>
                     </div>
                   </div>

@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { fetchPost, type Post } from "@/lib/supabase/community";
 
+import {
+  IconHeart, IconComment,
+} from "@/components/icons";
+
 /* ═══════════════════════════════════════════════════════════
    /share/[id] — Client component for public share view
    ═══════════════════════════════════════════════════════════ */
@@ -90,15 +94,15 @@ export default function SharePageClient({ id }: { id: string }) {
         )}
         <div className="flex items-center gap-2 mt-4 text-[11px] text-white/30">
           <span>{t("share_by")}</span>
-          <span className="text-white/50">{post.author_name || post.author_email?.split("@")[0] || "Anonymous"}</span>
+          <span className="text-white/50">{post.author_name || "Anonymous"}</span>
           <span>·</span>
           <span>{timeAgo(post.created_at, t)}</span>
         </div>
 
         {/* Stats */}
         <div className="flex items-center gap-6 mt-5 py-4 border-y border-white/[0.06] text-[13px] text-white/30">
-          <span>♥ {post.likes_count}</span>
-          <span>💬 {post.comments_count}</span>
+          <span className="flex items-center gap-1"><IconHeart size={14} /> {post.likes_count}</span>
+          <span className="flex items-center gap-1"><IconComment size={14} /> {post.comments_count}</span>
         </div>
 
         {/* CTA */}

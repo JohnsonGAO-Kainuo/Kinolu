@@ -40,7 +40,7 @@ const en = {
   sidebar_feedback: "Feedback",
   sidebar_feedbackDesc: "Help us improve",
   sidebar_language: "Language",
-  sidebar_version: "v0.2.0 · Made with ♡",
+  sidebar_version: "v0.2.0 · Made with love",
 
   /* ── Camera ── */
   camera_noCameraFound: "No camera found on this device",
@@ -282,7 +282,7 @@ const en = {
   feedback_desc: "Help us improve Kinolu! Share your thoughts, report bugs, or suggest features.",
   feedback_placeholder: "Your feedback...",
   feedback_send: "Send Feedback",
-  feedback_sent: "✓ Sent",
+  feedback_sent: "Sent",
   feedback_altContact: "Alternative Contact",
 
   /* ── Privacy ── */
@@ -348,6 +348,13 @@ const en = {
   landing_feat5Desc: "Curves, HSL, crop, batch processing and full adjustment controls.",
   landing_feat6Title: "LUT Import/Export",
   landing_feat6Desc: "Import .cube LUTs or export your own for use in other apps.",
+  landing_nav_pricing: "Pricing",
+  landing_featuresSubtitle: "Professional color grading tools, right in your browser. No downloads, no plugins.",
+  landing_showcaseSubtitle: "Real results from Kinolu users — film emulation, color matching, and mood transfer.",
+  landing_showcase_filmEmulation: "Film Emulation",
+  landing_showcase_colorMatch: "Color Match",
+  landing_showcase_moodTransfer: "Mood Transfer",
+  landing_showcasePlaceholder: "Showcase images coming soon — we're collecting the best works from our community.",
   landing_howLabel: "How It Works",
   landing_howTitle: "4 Simple Steps",
   landing_step1Title: "Import Your Photo",
@@ -379,6 +386,7 @@ const en = {
   community_postDesc: "Description",
   community_postDescPlaceholder: "Tell us about this photo, the technique, or the reference you used...",
   community_uploadImage: "Upload Image",
+  community_uploadImageOptional: "Add Image (optional)",
   community_publish: "Publish",
   community_publishing: "Publishing...",
   community_deleteConfirm: "Delete this post? This cannot be undone.",

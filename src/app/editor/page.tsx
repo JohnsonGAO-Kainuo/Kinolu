@@ -30,6 +30,7 @@ import {
   IconDetail,
   IconCurves,
   IconHSL,
+  IconClose,
 } from "@/components/icons";
 import XYPad from "@/components/XYPad";
 import AdjustmentPanel from "@/components/AdjustmentPanel";
@@ -859,7 +860,7 @@ export default function EditorPage() {
             {batchFiles.some((f) => f.status === "done") && (
               <button onClick={downloadBatchAll} className="text-[8px] text-white/60 bg-white/8 px-2.5 py-1 rounded-full active:bg-white/15 whitespace-nowrap">{t("batch_downloadAll")}</button>
             )}
-            <button onClick={() => { batchFiles.forEach((f) => { URL.revokeObjectURL(f.url); if (f.resultUrl) URL.revokeObjectURL(f.resultUrl); }); setBatchFiles([]); }} className="text-[8px] text-white/30 px-1 py-1">✕</button>
+            <button onClick={() => { batchFiles.forEach((f) => { URL.revokeObjectURL(f.url); if (f.resultUrl) URL.revokeObjectURL(f.resultUrl); }); setBatchFiles([]); }} className="text-white/30 px-1 py-1"><IconClose size={10} /></button>
           </div>
         </div>
       )}

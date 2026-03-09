@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { IconBack } from "@/components/icons";
+import { IconBack, IconCheckCircle } from "@/components/icons";
 import { useAuth } from "@/components/AuthProvider";
 import { useI18n } from "@/lib/i18n";
 
@@ -76,8 +76,8 @@ export default function RegisterPage() {
           {success ? (
             /* ── Confirmation sent ── */
             <div className="flex flex-col items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
-                <span className="text-[28px]">✓</span>
+              <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center text-green-400">
+                <IconCheckCircle size={28} />
               </div>
               <h2 className="text-[18px] font-bold text-white">
                 {t("auth_checkEmail")}

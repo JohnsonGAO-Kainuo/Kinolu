@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconCamera, IconEdit, IconLibrary, IconMenu } from "@/components/icons";
+import { IconCamera, IconEdit, IconLibrary, IconMenu, IconClose } from "@/components/icons";
 import { usePWAInstall } from "@/lib/usePWAInstall";
 import Sidebar from "@/components/Sidebar";
 import { useI18n } from "@/lib/i18n";
@@ -52,7 +52,7 @@ export default function HomePage() {
           <div className="bg-[#1c1c1e] rounded-t-2xl w-full max-w-md p-6 pb-8 safe-bottom animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[14px] font-semibold text-white tracking-wide">{t("pwa_iosTitle")}</h3>
-              <button onClick={dismissIOSGuide} className="text-white/40 text-[18px]">✕</button>
+              <button onClick={dismissIOSGuide} className="text-white/40"><IconClose size={18} /></button>
             </div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">

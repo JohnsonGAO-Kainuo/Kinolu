@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IconBack } from "@/components/icons";
+import { IconBack, IconCheck, IconCheckCircle, IconInfinity, IconMinus } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -129,13 +129,13 @@ function SubscriptionContent() {
 
             {/* Feature rows */}
             {[
-              { key: "sub_feat_transfer", free: t("sub_5day"), pro: "∞" },
+              { key: "sub_feat_transfer", free: t("sub_5day"), pro: <IconInfinity size={14} /> },
               { key: "sub_feat_filters", free: "5", pro: t("sub_all12") },
-              { key: "sub_feat_presets", free: t("sub_5max"), pro: "∞" },
-              { key: "sub_feat_camera", free: "✓", pro: "✓" },
-              { key: "sub_feat_editor", free: "✓", pro: "✓" },
-              { key: "sub_feat_lutImport", free: "✓", pro: "✓" },
-              { key: "sub_feat_batch", free: "—", pro: "✓" },
+              { key: "sub_feat_presets", free: t("sub_5max"), pro: <IconInfinity size={14} /> },
+              { key: "sub_feat_camera", free: <IconCheck size={14} />, pro: <IconCheck size={14} /> },
+              { key: "sub_feat_editor", free: <IconCheck size={14} />, pro: <IconCheck size={14} /> },
+              { key: "sub_feat_lutImport", free: <IconCheck size={14} />, pro: <IconCheck size={14} /> },
+              { key: "sub_feat_batch", free: <IconMinus size={14} />, pro: <IconCheck size={14} /> },
             ].map((row, i) => (
               <div
                 key={row.key}
@@ -281,7 +281,7 @@ function SubscriptionContent() {
           {/* ── Subscribe / Status button ── */}
           {isPro ? (
             <div className="w-full py-3 bg-white/[0.06] border border-white/10 text-white/60 rounded-2xl text-[13px] font-bold tracking-wide text-center">
-              ✓ {t("sub_active")}
+              <IconCheckCircle size={16} className="inline-block mr-1" /> {t("sub_active")}
               {subscription?.plan_type && (
                 <span className="text-white/30 ml-1.5 font-normal">
                   ({subscription.plan_type})

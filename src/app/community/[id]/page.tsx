@@ -5,6 +5,9 @@ import { useRouter, useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/components/AuthProvider";
 import {
+  IconHeart, IconHeartFilled, IconComment, IconClose, IconShare,
+} from "@/components/icons";
+import {
   fetchPost,
   fetchComments,
   createComment,
@@ -66,7 +69,7 @@ export default function PostDetailPage() {
 
   /* ── Like ── */
   const handleLike = async () => {
-    if (!user) { router.push("/auth"); return; }
+    if (!user) { router.push("/auth/login"); return; }
     if (!post) return;
     const wasLiked = liked;
     setLiked(!wasLiked);
@@ -112,7 +115,7 @@ export default function PostDetailPage() {
     if (!post || !confirm(t("community_deleteConfirm"))) return;
     try {
       await deletePost(post.id);
-      router.push("/community");
+      router.push("/landing#community");
     } catch (e) {
       console.error("Delete post failed", e);
     }
@@ -142,7 +145,7 @@ export default function PostDetailPage() {
     return (
       <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-white/40">
         <p className="text-[14px] mb-4">{t("share_postNotFound")}</p>
-        <button onClick={() => router.push("/community")} className="text-[12px] underline hover:text-white/60">
+        <button onClick={() => router.push("/landing#community")} className="text-[12px] underline hover:text-white/60">
           ← {t("community_title")}
         </button>
       </div>
@@ -156,11 +159,11 @@ export default function PostDetailPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-white/[0.06] safe-top">
         <div className="max-w-3xl mx-auto px-5 h-14 flex items-center justify-between">
-          <button onClick={() => router.push("/community")} className="text-white/50 hover:text-white transition-colors text-[13px]">
+          <button onClick={() => router.back()} className="text-white/50 hover:text-white transition-colors text-[13px]">
             ← {t("community_title")}
           </button>
           <div className="flex items-center gap-3">
-            <button onClick={handleShare} className="text-white/40 hover:text-white/70 text-[18px]">⤴</button>
+            <button onClick={handleShare} className="text-white/40 hover:text-white/70"><IconShare size={18} /></button>
             {isAuthor && (
               <button onClick={handleDeletePost} className="text-red-400/60 hover:text-red-400 text-[11px] tracking-wide">
                 {t("delete")}
@@ -182,7 +185,7 @@ export default function PostDetailPage() {
           <p className="text-[13px] text-white/50 mt-2 leading-relaxed">{post.description}</p>
         )}
         <div className="flex items-center gap-3 mt-4 text-[11px] text-white/30">
-          <span>{post.author_name || post.author_email?.split("@")[0] || "Anonymous"}</span>
+          <span>{post.author_name || "Anonymous"}</span>
           <span>·</span>
           <span>{timeAgo(post.created_at, t)}</span>
         </div>
@@ -193,11 +196,11 @@ export default function PostDetailPage() {
             onClick={handleLike}
             className={`flex items-center gap-2 text-[13px] font-medium transition-colors ${liked ? "text-red-400" : "text-white/40 hover:text-white/70"}`}
           >
-            <span className="text-[18px]">{liked ? "♥" : "♡"}</span>
+            <span className="text-[18px]">{liked ? <IconHeartFilled size={18} /> : <IconHeart size={18} />}</span>
             {post.likes_count} {liked ? t("community_liked") : t("community_like")}
           </button>
-          <span className="text-[13px] text-white/30">
-            💬 {post.comments_count} {t("community_comments")}
+          <span className="text-[13px] text-white/30 flex items-center gap-1.5">
+            <IconComment size={16} /> {post.comments_count} {t("community_comments")}
           </span>
         </div>
 
@@ -226,7 +229,7 @@ export default function PostDetailPage() {
             </div>
           ) : (
             <p className="text-[12px] text-white/30 mb-6">
-              <button onClick={() => router.push("/auth")} className="underline hover:text-white/60">
+              <button onClick={() => router.push("/auth/login")} className="underline hover:text-white/60">
                 {t("community_signInToComment")}
               </button>
             </p>

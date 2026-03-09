@@ -551,3 +551,136 @@ export function IconLUT(p: IconProps) {
     </svg>
   );
 }
+
+/* ── Landing Page Feature Icons ── */
+
+/** Color palette — for Color Transfer feature */
+export function IconPalette(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <circle cx="13.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="17.5" cy="10.5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="8.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="6.5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+    </svg>
+  );
+}
+
+/** XY control pad */
+export function IconXYPad(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="12" x2="21" y2="12" strokeOpacity="0.3" />
+      <line x1="12" y1="3" x2="12" y2="21" strokeOpacity="0.3" />
+      <circle cx="15" cy="9" r="2.5" />
+    </svg>
+  );
+}
+
+/** Film strip */
+export function IconFilm(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+      <line x1="7" y1="2" x2="7" y2="22" />
+      <line x1="17" y1="2" x2="17" y2="22" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <line x1="2" y1="7" x2="7" y2="7" />
+      <line x1="2" y1="17" x2="7" y2="17" />
+      <line x1="17" y1="7" x2="22" y2="7" />
+      <line x1="17" y1="17" x2="22" y2="17" />
+    </svg>
+  );
+}
+
+/** Package box — LUT Import/Export */
+export function IconPackage(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <line x1="16.5" y1="9.4" x2="7.5" y2="4.21" />
+      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0022 16z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+  );
+}
+
+/** Heart — solid */
+export function IconHeartFilled(p: IconProps) {
+  return (
+    <svg width={p.size ?? 24} height={p.size ?? 24} className={p.className} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+    </svg>
+  );
+}
+
+/** Heart — outline */
+export function IconHeart(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+    </svg>
+  );
+}
+
+/** Comment / message bubble */
+export function IconComment(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+    </svg>
+  );
+}
+
+/** Infinity symbol */
+export function IconInfinity(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.74-8z" />
+    </svg>
+  );
+}
+
+/** Checkmark circle */
+export function IconCheckCircle(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+/** Dash / minus (for "not available") */
+export function IconMinus(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+/** Upload image */
+export function IconUploadImage(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <polyline points="21 15 16 10 5 21" />
+      <line x1="12" y1="8" x2="12" y2="3" />
+      <polyline points="9 5 12 2 15 5" />
+    </svg>
+  );
+}
+
+/** Pencil / rename icon */
+export function IconRename(p: IconProps) {
+  return (
+    <svg {...s(p)}>
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}

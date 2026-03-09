@@ -63,7 +63,7 @@ export async function fetchPosts(
 
   const { data, error } = await sb
     .from("posts")
-    .select("*, profiles!posts_user_id_fkey(display_name, email)")
+    .select("*, profiles!posts_user_id_fkey(display_name)")
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -81,8 +81,7 @@ export async function fetchPosts(
       comments_count: (row.comments_count as number) || 0,
       created_at: row.created_at as string,
       updated_at: row.updated_at as string,
-      author_name: (profile?.display_name as string) || (profile?.email as string)?.split("@")[0] || "Anonymous",
-      author_email: profile?.email as string,
+      author_name: (profile?.display_name as string) || "Anonymous",
     };
   });
 
@@ -93,7 +92,7 @@ export async function fetchPost(id: string): Promise<Post | null> {
   const sb = createClient();
   const { data, error } = await sb
     .from("posts")
-    .select("*, profiles!posts_user_id_fkey(display_name, email)")
+    .select("*, profiles!posts_user_id_fkey(display_name)")
     .eq("id", id)
     .single();
 
@@ -102,8 +101,7 @@ export async function fetchPost(id: string): Promise<Post | null> {
   const profile = data.profiles as Record<string, unknown> | null;
   return {
     ...data,
-    author_name: (profile?.display_name as string) || (profile?.email as string)?.split("@")[0] || "Anonymous",
-    author_email: profile?.email as string,
+    author_name: (profile?.display_name as string) || "Anonymous",
   } as Post;
 }
 
@@ -111,12 +109,14 @@ export async function createPost(
   userId: string,
   title: string,
   description: string,
-  imageUrl: string,
+  imageUrl?: string,
 ): Promise<Post> {
   const sb = createClient();
+  const row: Record<string, string> = { user_id: userId, title, description };
+  if (imageUrl) row.image_url = imageUrl;
   const { data, error } = await sb
     .from("posts")
-    .insert({ user_id: userId, title, description, image_url: imageUrl })
+    .insert(row)
     .select()
     .single();
 
@@ -136,7 +136,7 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
   const sb = createClient();
   const { data, error } = await sb
     .from("comments")
-    .select("*, profiles!comments_user_id_fkey(display_name, email)")
+    .select("*, profiles!comments_user_id_fkey(display_name)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
 
@@ -150,7 +150,7 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
       user_id: row.user_id as string,
       content: row.content as string,
       created_at: row.created_at as string,
-      author_name: (profile?.display_name as string) || (profile?.email as string)?.split("@")[0] || "Anonymous",
+      author_name: (profile?.display_name as string) || "Anonymous",
     };
   });
 }

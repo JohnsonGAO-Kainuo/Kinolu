@@ -13,22 +13,32 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  * the token itself via supabaseAuth.auth.getUser().
  */
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://kinolu.cam",
+  "https://www.kinolu.cam",
+  "http://localhost:3000",
+  "http://localhost:3001",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 200, headers: CORS_HEADERS });
+    return new Response("ok", { status: 200, headers: getCorsHeaders(req) });
   }
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", {
       status: 405,
-      headers: CORS_HEADERS,
+      headers: getCorsHeaders(req),
     });
   }
 
@@ -36,7 +46,7 @@ Deno.serve(async (req: Request) => {
   if (!stripeKey) {
     return new Response(
       JSON.stringify({ error: "Stripe not configured" }),
-      { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
@@ -45,7 +55,7 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) {
     return new Response(
       JSON.stringify({ error: "Missing authorization" }),
-      { status: 401, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
+      { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
@@ -65,7 +75,7 @@ Deno.serve(async (req: Request) => {
   if (authError || !user) {
     return new Response(
       JSON.stringify({ error: "Unauthorized" }),
-      { status: 401, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
+      { status: 401, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
@@ -115,7 +125,7 @@ Deno.serve(async (req: Request) => {
   if (!stripeCustomerId) {
     return new Response(
       JSON.stringify({ error: "Could not find or create a Stripe customer for this account" }),
-      { status: 404, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
+      { status: 404, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
@@ -149,7 +159,7 @@ Deno.serve(async (req: Request) => {
     console.error("Stripe portal error:", err);
     return new Response(
       JSON.stringify({ error: "Failed to create portal session" }),
-      { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 
@@ -159,7 +169,7 @@ Deno.serve(async (req: Request) => {
     JSON.stringify({ url: portalSession.url }),
     {
       status: 200,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     },
   );
 });
