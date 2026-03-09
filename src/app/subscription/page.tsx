@@ -103,7 +103,7 @@ function SubscriptionContent() {
         <div className="max-w-md mx-auto flex flex-col">
           {/* ── Hero ── */}
           <div className="flex flex-col items-center pt-4 pb-6">
-            <img src="/logo-icon.png" alt="Kinolu" width={56} height={56} className="w-14 h-14 rounded-2xl mb-4" />
+            <img src="/logo-icon.png" alt="Kinolu" width={56} height={56} className="w-14 h-14 rounded-2xl mb-4 ring-1 ring-white/10" />
             <h2 className="text-[20px] font-bold text-white tracking-tight mb-1">
               Kinolu Pro
             </h2>

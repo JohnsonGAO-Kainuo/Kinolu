@@ -912,7 +912,16 @@ export default function EditorPage() {
                 onContextMenu={(e) => e.preventDefault()}
                 draggable={false}
               />
-              {comparing && sourceUrl && <img src={sourceUrl} alt="Original" className="max-w-full max-h-full object-contain rounded-sm" draggable={false} />}
+              {/* Always mount img when sourceUrl exists so the browser keeps it decoded — prevents black flash on first compare */}
+              {sourceUrl && (
+                <img
+                  src={sourceUrl}
+                  alt="Original"
+                  className="max-w-full max-h-full object-contain rounded-sm"
+                  draggable={false}
+                  style={comparing ? undefined : { opacity: 0, position: 'absolute', pointerEvents: 'none' }}
+                />
+              )}
             </div>
 
             {/* Reference image overlay — circular thumbnail, bottom-left — only for transfer (not LUT presets) */}
