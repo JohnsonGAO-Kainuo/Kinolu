@@ -38,14 +38,8 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
   };
 
   const handleNavClick = (item: (typeof NAV_ITEMS)[number]) => {
-    if (isMainLanding) {
-      // Smooth-scroll to anchor on main page
-      const el = document.getElementById(item.id);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    } else {
-      // Navigate to independent sub-route
-      router.push(item.href);
-    }
+    // Always navigate to the standalone sub-route
+    router.push(item.href);
   };
 
   return (
