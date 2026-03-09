@@ -4,13 +4,13 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * /community → redirect to /landing#community
+ * /community → redirect to /landing/community
  * Prevents 404 when users navigate here directly or via back-button history.
  */
 export default function CommunityRedirect() {
   const router = useRouter();
   useEffect(() => {
-    router.replace("/landing#community");
+    router.replace("/landing/community");
   }, [router]);
 
   return (

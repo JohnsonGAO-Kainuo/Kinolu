@@ -115,7 +115,7 @@ export default function PostDetailPage() {
     if (!post || !confirm(t("community_deleteConfirm"))) return;
     try {
       await deletePost(post.id);
-      router.push("/landing#community");
+      router.push("/landing/community");
     } catch (e) {
       console.error("Delete post failed", e);
     }
@@ -145,7 +145,7 @@ export default function PostDetailPage() {
     return (
       <div className="w-full h-screen bg-black flex flex-col items-center justify-center text-white/40">
         <p className="text-[14px] mb-4">{t("share_postNotFound")}</p>
-        <button onClick={() => router.push("/landing#community")} className="text-[12px] underline hover:text-white/60">
+        <button onClick={() => router.push("/landing/community")} className="text-[12px] underline hover:text-white/60">
           ← {t("community_title")}
         </button>
       </div>
