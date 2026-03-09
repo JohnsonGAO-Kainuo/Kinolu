@@ -218,6 +218,25 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
     return;
   }
 
+  // Fetch receipt URL from PaymentIntent → charge
+  let receiptUrl: string | null = null;
+  const paymentIntentId = session.payment_intent as string | null;
+  if (paymentIntentId && stripeKey) {
+    try {
+      const piRes = await fetch(
+        `https://api.stripe.com/v1/payment_intents/${paymentIntentId}?expand[]=latest_charge`,
+        { headers: { Authorization: `Bearer ${stripeKey}` } },
+      );
+      if (piRes.ok) {
+        const pi = await piRes.json();
+        receiptUrl = pi.latest_charge?.receipt_url ?? null;
+        if (receiptUrl) console.log(`🧾 Receipt URL found: ${receiptUrl.substring(0, 60)}...`);
+      }
+    } catch (err) {
+      console.warn("Could not fetch receipt URL:", err);
+    }
+  }
+
   let stripeCustomerId = session.customer as string | null;
   const stripeSubscriptionId = session.subscription as string | null;
 
@@ -270,6 +289,7 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
     status: "active",
     current_period_start: new Date().toISOString(),
     cancel_at_period_end: false,
+    receipt_url: receiptUrl,
     updated_at: new Date().toISOString(),
   };
 

@@ -127,8 +127,19 @@ export default function ProfilePage() {
                   </span>
                 </div>
 
-                {/* Manage button — only show for recurring plans */}
-                {subscription?.plan_type !== "lifetime" && (
+                {/* Action button — receipt for lifetime, portal for recurring */}
+                {subscription?.plan_type === "lifetime" ? (
+                  subscription?.receipt_url && (
+                    <a
+                      href={subscription.receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 mt-1 bg-white/[0.06] text-white/80 rounded-xl text-[12px] font-medium tracking-[0.5px] border border-white/10 transition-all active:scale-[0.98] text-center block"
+                    >
+                      {t("profile_viewReceipt" as Parameters<typeof t>[0])}
+                    </a>
+                  )
+                ) : (
                   <button
                     onClick={openCustomerPortal}
                     disabled={portalLoading}

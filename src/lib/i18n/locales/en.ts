@@ -234,6 +234,7 @@ const en = {
   profile_signOut: "Sign Out",
   profile_upgradePro: "Upgrade to Pro",
   profile_manageSubscription: "Manage Subscription",
+  profile_viewReceipt: "View Receipt",
   profile_planMonthly: "Monthly",
   profile_planAnnual: "Annual",
   profile_planLifetime: "Lifetime",
