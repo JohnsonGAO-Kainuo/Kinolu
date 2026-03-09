@@ -14,49 +14,25 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  */
 
 // Price ID → plan type mapping (ALL currencies: USD + HKD + CNY)
-// Includes all product variants to ensure no payment is missed.
+// ⚠️ ONLY includes prod_U35UTwnhTYPkFg (Kinolu Pro). DO NOT add other products.
 const PRICE_TO_PLAN: Record<string, "monthly" | "annual" | "lifetime"> = {
-  // ── prod_U35UTwnhTYPkFg (Kinolu Pro – primary) ──
+  // ── prod_U35UTwnhTYPkFg (Kinolu Pro) ──
   // USD
-  price_1T7cWYJTqJOgtjP4I987GTiJ: "monthly",
-  price_1T7cWYJTqJOgtjP4Wor0wq2X: "annual",
-  price_1T7cWYJTqJOgtjP4GWMQ4uX2: "lifetime",
+  price_1T7cWYJTqJOgtjP4I987GTiJ: "monthly",   // $2.99/mo
+  price_1T7cWYJTqJOgtjP4Wor0wq2X: "annual",     // $29.99/yr
+  price_1T7cWYJTqJOgtjP4GWMQ4uX2: "lifetime",   // $49.99
   // USD (earlier batch)
   price_1T7c2NJTqJOgtjP4Z6YCIFDh: "monthly",
   price_1T7c2OJTqJOgtjP4OJL6hciI: "annual",
   price_1T7c2NJTqJOgtjP4eFKAoT3X: "lifetime",
   // HKD
-  price_1T7bGiJTqJOgtjP42mvughtL: "monthly",
-  price_1T7bGiJTqJOgtjP4n52jLJq5: "annual",
-  price_1T7bGiJTqJOgtjP4dlFrqlKK: "lifetime",
+  price_1T7bGiJTqJOgtjP42mvughtL: "monthly",    // HK$23/mo
+  price_1T7bGiJTqJOgtjP4n52jLJq5: "annual",     // HK$233/yr
+  price_1T7bGiJTqJOgtjP4dlFrqlKK: "lifetime",   // HK$388
   // USD (oldest batch)
   price_1T4zJUJTqJOgtjP4hPm3hos0: "monthly",
   price_1T4zJUJTqJOgtjP4U0CTHdvF: "annual",
   price_1T4zJUJTqJOgtjP4SvRct4RL: "lifetime",
-
-  // ── prod_Tuc39xxsAmRaK5 (Kinolu Pro – alt product) ──
-  // USD
-  price_1T7rhPJTqJOgtjP4dIDUZYtn: "monthly",
-  price_1T7riQJTqJOgtjP4lV1UxJlB: "annual",
-  price_1T7rjDJTqJOgtjP4OqKwRmtj: "lifetime",
-  // HKD
-  price_1T7rQSJTqJOgtjP4Llsv59Bq: "monthly",
-  price_1T7rQSJTqJOgtjP4LM6coUl7: "annual",
-  price_1T7rQSJTqJOgtjP4peRkIycs: "lifetime",
-  // CNY
-  price_1T7rQTJTqJOgtjP4lRfPtTJZ: "monthly",
-  price_1T7rQTJTqJOgtjP4sC9lfWko: "annual",
-  price_1T7rQSJTqJOgtjP4V9PkyPFc: "lifetime",
-  // USD (older batch)
-  price_1SwmpqJTqJOgtjP4lrV1AlqF: "monthly",
-  price_1SwmqAJTqJOgtjP4sfzuJ4Vi: "annual",
-  price_1SwmqMJTqJOgtjP48FPNkAM5: "lifetime",
-
-  // ── prod_U1xppaP6Le7VgI (Kinolu Pro – another variant) ──
-  price_1T7suSJTqJOgtjP4ckikWcyY: "monthly",
-  price_1T7svUJTqJOgtjP4qocBAlM4: "annual",
-  price_1T3ttnJTqJOgtjP4DMwzsdOj: "monthly",
-  price_1T3ttuJTqJOgtjP4Uwpdh9mK: "annual",
 };
 
 // ── Stripe signature verification ──
@@ -127,6 +103,9 @@ async function fetchSessionLineItems(
 }
 
 // ── Dynamic plan type detection (fallback when price not in hardcoded map) ──
+// ONLY accepts prices from Kinolu Pro product to prevent cross-project contamination
+const KINOLU_PRODUCT_IDS = new Set(["prod_U35UTwnhTYPkFg"]);
+
 async function detectPlanType(
   priceId: string,
   stripeKey: string,
@@ -138,6 +117,14 @@ async function detectPlanType(
     );
     if (!res.ok) return null;
     const price = await res.json();
+
+    // Reject prices from other products (Velo Studio, Custly CRM, etc.)
+    if (!KINOLU_PRODUCT_IDS.has(price.product)) {
+      console.warn(
+        `⛔ Price ${priceId} belongs to product ${price.product}, NOT Kinolu — ignoring`,
+      );
+      return null;
+    }
 
     if (price.type === "one_time") return "lifetime";
     if (price.recurring?.interval === "year") return "annual";
@@ -221,11 +208,14 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
   }
 
   if (!planType) {
-    // Last resort: still activate Pro (any valid Stripe payment = Pro)
+    // Could not determine plan — this might be a non-Kinolu product
+    // Only default to monthly if we at least found a price ID (means Stripe processed it)
+    // but still log loudly for investigation
     console.error(
-      `Could not determine plan for price ${priceId} — defaulting to monthly`,
+      `⛔ Could not determine Kinolu plan for price ${priceId} — skipping activation. ` +
+      `This may be a payment for a different product on this Stripe account.`,
     );
-    planType = "monthly";
+    return;
   }
 
   let stripeCustomerId = session.customer as string | null;
