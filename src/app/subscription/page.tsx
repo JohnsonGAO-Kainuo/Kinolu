@@ -30,10 +30,13 @@ function SubscriptionContent() {
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
 
   /* ── Post-payment auto-refresh ──
-   * When user returns from Stripe with ?payment_success=1,
-   * poll refreshProfile every 3s for up to 30s until isPro becomes true. */
+   * Detects user returning from Stripe in two ways:
+   * 1. URL has ?payment_success=1 (if Payment Link redirect is configured)
+   * 2. Page becomes visible again after user navigated to Stripe checkout
+   * Polls refreshProfile every 3s for up to 30s until isPro becomes true. */
   const pollingRef = useRef(false);
   const [paymentPending, setPaymentPending] = useState(false);
+  const navigatedToStripeRef = useRef(false);
 
   const pollForProStatus = useCallback(async () => {
     if (pollingRef.current) return;
@@ -59,6 +62,23 @@ function SubscriptionContent() {
       pollForProStatus();
     }
   }, [searchParams, isPro, pollForProStatus]);
+
+  // Auto-detect returning from Stripe checkout (tab becomes visible again)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (
+        document.visibilityState === "visible" &&
+        navigatedToStripeRef.current &&
+        !isPro
+      ) {
+        navigatedToStripeRef.current = false;
+        pollForProStatus();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [isPro, pollForProStatus]);
 
   return (
     <div className="flex flex-col w-full h-full bg-black">
@@ -288,6 +308,7 @@ function SubscriptionContent() {
                   }
                   // client_reference_id lets the webhook reliably link payment to user
                   url.searchParams.set("client_reference_id", user.id);
+                  navigatedToStripeRef.current = true;
                   window.location.href = url.toString();
                 }
               }}
