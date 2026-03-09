@@ -9,6 +9,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  *   STRIPE_SECRET_KEY — sk_live_... or sk_test_...
  *
  * Called from the profile page with the user's JWT.
+ * verify_jwt is disabled because the function validates
+ * the token itself via supabaseAuth.auth.getUser().
  */
 
 const CORS_HEADERS = {
@@ -70,13 +72,49 @@ Deno.serve(async (req: Request) => {
   // Get the user's stripe_customer_id from profiles
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, email")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.stripe_customer_id) {
+  let stripeCustomerId = profile?.stripe_customer_id;
+
+  // If no Stripe customer exists, create one on-the-fly
+  if (!stripeCustomerId) {
+    const email = profile?.email || user.email;
+    console.log(`🆕 No Stripe customer for user ${user.id}, creating one...`);
+    try {
+      const custRes = await fetch("https://api.stripe.com/v1/customers", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${stripeKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          email: email || "",
+          "metadata[supabase_user_id]": user.id,
+        }),
+      });
+      if (custRes.ok) {
+        const cust = await custRes.json();
+        stripeCustomerId = cust.id;
+        // Save back to profiles
+        await supabase
+          .from("profiles")
+          .update({ stripe_customer_id: cust.id, updated_at: new Date().toISOString() })
+          .eq("id", user.id);
+        console.log(`✅ Created Stripe customer: ${cust.id}`);
+      } else {
+        const errText = await custRes.text();
+        console.error("Failed to create Stripe customer:", errText);
+      }
+    } catch (err) {
+      console.error("Error creating Stripe customer:", err);
+    }
+  }
+
+  if (!stripeCustomerId) {
     return new Response(
-      JSON.stringify({ error: "No Stripe customer found for this account" }),
+      JSON.stringify({ error: "Could not find or create a Stripe customer for this account" }),
       { status: 404, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } },
     );
   }
@@ -100,7 +138,7 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        customer: profile.stripe_customer_id,
+        customer: stripeCustomerId,
         return_url: returnUrl || `${req.headers.get("origin") || "https://kinolu.app"}/profile`,
       }),
     },

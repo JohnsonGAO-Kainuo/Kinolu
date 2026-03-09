@@ -228,8 +228,33 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
     planType = "monthly";
   }
 
-  const stripeCustomerId = session.customer as string | null;
+  let stripeCustomerId = session.customer as string | null;
   const stripeSubscriptionId = session.subscription as string | null;
+
+  // Payment Links may not create a Stripe Customer — create one if needed
+  if (!stripeCustomerId && !existingStripeCustomerId && stripeKey && customerEmail) {
+    console.log(`🆕 Creating Stripe customer for ${customerEmail}`);
+    try {
+      const custRes = await fetch("https://api.stripe.com/v1/customers", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${stripeKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          email: customerEmail as string,
+          metadata: JSON.stringify({ supabase_user_id: profileId }),
+        }),
+      });
+      if (custRes.ok) {
+        const cust = await custRes.json();
+        stripeCustomerId = cust.id;
+        console.log(`✅ Created Stripe customer: ${cust.id}`);
+      }
+    } catch (err) {
+      console.warn("Could not create Stripe customer:", err);
+    }
+  }
 
   // Update profile → pro
   await supabase
