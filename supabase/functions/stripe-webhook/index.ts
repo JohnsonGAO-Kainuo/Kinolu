@@ -13,11 +13,50 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
  *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
 
-// Price ID → plan type mapping (multi-currency prices: USD + HKD + CNY)
+// Price ID → plan type mapping (ALL currencies: USD + HKD + CNY)
+// Includes all product variants to ensure no payment is missed.
 const PRICE_TO_PLAN: Record<string, "monthly" | "annual" | "lifetime"> = {
+  // ── prod_U35UTwnhTYPkFg (Kinolu Pro – primary) ──
+  // USD
   price_1T7cWYJTqJOgtjP4I987GTiJ: "monthly",
   price_1T7cWYJTqJOgtjP4Wor0wq2X: "annual",
   price_1T7cWYJTqJOgtjP4GWMQ4uX2: "lifetime",
+  // USD (earlier batch)
+  price_1T7c2NJTqJOgtjP4Z6YCIFDh: "monthly",
+  price_1T7c2OJTqJOgtjP4OJL6hciI: "annual",
+  price_1T7c2NJTqJOgtjP4eFKAoT3X: "lifetime",
+  // HKD
+  price_1T7bGiJTqJOgtjP42mvughtL: "monthly",
+  price_1T7bGiJTqJOgtjP4n52jLJq5: "annual",
+  price_1T7bGiJTqJOgtjP4dlFrqlKK: "lifetime",
+  // USD (oldest batch)
+  price_1T4zJUJTqJOgtjP4hPm3hos0: "monthly",
+  price_1T4zJUJTqJOgtjP4U0CTHdvF: "annual",
+  price_1T4zJUJTqJOgtjP4SvRct4RL: "lifetime",
+
+  // ── prod_Tuc39xxsAmRaK5 (Kinolu Pro – alt product) ──
+  // USD
+  price_1T7rhPJTqJOgtjP4dIDUZYtn: "monthly",
+  price_1T7riQJTqJOgtjP4lV1UxJlB: "annual",
+  price_1T7rjDJTqJOgtjP4OqKwRmtj: "lifetime",
+  // HKD
+  price_1T7rQSJTqJOgtjP4Llsv59Bq: "monthly",
+  price_1T7rQSJTqJOgtjP4LM6coUl7: "annual",
+  price_1T7rQSJTqJOgtjP4peRkIycs: "lifetime",
+  // CNY
+  price_1T7rQTJTqJOgtjP4lRfPtTJZ: "monthly",
+  price_1T7rQTJTqJOgtjP4sC9lfWko: "annual",
+  price_1T7rQSJTqJOgtjP4V9PkyPFc: "lifetime",
+  // USD (older batch)
+  price_1SwmpqJTqJOgtjP4lrV1AlqF: "monthly",
+  price_1SwmqAJTqJOgtjP4sfzuJ4Vi: "annual",
+  price_1SwmqMJTqJOgtjP48FPNkAM5: "lifetime",
+
+  // ── prod_U1xppaP6Le7VgI (Kinolu Pro – another variant) ──
+  price_1T7suSJTqJOgtjP4ckikWcyY: "monthly",
+  price_1T7svUJTqJOgtjP4qocBAlM4: "annual",
+  price_1T3ttnJTqJOgtjP4DMwzsdOj: "monthly",
+  price_1T3ttuJTqJOgtjP4Uwpdh9mK: "annual",
 };
 
 // ── Stripe signature verification ──
@@ -87,6 +126,28 @@ async function fetchSessionLineItems(
   return data.data?.[0]?.price?.id ?? null;
 }
 
+// ── Dynamic plan type detection (fallback when price not in hardcoded map) ──
+async function detectPlanType(
+  priceId: string,
+  stripeKey: string,
+): Promise<"monthly" | "annual" | "lifetime" | null> {
+  try {
+    const res = await fetch(
+      `https://api.stripe.com/v1/prices/${priceId}`,
+      { headers: { Authorization: `Bearer ${stripeKey}` } },
+    );
+    if (!res.ok) return null;
+    const price = await res.json();
+
+    if (price.type === "one_time") return "lifetime";
+    if (price.recurring?.interval === "year") return "annual";
+    if (price.recurring?.interval === "month") return "monthly";
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Handle checkout.session.completed ──
 async function handleCheckoutCompleted(session: Record<string, unknown>) {
   const supabase = getSupabaseAdmin();
@@ -98,6 +159,10 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
   const customerEmail =
     (session.customer_details as Record<string, unknown>)?.email ??
     session.customer_email;
+
+  console.log(
+    `🔍 Looking up user: ref=${clientRefId}, email=${customerEmail}, session=${session.id}`,
+  );
 
   let profileId: string | null = null;
   let existingStripeCustomerId: string | null = null;
@@ -145,11 +210,22 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
     priceId = await fetchSessionLineItems(session.id as string, stripeKey);
   }
 
-  const planType = priceId ? PRICE_TO_PLAN[priceId] : null;
+  // Determine plan type: hardcoded map → dynamic API fallback
+  let planType = priceId ? PRICE_TO_PLAN[priceId] : null;
+
+  if (!planType && priceId && stripeKey) {
+    console.warn(
+      `Price ${priceId} not in hardcoded map — detecting dynamically`,
+    );
+    planType = await detectPlanType(priceId, stripeKey);
+  }
 
   if (!planType) {
-    console.error(`Unknown price ID: ${priceId}`);
-    return;
+    // Last resort: still activate Pro (any valid Stripe payment = Pro)
+    console.error(
+      `Could not determine plan for price ${priceId} — defaulting to monthly`,
+    );
+    planType = "monthly";
   }
 
   const stripeCustomerId = session.customer as string | null;
@@ -342,25 +418,30 @@ Deno.serve(async (req: Request) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  console.log("📥 Webhook request received");
+
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
   // SECURITY: Always require webhook secret in production
   if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET not configured — rejecting request");
+    console.error("❌ STRIPE_WEBHOOK_SECRET not configured — rejecting request");
     return new Response("Webhook secret not configured", { status: 500 });
   }
 
   if (!sig) {
+    console.error("❌ Missing stripe-signature header");
     return new Response("Missing stripe-signature header", { status: 400 });
   }
 
   const valid = await verifyStripeSignature(body, sig, webhookSecret);
   if (!valid) {
-    console.error("Invalid Stripe signature");
+    console.error("❌ Invalid Stripe signature — check STRIPE_WEBHOOK_SECRET");
     return new Response("Invalid signature", { status: 400 });
   }
+
+  console.log("✅ Signature verified");
 
   let event: { type: string; data: { object: Record<string, unknown> } };
   try {
