@@ -236,6 +236,14 @@ const zhTW: Record<TranslationKeys, string> = {
   profile_signOut: "登出",
   profile_upgradePro: "升級到 Pro",
   profile_manageSubscription: "管理訂閱",
+  profile_planMonthly: "月度訂閱",
+  profile_planAnnual: "年度訂閱",
+  profile_planLifetime: "終身買斷",
+  profile_expires: "到期時間",
+  profile_lifetime_forever: "永久有效",
+  profile_status_active: "生效中",
+  profile_status_canceled: "已取消",
+  profile_status_past_due: "已逾期",
 
   /* ── 訂閱 ── */
   sub_title: "訂閱",

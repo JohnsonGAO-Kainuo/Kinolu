@@ -234,6 +234,14 @@ const en = {
   profile_signOut: "Sign Out",
   profile_upgradePro: "Upgrade to Pro",
   profile_manageSubscription: "Manage Subscription",
+  profile_planMonthly: "Monthly",
+  profile_planAnnual: "Annual",
+  profile_planLifetime: "Lifetime",
+  profile_expires: "Expires",
+  profile_lifetime_forever: "Forever",
+  profile_status_active: "Active",
+  profile_status_canceled: "Canceled",
+  profile_status_past_due: "Past Due",
 
   /* ── Subscription ── */
   sub_title: "Subscription",

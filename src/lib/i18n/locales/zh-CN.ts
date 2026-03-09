@@ -236,6 +236,14 @@ const zhCN: Record<TranslationKeys, string> = {
   profile_signOut: "退出登录",
   profile_upgradePro: "升级到 Pro",
   profile_manageSubscription: "管理订阅",
+  profile_planMonthly: "月度订阅",
+  profile_planAnnual: "年度订阅",
+  profile_planLifetime: "终身买断",
+  profile_expires: "到期时间",
+  profile_lifetime_forever: "永久有效",
+  profile_status_active: "生效中",
+  profile_status_canceled: "已取消",
+  profile_status_past_due: "已逾期",
 
   /* ── 订阅 ── */
   sub_title: "订阅",

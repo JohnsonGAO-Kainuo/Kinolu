@@ -84,35 +84,70 @@ export default function ProfilePage() {
               <p className="text-[11px] text-white/40">{profile.email}</p>
             </div>
 
-            {/* Subscription badge */}
-            <div
-              className={`px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wider uppercase ${
-                isPro
-                  ? "bg-white/10 text-white border border-white/20"
-                  : "bg-white/[0.04] text-white/40 border border-white/8"
-              }`}
-            >
-              {isPro ? `PRO · ${subscription?.plan_type || ""}` : t("sub_free")}
-            </div>
+            {/* Subscription info */}
+            {isPro ? (
+              <div className="w-full max-w-xs rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3">
+                {/* Plan badge */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-bold tracking-wider uppercase text-white">
+                      PRO
+                    </div>
+                    <span className="text-[13px] font-semibold text-white/90">
+                      {subscription?.plan_type === "lifetime"
+                        ? t("profile_planLifetime" as Parameters<typeof t>[0])
+                        : subscription?.plan_type === "annual"
+                          ? t("profile_planAnnual" as Parameters<typeof t>[0])
+                          : t("profile_planMonthly" as Parameters<typeof t>[0])}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-semibold tracking-wider uppercase ${
+                    subscription?.status === "active" ? "text-emerald-400" :
+                    subscription?.status === "past_due" ? "text-amber-400" : "text-white/40"
+                  }`}>
+                    {subscription?.status === "active"
+                      ? t("profile_status_active" as Parameters<typeof t>[0])
+                      : subscription?.status === "past_due"
+                        ? t("profile_status_past_due" as Parameters<typeof t>[0])
+                        : t("profile_status_canceled" as Parameters<typeof t>[0])}
+                  </span>
+                </div>
 
-            {/* Actions */}
-            {!isPro && (
-              <button
-                onClick={() => router.push("/subscription")}
-                className="px-6 py-2.5 bg-white text-black rounded-xl text-[12px] font-semibold tracking-[1px]"
-              >
-                {t("profile_upgradePro")}
-              </button>
-            )}
+                {/* Expiry info */}
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-white/40">
+                    {t("profile_expires" as Parameters<typeof t>[0])}
+                  </span>
+                  <span className="text-white/70 font-medium">
+                    {subscription?.plan_type === "lifetime"
+                      ? t("profile_lifetime_forever" as Parameters<typeof t>[0])
+                      : subscription?.current_period_end
+                        ? new Date(subscription.current_period_end).toLocaleDateString()
+                        : "—"}
+                  </span>
+                </div>
 
-            {isPro && (
-              <button
-                onClick={openCustomerPortal}
-                disabled={portalLoading}
-                className="px-6 py-2.5 bg-white/[0.06] text-white/80 rounded-xl text-[12px] font-medium tracking-[1px] border border-white/10 disabled:opacity-40 transition-all active:scale-[0.98]"
-              >
-                {portalLoading ? t("loading") : t("profile_manageSubscription")}
-              </button>
+                {/* Manage button */}
+                <button
+                  onClick={openCustomerPortal}
+                  disabled={portalLoading}
+                  className="w-full py-2.5 mt-1 bg-white/[0.06] text-white/80 rounded-xl text-[12px] font-medium tracking-[0.5px] border border-white/10 disabled:opacity-40 transition-all active:scale-[0.98]"
+                >
+                  {portalLoading ? t("loading") : t("profile_manageSubscription")}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="px-4 py-1.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-white/[0.04] text-white/40 border border-white/8">
+                  {t("sub_free")}
+                </div>
+                <button
+                  onClick={() => router.push("/subscription")}
+                  className="px-6 py-2.5 bg-white text-black rounded-xl text-[12px] font-semibold tracking-[1px]"
+                >
+                  {t("profile_upgradePro")}
+                </button>
+              </>
             )}
 
             <button
