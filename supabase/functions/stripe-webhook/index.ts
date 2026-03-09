@@ -243,7 +243,7 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
         },
         body: new URLSearchParams({
           email: customerEmail as string,
-          metadata: JSON.stringify({ supabase_user_id: profileId }),
+          "metadata[supabase_user_id]": profileId,
         }),
       });
       if (custRes.ok) {
@@ -257,7 +257,7 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
   }
 
   // Update profile → pro
-  await supabase
+  const { error: profileError } = await supabase
     .from("profiles")
     .update({
       subscription_tier: "pro",
@@ -265,6 +265,11 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", profileId);
+
+  if (profileError) {
+    console.error(`❌ Failed to update profile for ${profileId}:`, profileError);
+    throw new Error(`Profile update failed: ${profileError.message}`);
+  }
 
   // Upsert subscription record
   const subRecord: Record<string, unknown> = {
@@ -300,12 +305,20 @@ async function handleCheckoutCompleted(session: Record<string, unknown>) {
     .maybeSingle();
 
   if (existingSub) {
-    await supabase
+    const { error: subUpdateErr } = await supabase
       .from("subscriptions")
       .update(subRecord)
       .eq("id", existingSub.id);
+    if (subUpdateErr) {
+      console.error(`❌ Failed to update subscription:`, subUpdateErr);
+      throw new Error(`Subscription update failed: ${subUpdateErr.message}`);
+    }
   } else {
-    await supabase.from("subscriptions").insert(subRecord);
+    const { error: subInsertErr } = await supabase.from("subscriptions").insert(subRecord);
+    if (subInsertErr) {
+      console.error(`❌ Failed to insert subscription:`, subInsertErr);
+      throw new Error(`Subscription insert failed: ${subInsertErr.message}`);
+    }
   }
 
   console.log(
