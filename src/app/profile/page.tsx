@@ -127,14 +127,16 @@ export default function ProfilePage() {
                   </span>
                 </div>
 
-                {/* Manage button */}
-                <button
-                  onClick={openCustomerPortal}
-                  disabled={portalLoading}
-                  className="w-full py-2.5 mt-1 bg-white/[0.06] text-white/80 rounded-xl text-[12px] font-medium tracking-[0.5px] border border-white/10 disabled:opacity-40 transition-all active:scale-[0.98]"
-                >
-                  {portalLoading ? t("loading") : t("profile_manageSubscription")}
-                </button>
+                {/* Manage button — only show for recurring plans */}
+                {subscription?.plan_type !== "lifetime" && (
+                  <button
+                    onClick={openCustomerPortal}
+                    disabled={portalLoading}
+                    className="w-full py-2.5 mt-1 bg-white/[0.06] text-white/80 rounded-xl text-[12px] font-medium tracking-[0.5px] border border-white/10 disabled:opacity-40 transition-all active:scale-[0.98]"
+                  >
+                    {portalLoading ? t("loading") : t("profile_manageSubscription")}
+                  </button>
+                )}
               </div>
             ) : (
               <>
