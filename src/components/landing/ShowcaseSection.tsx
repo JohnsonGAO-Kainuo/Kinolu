@@ -3,9 +3,21 @@
 import { useI18n } from "@/lib/i18n";
 
 const SHOWCASE_PAIRS = [
-  { src: "/heroes/editor.jpg", label: "landing_showcase_filmEmulation" as const },
-  { src: "/heroes/camera.jpg", label: "landing_showcase_colorMatch" as const },
-  { src: "/heroes/presets.jpg", label: "landing_showcase_moodTransfer" as const },
+  {
+    src: "/heroes/editor.jpg",
+    label: "landing_showcase_filmEmulation" as const,
+    descKey: "landing_showcase_filmDesc" as const,
+  },
+  {
+    src: "/heroes/camera.jpg",
+    label: "landing_showcase_colorMatch" as const,
+    descKey: "landing_showcase_colorDesc" as const,
+  },
+  {
+    src: "/heroes/presets.jpg",
+    label: "landing_showcase_moodTransfer" as const,
+    descKey: "landing_showcase_cameraDesc" as const,
+  },
 ];
 
 interface ShowcaseSectionProps {
@@ -41,6 +53,9 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
                 <span className="text-[11px] font-semibold tracking-[1.5px] text-white/80 uppercase">
                   {t(pair.label)}
                 </span>
+                <p className="text-[10px] text-white/40 mt-0.5 leading-relaxed">
+                  {t(pair.descKey)}
+                </p>
               </div>
             </div>
           </div>

@@ -29,10 +29,7 @@ export default function HeroSection() {
             {t("landing_ctaTry")}
           </button>
           <button
-            onClick={() => {
-              const el = document.getElementById("features");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
+            onClick={() => router.push("/landing/features")}
             className="px-8 py-3.5 border border-white/20 text-[12px] font-bold tracking-[3px] rounded-full uppercase text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
           >
             {t("landing_ctaLearnMore")}

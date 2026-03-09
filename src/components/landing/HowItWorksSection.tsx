@@ -1,12 +1,13 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n";
+import { IconEdit, IconPalette, IconFilm, IconXYPad } from "@/components/icons";
 
 const STEPS = [
-  { num: "01", key: "landing_step1Title" as const, descKey: "landing_step1Desc" as const },
-  { num: "02", key: "landing_step2Title" as const, descKey: "landing_step2Desc" as const },
-  { num: "03", key: "landing_step3Title" as const, descKey: "landing_step3Desc" as const },
-  { num: "04", key: "landing_step4Title" as const, descKey: "landing_step4Desc" as const },
+  { num: "01", key: "landing_step1Title" as const, descKey: "landing_step1Desc" as const, Icon: IconEdit },
+  { num: "02", key: "landing_step2Title" as const, descKey: "landing_step2Desc" as const, Icon: IconFilm },
+  { num: "03", key: "landing_step3Title" as const, descKey: "landing_step3Desc" as const, Icon: IconPalette },
+  { num: "04", key: "landing_step4Title" as const, descKey: "landing_step4Desc" as const, Icon: IconXYPad },
 ] as const;
 
 interface HowItWorksSectionProps {
@@ -28,10 +29,13 @@ export default function HowItWorksSection({ standalone }: HowItWorksSectionProps
         {STEPS.map((step) => (
           <div key={step.num} className="flex gap-4 items-start">
             <div className="shrink-0 w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-              <span className="text-[16px] font-black text-white/20 tracking-tight">{step.num}</span>
+              <step.Icon size={20} className="text-white/30" />
             </div>
             <div>
-              <h4 className="text-[14px] font-semibold tracking-wide mb-1">{t(step.key)}</h4>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold text-white/15 tracking-tight">{step.num}</span>
+                <h4 className="text-[14px] font-semibold tracking-wide">{t(step.key)}</h4>
+              </div>
               <p className="text-[12px] text-white/40 leading-relaxed">{t(step.descKey)}</p>
             </div>
           </div>
