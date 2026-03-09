@@ -58,6 +58,7 @@ export default function CameraPage() {
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [activePresetId, setActivePresetId] = useState<string>("");
   const [lutLoading, setLutLoading] = useState(false);
+  const [lutReady, setLutReady] = useState(false);
   const [cameraLutTab, setCameraLutTab] = useState<"film" | "presets">("film");
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const [focusKey, setFocusKey] = useState(0);
@@ -74,7 +75,7 @@ export default function CameraPage() {
   useEffect(() => { facingRef.current = facingMode; }, [facingMode]);
 
   const isSelfie = facingMode === "user";
-  const hasLut = !!activePresetId;
+  const hasLut = lutReady && !!activePresetId;
   const mirrorStyle = isSelfie ? "scaleX(-1)" : "none";
 
   /* ════════════════ CAMERA ════════════════ */
@@ -146,15 +147,19 @@ export default function CameraPage() {
   useEffect(() => {
     if (!activePresetId) {
       activeLutRef.current = null;
+      setLutReady(false);
       return;
     }
     let cancelled = false;
     setLutLoading(true);
+    setLutReady(false);
     void (async () => {
       try {
         const entry = await getLocalLut(activePresetId);
-        if (!cancelled && entry)
+        if (!cancelled && entry) {
           activeLutRef.current = { data: entry.data, size: entry.size };
+          setLutReady(true);
+        }
       } catch { /* ignore */ }
       finally { if (!cancelled) setLutLoading(false); }
     })();
@@ -171,6 +176,8 @@ export default function CameraPage() {
     const video = videoRef.current;
     const lutCanvas = lutCanvasRef.current;
     if (!video || !lutCanvas) return;
+    /* No preset selected → no loop needed, <video> is visible natively */
+    if (!activePresetId) return;
     const ctx = lutCanvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
@@ -182,7 +189,9 @@ export default function CameraPage() {
       if (!running) return;
       const lut = activeLutRef.current;
       if (!lut) {
-        /* No LUT — stop the loop, <video> is visible natively */
+        /* No LUT data yet — keep loop alive so it starts drawing
+         * as soon as the async LUT load completes */
+        rafRef.current = requestAnimationFrame(draw);
         return;
       }
 
