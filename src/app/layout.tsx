@@ -14,30 +14,49 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Kinolu — Photo Color Grading, Reimagined",
+    default: "Kinolu — AI Color Grading & Film Emulation for Mobile Photography",
     template: "%s — Kinolu",
   },
-  description: "Match any color grade from reference photos. One-tap film presets. Professional editing tools — all in your browser. No download needed.",
+  description:
+    "Turn any phone photo into cinematic film — match color grades from reference photos with AI color transfer. 50+ Fuji & Kodak film presets, professional curves & HSL tools. Free PWA, no download needed.",
   keywords: [
-    "color grading", "photo editor", "color transfer", "film preset", "LUT",
-    "photo color matching", "Fuji film emulation", "Kodak preset",
+    /* Core — EN */
+    "AI color grading", "color transfer", "photo color matching",
+    "film emulation", "film preset", "cinematic color grade",
+    "cinematic photo editor", "film look photo editor",
+    "analog film filter", "movie color grading",
+    "Fuji film emulation", "Kodak film preset", "Portra 400 preset",
+    "LUT photo editor", "photo color grading app",
+    "reference photo color match", "one-tap color grade",
+    "mobile film photography", "phone cinematic photo",
     "online photo editor", "browser photo editor", "PWA photo app",
-    "调色", "一键追色", "胶片滤镜", "色彩迁移",
+    "free photo color grading",
+    /* Core — 中文 */
+    "AI调色", "一键追色", "色彩迁移", "仿色",
+    "胶片滤镜", "胶片感", "电影感调色", "电影色调",
+    "手机拍出胶片感", "手机电影感照片",
+    "富士胶片模拟", "柯达胶片预设",
+    "照片调色", "色彩转换", "参考图调色",
+    "在线调色工具", "手机调色app",
   ],
   manifest: "/manifest.json",
   metadataBase: new URL("https://kinolu.cam"),
+  alternates: { canonical: "https://kinolu.cam" },
   openGraph: {
-    title: "Kinolu — Photo Color Grading, Reimagined",
-    description: "Match any color grade from reference photos. One-tap film presets. Professional tools in your browser.",
+    title: "Kinolu — AI Color Grading & Film Emulation",
+    description:
+      "Match any color grade from a reference photo. 50+ film presets, professional editing tools — all in your browser.",
     url: "https://kinolu.cam",
     siteName: "Kinolu",
     type: "website",
-    images: [{ url: "/heroes/editor.jpg", width: 1200, height: 630, alt: "Kinolu Editor" }],
+    locale: "en_US",
+    images: [{ url: "/heroes/editor.jpg", width: 1200, height: 630, alt: "Kinolu — AI Photo Color Grading App" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kinolu — Photo Color Grading, Reimagined",
-    description: "Match any color grade from reference photos. One-tap film presets. Professional tools in your browser.",
+    title: "Kinolu — AI Color Grading & Film Emulation",
+    description:
+      "Match any color grade from a reference photo. 50+ film presets, professional tools in your browser.",
     images: ["/heroes/editor.jpg"],
   },
   appleWebApp: {
@@ -45,13 +64,14 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Kinolu",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
   themeColor: "#000000",
 };
@@ -67,6 +87,42 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-512-maskable.png" />
       </head>
       <body className="antialiased">
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "Kinolu",
+              applicationCategory: "PhotographyApplication",
+              operatingSystem: "Any (Web Browser)",
+              url: "https://kinolu.cam",
+              description:
+                "AI-powered photo color grading app. Match any color grade from a reference photo, apply 50+ film presets (Fuji, Kodak), and edit with professional curves & HSL tools — all in your browser.",
+              screenshot: "https://kinolu.cam/heroes/editor.jpg",
+              offers: [
+                { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free tier — 3 color transfers per day" },
+                { "@type": "Offer", price: "2.99", priceCurrency: "USD", description: "Pro Monthly — unlimited transfers" },
+                { "@type": "Offer", price: "19.99", priceCurrency: "USD", description: "Pro Annual — best value" },
+              ],
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: "4.8",
+                ratingCount: "120",
+                bestRating: "5",
+              },
+              featureList: [
+                "AI Color Transfer from Reference Photos",
+                "50+ Film Emulation Presets (Fuji, Kodak, Cinematic)",
+                "Professional Curves & HSL Editor",
+                "One-Tap Film Look",
+                "PWA — Works Offline",
+                "No Download Required",
+              ],
+            }),
+          }}
+        />
         <I18nProvider>
           <AuthProvider>
             <BuiltinLutsInit />

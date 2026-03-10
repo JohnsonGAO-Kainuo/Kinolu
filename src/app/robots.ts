@@ -5,8 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
-        disallow: ["/auth/", "/profile", "/feedback"],
+        allow: ["/", "/landing", "/landing/", "/community", "/share/"],
+        disallow: ["/auth/", "/profile", "/feedback", "/editor", "/camera", "/presets"],
       },
     ],
     sitemap: "https://kinolu.cam/sitemap.xml",
