@@ -24,13 +24,13 @@ export default function HeroSection() {
         <div className="flex flex-col sm:flex-row gap-3 mt-10 justify-center">
           <button
             onClick={() => router.push("/")}
-            className="px-10 py-3.5 bg-white text-black text-[12px] font-bold tracking-[3px] rounded-full uppercase hover:bg-white/90 transition-colors"
+            className="px-10 py-3.5 bg-white text-black text-[12px] font-bold tracking-[3px] rounded-lg uppercase hover:bg-white/90 transition-colors"
           >
             {t("landing_ctaTry")}
           </button>
           <button
             onClick={() => router.push("/landing/features")}
-            className="px-8 py-3.5 border border-white/20 text-[12px] font-bold tracking-[3px] rounded-full uppercase text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
+            className="px-8 py-3.5 border border-white/20 text-[12px] font-bold tracking-[3px] rounded-lg uppercase text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
           >
             {t("landing_ctaLearnMore")}
           </button>

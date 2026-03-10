@@ -23,7 +23,7 @@ export default function FeaturesSection({ standalone }: FeaturesSectionProps) {
   const { t } = useI18n();
 
   return (
-    <section id="features" className={`max-w-6xl mx-auto px-5 scroll-mt-20 ${standalone ? "py-28" : "py-24"}`}>
+    <section id="features" className={`max-w-7xl mx-auto px-6 scroll-mt-20 ${standalone ? "py-28" : "py-24"}`}>
       <h2 className="text-[10px] tracking-[4px] text-white/30 uppercase text-center mb-2">
         {t("landing_featuresLabel")}
       </h2>
@@ -37,9 +37,9 @@ export default function FeaturesSection({ standalone }: FeaturesSectionProps) {
         {FEATURES.map((f) => (
           <div
             key={f.key}
-            className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 hover:bg-white/[0.05] hover:border-white/[0.12] transition-all group"
+            className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-6 hover:bg-white/[0.05] hover:border-white/[0.12] transition-all group"
           >
-            <div className="w-10 h-10 rounded-xl bg-white/[0.06] flex items-center justify-center mb-4 group-hover:bg-white/[0.1] transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-white/[0.06] flex items-center justify-center mb-4 group-hover:bg-white/[0.1] transition-colors">
               <f.Icon size={20} className="text-white/60 group-hover:text-white/80 transition-colors" />
             </div>
             <h4 className="text-[13px] font-semibold tracking-wide mb-1.5">{t(f.key)}</h4>

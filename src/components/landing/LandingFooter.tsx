@@ -9,7 +9,7 @@ export default function LandingFooter() {
 
   return (
     <footer className="border-t border-white/[0.06] py-10 px-5">
-      <div className="max-w-6xl mx-auto flex flex-col items-center gap-6">
+      <div className="max-w-7xl mx-auto flex flex-col items-center gap-6">
         {/* Top row: logo + links */}
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">

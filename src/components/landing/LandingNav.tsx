@@ -46,16 +46,16 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
 
   return (
     <nav className="sticky top-0 z-50 safe-top bg-black/80 backdrop-blur-xl border-b border-white/[0.04]">
-      <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Left: Logo / Back */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {!isMainLanding ? (
             <button
               onClick={() => router.push("/landing")}
               className="cursor-pointer flex items-center gap-2 text-white/50 hover:text-white/80 transition-colors"
             >
               <IconBack size={18} />
-              <span className="text-[10px] tracking-[2px] uppercase font-bold">KINOLU</span>
+              <span className="text-[11px] tracking-[2px] uppercase font-bold">KINOLU</span>
             </button>
           ) : (
             <button
@@ -68,39 +68,40 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
           )}
         </div>
 
-        {/* Center: Desktop nav links */}
-        <div className="hidden sm:flex items-center gap-6">
-          {NAV_ITEMS.map((item) => {
-            const isActive =
-              (!isMainLanding && pathname === item.href) ||
-              (isMainLanding && activeSection === item.id);
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item)}
-                className={`cursor-pointer text-[10px] tracking-[1.5px] uppercase transition-all duration-200 py-1 border-b-2 ${
-                  isActive
-                    ? "text-white/90 border-white/60"
-                    : "text-white/35 border-transparent hover:text-white/70 hover:border-white/20"
-                }`}
-              >
-                {labelMap[item.id]}
-              </button>
-            );
-          })}
+        {/* Center: Desktop nav — pill-tab container */}
+        <div className="hidden sm:flex items-center">
+          <div className="flex items-center bg-white/[0.05] rounded-lg p-0.5 border border-white/[0.06]">
+            {NAV_ITEMS.map((item) => {
+              const isActive =
+                (!isMainLanding && pathname === item.href) ||
+                (isMainLanding && activeSection === item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item)}
+                  className={`cursor-pointer text-[11px] tracking-[1px] uppercase px-4 py-1.5 rounded-md font-medium transition-all duration-200 ${
+                    isActive
+                      ? "bg-white/[0.12] text-white/90 shadow-sm"
+                      : "text-white/40 hover:text-white/70 hover:bg-white/[0.05]"
+                  }`}
+                >
+                  {labelMap[item.id]}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Right: Pricing + User avatar or Sign In */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => router.push("/landing/pricing")}
-            className="hidden sm:block cursor-pointer text-[10px] tracking-[1.5px] text-white/40 uppercase hover:text-white/70 transition-colors"
+            className="hidden sm:block cursor-pointer text-[11px] tracking-[1px] text-white/40 uppercase hover:text-white/70 transition-colors"
           >
             {t("landing_nav_pricing")}
           </button>
 
           {user ? (
-            /* Logged in: avatar circle → goes to profile */
             <button
               onClick={() => router.push("/profile")}
               className="cursor-pointer w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-[11px] font-bold text-white/70 hover:bg-white/20 hover:border-white/30 transition-all"
@@ -109,10 +110,9 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
               {userInitial || "U"}
             </button>
           ) : (
-            /* Not logged in: Sign In button */
             <button
               onClick={() => router.push("/auth/login")}
-              className="cursor-pointer text-[10px] tracking-[1.5px] text-white/50 border border-white/15 rounded-full px-3.5 py-1.5 hover:text-white/80 hover:border-white/30 transition-colors uppercase"
+              className="cursor-pointer text-[11px] tracking-[1px] text-white/50 border border-white/15 rounded-lg px-3.5 py-1.5 hover:text-white/80 hover:border-white/30 transition-colors uppercase"
             >
               {t("auth_signIn")}
             </button>
@@ -120,26 +120,28 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
         </div>
       </div>
 
-      {/* Mobile nav — horizontal pill tabs */}
-      <div className="sm:hidden flex gap-2 px-5 pb-2.5 overflow-x-auto no-scrollbar">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            (!isMainLanding && pathname === item.href) ||
-            (isMainLanding && activeSection === item.id);
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleNavClick(item)}
-              className={`cursor-pointer shrink-0 text-[9px] tracking-[1.5px] uppercase px-3 py-1.5 rounded-full border transition-all duration-200 ${
-                isActive
-                  ? "text-white/80 border-white/20 bg-white/[0.06]"
-                  : "text-white/30 border-white/[0.06] hover:text-white/50 hover:border-white/15"
-              }`}
-            >
-              {labelMap[item.id]}
-            </button>
-          );
-        })}
+      {/* Mobile nav — pill-tab container */}
+      <div className="sm:hidden flex justify-center px-4 pb-2.5">
+        <div className="flex items-center bg-white/[0.05] rounded-lg p-0.5 border border-white/[0.06] overflow-x-auto no-scrollbar">
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              (!isMainLanding && pathname === item.href) ||
+              (isMainLanding && activeSection === item.id);
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item)}
+                className={`cursor-pointer shrink-0 text-[9px] tracking-[1px] uppercase px-3 py-1.5 rounded-md font-medium transition-all duration-200 ${
+                  isActive
+                    ? "bg-white/[0.12] text-white/80 shadow-sm"
+                    : "text-white/30 hover:text-white/50 hover:bg-white/[0.05]"
+                }`}
+              >
+                {labelMap[item.id]}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

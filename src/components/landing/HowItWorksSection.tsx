@@ -32,7 +32,7 @@ export default function HowItWorksSection({ standalone }: HowItWorksSectionProps
   const { t } = useI18n();
 
   return (
-    <section id="how-it-works" className={`max-w-5xl mx-auto px-5 scroll-mt-20 ${standalone ? "py-28" : "py-20"}`}>
+    <section id="how-it-works" className={`max-w-7xl mx-auto px-6 scroll-mt-20 ${standalone ? "py-28" : "py-20"}`}>
       <h2 className="text-[10px] tracking-[4px] text-white/30 uppercase text-center mb-2">
         {t("landing_howLabel")}
       </h2>
@@ -48,9 +48,9 @@ export default function HowItWorksSection({ standalone }: HowItWorksSectionProps
           return (
             <div
               key={mode.titleKey}
-              className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all group"
+              className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-6 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all group"
             >
-              <div className="w-11 h-11 rounded-xl bg-white/[0.06] flex items-center justify-center mb-4 group-hover:bg-white/[0.1] transition-colors">
+              <div className="w-11 h-11 rounded-lg bg-white/[0.06] flex items-center justify-center mb-4 group-hover:bg-white/[0.1] transition-colors">
                 <mode.Icon size={22} className="text-white/50 group-hover:text-white/80 transition-colors" />
               </div>
               <h4 className="text-[15px] font-bold tracking-wide mb-1.5">{t(mode.titleKey)}</h4>

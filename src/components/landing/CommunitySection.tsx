@@ -133,7 +133,7 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
   };
 
   return (
-    <section id="community" className={`max-w-6xl mx-auto px-5 scroll-mt-20 ${standalone ? "py-28" : "py-24"}`}>
+    <section id="community" className={`max-w-7xl mx-auto px-6 scroll-mt-20 ${standalone ? "py-28" : "py-24"}`}>
       <h2 className="text-[10px] tracking-[4px] text-white/30 uppercase text-center mb-2">
         {t("community_title")}
       </h2>
@@ -150,13 +150,13 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
           <>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="cursor-pointer px-6 py-2.5 bg-white text-black text-[11px] font-bold tracking-[2px] uppercase rounded-full hover:bg-white/90 transition-colors"
+              className="cursor-pointer px-6 py-2.5 bg-white text-black text-[11px] font-bold tracking-[2px] uppercase rounded-lg hover:bg-white/90 transition-colors"
             >
               {showForm ? t("cancel") : t("community_createPost")}
             </button>
             <button
               onClick={() => router.push("/feedback")}
-              className="cursor-pointer px-5 py-2.5 border border-white/15 text-white/50 text-[11px] font-bold tracking-[2px] uppercase rounded-full hover:text-white/80 hover:border-white/30 transition-colors"
+              className="cursor-pointer px-5 py-2.5 border border-white/15 text-white/50 text-[11px] font-bold tracking-[2px] uppercase rounded-lg hover:text-white/80 hover:border-white/30 transition-colors"
             >
               {t("community_feedback")}
             </button>
@@ -174,24 +174,24 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
       {/* Create post form */}
       {showForm && (
         <div className="max-w-xl mx-auto mb-10">
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 space-y-4">
+          <div className="bg-white/[0.03] border border-white/[0.08] rounded-lg p-5 space-y-4">
             <input
               type="text"
               placeholder={t("community_postTitlePlaceholder")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 outline-none focus:border-white/20"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-lg px-4 py-3 text-[13px] text-white placeholder-white/25 outline-none focus:border-white/20"
             />
             <textarea
               placeholder={t("community_postDescPlaceholder")}
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
               rows={3}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-[13px] text-white placeholder-white/25 outline-none focus:border-white/20 resize-none"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-lg px-4 py-3 text-[13px] text-white placeholder-white/25 outline-none focus:border-white/20 resize-none"
             />
             <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
             {imagePreview ? (
-              <div className="relative rounded-xl overflow-hidden">
+              <div className="relative rounded-lg overflow-hidden">
                 <img src={imagePreview} alt="preview" className="w-full max-h-[300px] object-cover" />
                 <button
                   onClick={() => { setImageFile(null); setImagePreview(null); }}
@@ -203,7 +203,7 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
             ) : (
               <button
                 onClick={() => fileRef.current?.click()}
-                className="w-full py-8 border-2 border-dashed border-white/10 rounded-xl text-[12px] text-white/30 hover:text-white/50 hover:border-white/20 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-8 border-2 border-dashed border-white/10 rounded-lg text-[12px] text-white/30 hover:text-white/50 hover:border-white/20 transition-colors flex items-center justify-center gap-2"
               >
                 <IconUploadImage size={18} />
                 {t("community_uploadImageOptional")}
@@ -212,7 +212,7 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
             <button
               onClick={handlePublish}
               disabled={publishing || !title.trim()}
-              className="w-full py-3 bg-white text-black text-[12px] font-bold tracking-[2px] uppercase rounded-full disabled:opacity-30 hover:bg-white/90 transition-colors"
+              className="w-full py-3 bg-white text-black text-[12px] font-bold tracking-[2px] uppercase rounded-lg disabled:opacity-30 hover:bg-white/90 transition-colors"
             >
               {publishing ? t("community_publishing") : t("community_publish")}
             </button>
@@ -232,7 +232,7 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
           {posts.map((post) => (
             <article
               key={post.id}
-              className="relative bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden hover:bg-white/[0.04] transition-colors group"
+              className="relative bg-white/[0.02] border border-white/[0.06] rounded-lg overflow-hidden hover:bg-white/[0.04] transition-colors group"
             >
               {/* Owner delete button */}
               {user?.id === post.user_id && (
