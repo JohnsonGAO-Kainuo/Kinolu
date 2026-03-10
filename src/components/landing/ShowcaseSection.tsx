@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useI18n } from "@/lib/i18n";
 
 /* ═══════════════════════════════════════════════════════════
@@ -35,10 +36,13 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
 
         {/* Col 1, Row 1–2: Reference (tall, spans both rows) */}
         <div className="col-start-1 row-start-1 row-span-2 group relative rounded-lg overflow-hidden bg-white/[0.02] border border-dashed border-white/[0.12] hover:border-white/[0.20] transition-all">
-          <img
+          <Image
             src="/showcase/reference.jpg"
             alt={t("landing_showcase_reference")}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 40vw"
+            quality={90}
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -65,10 +69,13 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
 
         {/* Col 3, Row 1: Original (Before) */}
         <div className="col-start-3 row-start-1 group relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] transition-all">
-          <img
+          <Image
             src="/showcase/original.jpg"
             alt={t("landing_showcase_original")}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 40vw"
+            quality={90}
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
@@ -81,10 +88,13 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
 
         {/* Col 3, Row 2: Result (After) — highlighted border */}
         <div className="col-start-3 row-start-2 group relative rounded-lg overflow-hidden bg-white/[0.02] border-2 border-white/[0.15] hover:border-white/[0.25] transition-all">
-          <img
+          <Image
             src="/showcase/result.png"
             alt={t("landing_showcase_result")}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 40vw"
+            quality={90}
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
@@ -100,7 +110,9 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
       <div className="md:hidden flex flex-col items-center gap-3 max-w-lg mx-auto">
         {/* Reference */}
         <div className="w-full relative rounded-lg overflow-hidden bg-white/[0.02] border border-dashed border-white/[0.12]">
-          <img src="/showcase/reference.jpg" alt={t("landing_showcase_reference")} className="w-full aspect-[4/3] object-cover" />
+          <div className="relative w-full aspect-[4/3]">
+            <Image src="/showcase/reference.jpg" alt={t("landing_showcase_reference")} fill sizes="100vw" quality={90} className="object-cover" />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           <div className="absolute bottom-0 left-0 p-3">
             <span className="inline-block px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded text-[9px] font-bold tracking-[2px] text-white/90 uppercase border border-white/10">
@@ -114,7 +126,9 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
         </svg>
         {/* Original */}
         <div className="w-full relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/[0.06]">
-          <img src="/showcase/original.jpg" alt={t("landing_showcase_original")} className="w-full aspect-[4/3] object-cover" />
+          <div className="relative w-full aspect-[4/3]">
+            <Image src="/showcase/original.jpg" alt={t("landing_showcase_original")} fill sizes="100vw" quality={90} className="object-cover" />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
             <span className="inline-block px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded text-[9px] font-bold tracking-[2px] text-white/90 uppercase border border-white/10">
@@ -129,7 +143,9 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
         </svg>
         {/* Result */}
         <div className="w-full relative rounded-lg overflow-hidden bg-white/[0.02] border-2 border-white/[0.15]">
-          <img src="/showcase/result.png" alt={t("landing_showcase_result")} className="w-full aspect-[4/3] object-cover" />
+          <div className="relative w-full aspect-[4/3]">
+            <Image src="/showcase/result.png" alt={t("landing_showcase_result")} fill sizes="100vw" quality={90} className="object-cover" />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
             <span className="inline-block px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded text-[9px] font-bold tracking-[2px] text-white uppercase border border-white/20">
