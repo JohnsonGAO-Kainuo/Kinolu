@@ -196,12 +196,7 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
                   : t("community_startDiscussion")
               }
             </button>
-            <button
-              onClick={() => router.push("/feedback")}
-              className="cursor-pointer px-5 py-2.5 border border-white/15 text-white/50 text-[11px] font-bold tracking-[2px] uppercase rounded-lg hover:text-white/80 hover:border-white/30 transition-colors"
-            >
-              {t("community_feedback")}
-            </button>
+
           </>
         ) : (
           <button
