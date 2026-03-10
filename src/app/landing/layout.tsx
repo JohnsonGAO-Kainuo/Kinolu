@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Kinolu — AI Photo Color Grading & Film Emulation",
     description:
-      "Match any color grade from a reference photo. 50+ film presets, professional editing tools — all in your browser. No download needed.",
+      "Match any color grade from a reference photo. 12 film presets, professional editing tools — all in your browser. No download needed.",
     url: "https://kinolu.cam/landing",
     images: [{ url: "/heroes/editor.jpg", width: 1200, height: 630, alt: "Kinolu — AI Photo Color Grading" }],
   },

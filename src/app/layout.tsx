@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s — Kinolu",
   },
   description:
-    "Turn any phone photo into cinematic film — match color grades from reference photos with AI color transfer. 50+ Fuji & Kodak film presets, professional curves & HSL tools. Free PWA, no download needed.",
+    "Turn any phone photo into cinematic film — match color grades from reference photos with AI color transfer. 12 Fuji & Kodak film presets, professional curves & HSL tools. Free PWA, no download needed.",
   keywords: [
     /* Core — EN */
     "AI color grading", "color transfer", "photo color matching",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Kinolu — AI Color Grading & Film Emulation",
     description:
-      "Match any color grade from a reference photo. 50+ film presets, professional editing tools — all in your browser.",
+      "Match any color grade from a reference photo. 12 film presets, professional editing tools — all in your browser.",
     url: "https://kinolu.cam",
     siteName: "Kinolu",
     type: "website",
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Kinolu — AI Color Grading & Film Emulation",
     description:
-      "Match any color grade from a reference photo. 50+ film presets, professional tools in your browser.",
+      "Match any color grade from a reference photo. 12 film presets, professional tools in your browser.",
     images: ["/heroes/editor.jpg"],
   },
   appleWebApp: {
@@ -99,7 +99,7 @@ export default function RootLayout({
               operatingSystem: "Any (Web Browser)",
               url: "https://kinolu.cam",
               description:
-                "AI-powered photo color grading app. Match any color grade from a reference photo, apply 50+ film presets (Fuji, Kodak), and edit with professional curves & HSL tools — all in your browser.",
+                "AI-powered photo color grading app. Match any color grade from a reference photo, apply 12 film presets (Fuji, Kodak), and edit with professional curves & HSL tools — all in your browser.",
               screenshot: "https://kinolu.cam/heroes/editor.jpg",
               offers: [
                 { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free tier — 3 color transfers per day" },
@@ -114,7 +114,7 @@ export default function RootLayout({
               },
               featureList: [
                 "AI Color Transfer from Reference Photos",
-                "50+ Film Emulation Presets (Fuji, Kodak, Cinematic)",
+                "12 Film Emulation Presets (Fuji, Kodak, Polaroid)",
                 "Professional Curves & HSL Editor",
                 "One-Tap Film Look",
                 "PWA — Works Offline",
