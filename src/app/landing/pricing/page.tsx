@@ -60,7 +60,7 @@ export default function LandingPricingPage() {
         </div>
 
         {/* Feature comparison */}
-        <div className="max-w-lg mx-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden mb-10">
+        <div className="max-w-lg mx-auto rounded-lg border border-white/[0.06] bg-white/[0.02] overflow-hidden mb-10">
           <div className="flex items-center h-10 px-5 border-b border-white/[0.06]">
             <div className="flex-1 text-[11px] text-white/30 font-medium tracking-wider uppercase">
               {t("sub_feature")}
@@ -95,7 +95,7 @@ export default function LandingPricingPage() {
           {/* Annual */}
           <button
             onClick={() => setSelectedPlan("annual")}
-            className={`cursor-pointer relative flex flex-col items-center px-5 py-6 rounded-2xl border transition-all ${
+            className={`cursor-pointer relative flex flex-col items-center px-5 py-6 rounded-lg border transition-all ${
               selectedPlan === "annual"
                 ? "border-white/40 bg-white/[0.06]"
                 : "border-white/[0.06] bg-white/[0.02] hover:border-white/15"
@@ -113,7 +113,7 @@ export default function LandingPricingPage() {
           {/* Monthly */}
           <button
             onClick={() => setSelectedPlan("monthly")}
-            className={`cursor-pointer flex flex-col items-center px-5 py-6 rounded-2xl border transition-all ${
+            className={`cursor-pointer flex flex-col items-center px-5 py-6 rounded-lg border transition-all ${
               selectedPlan === "monthly"
                 ? "border-white/40 bg-white/[0.06]"
                 : "border-white/[0.06] bg-white/[0.02] hover:border-white/15"
@@ -127,7 +127,7 @@ export default function LandingPricingPage() {
           {/* Lifetime */}
           <button
             onClick={() => setSelectedPlan("lifetime")}
-            className={`cursor-pointer relative flex flex-col items-center px-5 py-6 rounded-2xl border transition-all ${
+            className={`cursor-pointer relative flex flex-col items-center px-5 py-6 rounded-lg border transition-all ${
               selectedPlan === "lifetime"
                 ? "border-white/40 bg-white/[0.06]"
                 : "border-white/[0.06] bg-white/[0.02] hover:border-white/15"

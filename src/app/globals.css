@@ -64,6 +64,7 @@ html, body {
   overflow: hidden;
   overscroll-behavior: none;
   font-family:
+    var(--font-inter), Inter,
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
 }
