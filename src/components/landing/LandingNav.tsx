@@ -3,13 +3,10 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { IconBack } from "@/components/icons";
+import { useAuth } from "@/components/AuthProvider";
 
 /* ═══════════════════════════════════════════════════════════
    LandingNav — Shared navigation bar for landing & sub-pages
-   ─────────────────────────────────────────────────────────
-   On /landing:      nav links smooth-scroll to section anchors.
-   On /landing/xxx:  nav links navigate to that sub-route.
-   Logo click always goes back to /landing.
    ═══════════════════════════════════════════════════════════ */
 
 const NAV_ITEMS = [
@@ -28,6 +25,7 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useI18n();
+  const { user, profile } = useAuth();
   const isMainLanding = pathname === "/landing";
 
   const labelMap: Record<string, string> = {
@@ -38,9 +36,13 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
   };
 
   const handleNavClick = (item: (typeof NAV_ITEMS)[number]) => {
-    // Always navigate to the standalone sub-route
     router.push(item.href);
   };
+
+  /* User initial for avatar circle */
+  const userInitial = profile?.display_name?.charAt(0)?.toUpperCase()
+    || user?.email?.charAt(0)?.toUpperCase()
+    || null;
 
   return (
     <nav className="sticky top-0 z-50 safe-top bg-black/80 backdrop-blur-xl border-b border-white/[0.04]">
@@ -50,13 +52,16 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
           {!isMainLanding ? (
             <button
               onClick={() => router.push("/landing")}
-              className="flex items-center gap-2 text-white/50 hover:text-white/80 transition-colors"
+              className="cursor-pointer flex items-center gap-2 text-white/50 hover:text-white/80 transition-colors"
             >
               <IconBack size={18} />
               <span className="text-[10px] tracking-[2px] uppercase font-bold">KINOLU</span>
             </button>
           ) : (
-            <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2">
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              className="cursor-pointer flex items-center gap-2"
+            >
               <img src="/logo-icon-sm.png" alt="Kinolu" width={28} height={28} className="w-7 h-7" />
               <span className="text-[13px] font-bold tracking-[4px] text-white/90">KINOLU</span>
             </button>
@@ -73,8 +78,10 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item)}
-                className={`text-[10px] tracking-[1.5px] uppercase transition-colors ${
-                  isActive ? "text-white/80" : "text-white/35 hover:text-white/60"
+                className={`cursor-pointer text-[10px] tracking-[1.5px] uppercase transition-all duration-200 py-1 border-b-2 ${
+                  isActive
+                    ? "text-white/90 border-white/60"
+                    : "text-white/35 border-transparent hover:text-white/70 hover:border-white/20"
                 }`}
               >
                 {labelMap[item.id]}
@@ -83,20 +90,33 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
           })}
         </div>
 
-        {/* Right */}
+        {/* Right: Pricing + User avatar or Sign In */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/subscription")}
-            className="hidden sm:block text-[10px] tracking-[1.5px] text-white/40 uppercase hover:text-white/70 transition-colors"
+            onClick={() => router.push("/landing/pricing")}
+            className="hidden sm:block cursor-pointer text-[10px] tracking-[1.5px] text-white/40 uppercase hover:text-white/70 transition-colors"
           >
             {t("landing_nav_pricing")}
           </button>
-          <button
-            onClick={() => router.push("/")}
-            className="text-[10px] tracking-[1.5px] text-white/50 border border-white/15 rounded-full px-3.5 py-1.5 hover:text-white/80 hover:border-white/30 transition-colors uppercase"
-          >
-            {t("share_openInApp")}
-          </button>
+
+          {user ? (
+            /* Logged in: avatar circle → goes to profile */
+            <button
+              onClick={() => router.push("/profile")}
+              className="cursor-pointer w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-[11px] font-bold text-white/70 hover:bg-white/20 hover:border-white/30 transition-all"
+              title={profile?.display_name || user.email || ""}
+            >
+              {userInitial || "U"}
+            </button>
+          ) : (
+            /* Not logged in: Sign In button */
+            <button
+              onClick={() => router.push("/auth/login")}
+              className="cursor-pointer text-[10px] tracking-[1.5px] text-white/50 border border-white/15 rounded-full px-3.5 py-1.5 hover:text-white/80 hover:border-white/30 transition-colors uppercase"
+            >
+              {t("auth_signIn")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -110,10 +130,10 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
             <button
               key={item.id}
               onClick={() => handleNavClick(item)}
-              className={`shrink-0 text-[9px] tracking-[1.5px] uppercase px-3 py-1.5 rounded-full border transition-colors ${
+              className={`cursor-pointer shrink-0 text-[9px] tracking-[1.5px] uppercase px-3 py-1.5 rounded-full border transition-all duration-200 ${
                 isActive
                   ? "text-white/80 border-white/20 bg-white/[0.06]"
-                  : "text-white/30 border-white/[0.06] hover:text-white/50"
+                  : "text-white/30 border-white/[0.06] hover:text-white/50 hover:border-white/15"
               }`}
             >
               {labelMap[item.id]}
