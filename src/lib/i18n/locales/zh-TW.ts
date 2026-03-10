@@ -399,6 +399,8 @@ const zhTW: Record<TranslationKeys, string> = {
   community_publish: "發佈",
   community_publishing: "發佈中...",
   community_deleteConfirm: "確定刪除這篇貼文？此操作無法撤銷。",
+  community_deleteCommentConfirm: "確定刪除這則留言？",
+  community_feedback: "反饋建議",
   community_comments: "留言",
   community_noComments: "暫無留言。",
   community_addComment: "新增留言...",

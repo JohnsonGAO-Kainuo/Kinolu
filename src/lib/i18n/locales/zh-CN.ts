@@ -398,6 +398,8 @@ const zhCN: Record<TranslationKeys, string> = {
   community_publish: "发布",
   community_publishing: "发布中...",
   community_deleteConfirm: "确定删除这篇帖子？此操作无法撤销。",
+  community_deleteCommentConfirm: "确定删除这条评论？",
+  community_feedback: "反馈建议",
   community_comments: "评论",
   community_noComments: "暂无评论。",
   community_addComment: "添加评论...",

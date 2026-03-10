@@ -101,6 +101,7 @@ export default function PostDetailPage() {
 
   /* ── Delete comment ── */
   const handleDeleteComment = async (commentId: string) => {
+    if (!confirm(t("community_deleteCommentConfirm"))) return;
     try {
       await deleteComment(commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));

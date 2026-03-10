@@ -10,6 +10,7 @@ import {
 import {
   fetchPosts,
   createPost,
+  deletePost,
   uploadCommunityImage,
   toggleLike,
   checkUserLikes,
@@ -120,6 +121,17 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
     }
   };
 
+  /* ── Delete own post from listing ── */
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm(t("community_deleteConfirm"))) return;
+    try {
+      await deletePost(postId);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    } catch (e) {
+      console.error("Delete failed", e);
+    }
+  };
+
   return (
     <section id="community" className={`max-w-6xl mx-auto px-5 scroll-mt-20 ${standalone ? "py-28" : "py-24"}`}>
       <h2 className="text-[10px] tracking-[4px] text-white/30 uppercase text-center mb-2">
@@ -132,19 +144,27 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
         {t("community_desc")}
       </p>
 
-      {/* Create post button */}
-      <div className="text-center mb-8">
+      {/* Create post / Feedback buttons */}
+      <div className="flex items-center justify-center gap-4 mb-8">
         {user ? (
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="px-6 py-2.5 bg-white text-black text-[11px] font-bold tracking-[2px] uppercase rounded-full hover:bg-white/90 transition-colors"
-          >
-            {showForm ? t("cancel") : t("community_createPost")}
-          </button>
+          <>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="cursor-pointer px-6 py-2.5 bg-white text-black text-[11px] font-bold tracking-[2px] uppercase rounded-full hover:bg-white/90 transition-colors"
+            >
+              {showForm ? t("cancel") : t("community_createPost")}
+            </button>
+            <button
+              onClick={() => router.push("/feedback")}
+              className="cursor-pointer px-5 py-2.5 border border-white/15 text-white/50 text-[11px] font-bold tracking-[2px] uppercase rounded-full hover:text-white/80 hover:border-white/30 transition-colors"
+            >
+              {t("community_feedback")}
+            </button>
+          </>
         ) : (
           <button
             onClick={() => router.push("/auth/login")}
-            className="text-[12px] text-white/30 underline hover:text-white/60 transition-colors"
+            className="cursor-pointer text-[12px] text-white/30 underline hover:text-white/60 transition-colors"
           >
             {t("community_signInToPost")}
           </button>
@@ -212,8 +232,18 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
           {posts.map((post) => (
             <article
               key={post.id}
-              className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden hover:bg-white/[0.04] transition-colors group"
+              className="relative bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden hover:bg-white/[0.04] transition-colors group"
             >
+              {/* Owner delete button */}
+              {user?.id === post.user_id && (
+                <button
+                  onClick={() => handleDeletePost(post.id)}
+                  className="cursor-pointer absolute top-2 right-2 z-10 w-7 h-7 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
+                  title={t("delete")}
+                >
+                  <IconClose size={12} />
+                </button>
+              )}
               {post.image_url && (
                 <button onClick={() => router.push(`/community/${post.id}`)} className="w-full aspect-[4/3] overflow-hidden cursor-pointer">
                   <img src={post.image_url} alt={post.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />

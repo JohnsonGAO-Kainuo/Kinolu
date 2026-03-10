@@ -397,6 +397,8 @@ const en = {
   community_publish: "Publish",
   community_publishing: "Publishing...",
   community_deleteConfirm: "Delete this post? This cannot be undone.",
+  community_deleteCommentConfirm: "Delete this comment?",
+  community_feedback: "Send Feedback",
   community_comments: "Comments",
   community_noComments: "No comments yet.",
   community_addComment: "Add a comment...",
