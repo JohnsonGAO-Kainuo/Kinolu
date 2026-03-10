@@ -30,87 +30,112 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
         {t("landing_showcaseSubtitle")}
       </p>
 
-      {/* ── Whiteboard layout ── */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-6 md:gap-4 items-center max-w-5xl mx-auto">
+      {/* ── Desktop: Whiteboard grid with explicit placement ── */}
+      <div className="hidden md:grid grid-cols-[1fr_48px_1fr] grid-rows-[1fr_1fr] gap-3 max-w-5xl mx-auto" style={{ height: "620px" }}>
 
-        {/* Left column: Reference — spans full height on desktop */}
-        <div className="md:row-span-2 group">
-          <div className="rounded-lg overflow-hidden bg-white/[0.02] border border-dashed border-white/[0.12] hover:border-white/[0.20] transition-all relative">
-            <img
-              src="/showcase/reference.jpg"
-              alt={t("landing_showcase_reference")}
-              className="w-full aspect-[4/3] md:aspect-auto md:h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <span className="inline-block px-2.5 py-1 bg-black/50 backdrop-blur-sm rounded text-[10px] font-bold tracking-[2px] text-white/90 uppercase border border-white/10">
-                {t("landing_showcase_reference")}
-              </span>
-            </div>
+        {/* Col 1, Row 1–2: Reference (tall, spans both rows) */}
+        <div className="col-start-1 row-start-1 row-span-2 group relative rounded-lg overflow-hidden bg-white/[0.02] border border-dashed border-white/[0.12] hover:border-white/[0.20] transition-all">
+          <img
+            src="/showcase/reference.jpg"
+            alt={t("landing_showcase_reference")}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <span className="inline-block px-2.5 py-1 bg-black/50 backdrop-blur-sm rounded text-[10px] font-bold tracking-[2px] text-white/90 uppercase border border-white/10">
+              {t("landing_showcase_reference")}
+            </span>
           </div>
         </div>
 
-        {/* Center column: Arrows — desktop only */}
-        {/* Arrow: Ref → Original (diagonal up-right) */}
-        <div className="hidden md:flex flex-col items-center justify-between h-full py-8">
-          <svg className="w-12 h-12 text-white/20" viewBox="0 0 48 48" fill="none">
+        {/* Col 2, Row 1: Diagonal arrow (Ref → Original) */}
+        <div className="col-start-2 row-start-1 flex items-center justify-center">
+          <svg className="w-10 h-10 text-white/20" viewBox="0 0 48 48" fill="none">
             <path d="M12 36L36 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             <path d="M20 12h16v16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <div className="w-px flex-1 bg-gradient-to-b from-white/5 via-white/10 to-white/5 my-2" />
-          {/* Arrow: Original → Result (down) */}
-          <svg className="w-10 h-10 text-white/20" viewBox="0 0 40 40" fill="none">
+        </div>
+
+        {/* Col 2, Row 2: Down arrow (Original → Result) */}
+        <div className="col-start-2 row-start-2 flex items-center justify-center">
+          <svg className="w-9 h-9 text-white/20" viewBox="0 0 40 40" fill="none">
             <path d="M20 8v20M14 22l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
 
-        {/* Mobile: arrow down from Ref to Original */}
-        <div className="md:hidden flex justify-center">
-          <svg className="w-8 h-8 text-white/20" viewBox="0 0 32 32" fill="none">
-            <path d="M16 6v16M10 18l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-
-        {/* Right-top: Original (before) */}
-        <div className="group">
-          <div className="rounded-lg overflow-hidden bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] transition-all relative">
-            <img
-              src="/showcase/original.jpg"
-              alt={t("landing_showcase_original")}
-              className="w-full aspect-[4/3] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
-              <span className="inline-block px-2.5 py-1 bg-black/50 backdrop-blur-sm rounded text-[10px] font-bold tracking-[2px] text-white/90 uppercase border border-white/10">
-                {t("landing_showcase_original")}
-              </span>
-              <span className="text-[10px] tracking-[1.5px] text-white/30 uppercase font-medium">Before</span>
-            </div>
+        {/* Col 3, Row 1: Original (Before) */}
+        <div className="col-start-3 row-start-1 group relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] transition-all">
+          <img
+            src="/showcase/original.jpg"
+            alt={t("landing_showcase_original")}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
+            <span className="inline-block px-2.5 py-1 bg-black/50 backdrop-blur-sm rounded text-[10px] font-bold tracking-[2px] text-white/90 uppercase border border-white/10">
+              {t("landing_showcase_original")}
+            </span>
+            <span className="text-[10px] tracking-[1.5px] text-white/30 uppercase font-medium">Before</span>
           </div>
         </div>
 
-        {/* Mobile: arrow down from Original to Result */}
-        <div className="md:hidden flex justify-center">
-          <svg className="w-8 h-8 text-white/20" viewBox="0 0 32 32" fill="none">
-            <path d="M16 6v16M10 18l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        {/* Col 3, Row 2: Result (After) — highlighted border */}
+        <div className="col-start-3 row-start-2 group relative rounded-lg overflow-hidden bg-white/[0.02] border-2 border-white/[0.15] hover:border-white/[0.25] transition-all">
+          <img
+            src="/showcase/result.png"
+            alt={t("landing_showcase_result")}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
+            <span className="inline-block px-2.5 py-1 bg-white/15 backdrop-blur-sm rounded text-[10px] font-bold tracking-[2px] text-white uppercase border border-white/20">
+              {t("landing_showcase_result")}
+            </span>
+            <span className="text-[10px] tracking-[1.5px] text-white/50 uppercase font-semibold">After</span>
+          </div>
         </div>
+      </div>
 
-        {/* Right-bottom: Result (after) — highlighted */}
-        <div className="group">
-          <div className="rounded-lg overflow-hidden bg-white/[0.02] border-2 border-white/[0.15] hover:border-white/[0.25] transition-all relative">
-            <img
-              src="/showcase/result.png"
-              alt={t("landing_showcase_result")}
-              className="w-full aspect-[4/3] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
-              <span className="inline-block px-2.5 py-1 bg-white/15 backdrop-blur-sm rounded text-[10px] font-bold tracking-[2px] text-white uppercase border border-white/20">
-                {t("landing_showcase_result")}
-              </span>
-              <span className="text-[10px] tracking-[1.5px] text-white/50 uppercase font-semibold">After</span>
-            </div>
+      {/* ── Mobile: Vertical flow ── */}
+      <div className="md:hidden flex flex-col items-center gap-3 max-w-lg mx-auto">
+        {/* Reference */}
+        <div className="w-full relative rounded-lg overflow-hidden bg-white/[0.02] border border-dashed border-white/[0.12]">
+          <img src="/showcase/reference.jpg" alt={t("landing_showcase_reference")} className="w-full aspect-[4/3] object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 p-3">
+            <span className="inline-block px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded text-[9px] font-bold tracking-[2px] text-white/90 uppercase border border-white/10">
+              {t("landing_showcase_reference")}
+            </span>
+          </div>
+        </div>
+        {/* ↓ */}
+        <svg className="w-7 h-7 text-white/20" viewBox="0 0 32 32" fill="none">
+          <path d="M16 6v16M10 18l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {/* Original */}
+        <div className="w-full relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/[0.06]">
+          <img src="/showcase/original.jpg" alt={t("landing_showcase_original")} className="w-full aspect-[4/3] object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
+            <span className="inline-block px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded text-[9px] font-bold tracking-[2px] text-white/90 uppercase border border-white/10">
+              {t("landing_showcase_original")}
+            </span>
+            <span className="text-[9px] tracking-[1.5px] text-white/30 uppercase">Before</span>
+          </div>
+        </div>
+        {/* ↓ */}
+        <svg className="w-7 h-7 text-white/20" viewBox="0 0 32 32" fill="none">
+          <path d="M16 6v16M10 18l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {/* Result */}
+        <div className="w-full relative rounded-lg overflow-hidden bg-white/[0.02] border-2 border-white/[0.15]">
+          <img src="/showcase/result.png" alt={t("landing_showcase_result")} className="w-full aspect-[4/3] object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
+            <span className="inline-block px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded text-[9px] font-bold tracking-[2px] text-white uppercase border border-white/20">
+              {t("landing_showcase_result")}
+            </span>
+            <span className="text-[9px] tracking-[1.5px] text-white/50 uppercase font-semibold">After</span>
           </div>
         </div>
       </div>
