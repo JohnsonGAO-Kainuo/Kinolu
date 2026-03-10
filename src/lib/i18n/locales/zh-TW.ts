@@ -331,11 +331,15 @@ const zhTW: Record<TranslationKeys, string> = {
 
   /* ── 首頁 Landing ── */
   landing_heroTitle: "重新定義調色",
-  landing_heroDesc: "從任意參考圖轉移色調，或一鍵套用經典膠片預設 — 富士、柯達、拍立得。專業調色工具，開啟瀏覽器即可使用。",
+  landing_heroDesc: "AI 智慧仿色 — 匯入任意參考圖，一鍵匹配色調風格。內建 12 款經典膠片預設，專業編輯工具。無需下載，開啟瀏覽器即可使用。",
   landing_ctaEditor: "開啟編輯器",
   landing_ctaCamera: "開啟相機",
-  landing_ctaTry: "免費試用 Kinolu",
+  landing_ctaTry: "免費試用",
+  landing_ctaSeeExamples: "查看效果",
   landing_ctaLearnMore: "了解更多",
+  landing_heroBadgeFree: "免費使用",
+  landing_heroBadgeInstall: "加入主畫面",
+  landing_heroBadgeAutoUpdate: "自動保持最新",
   landing_featuresLabel: "功能特性",
   landing_featuresTitle: "一應俱全",
   landing_feat1Title: "AI 追色",

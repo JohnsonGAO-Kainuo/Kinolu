@@ -329,11 +329,15 @@ const en = {
 
   /* ── Landing Page ── */
   landing_heroTitle: "Color Grading, Reimagined",
-  landing_heroDesc: "Transfer color grades from any reference photo, or apply classic film presets — Fuji, Kodak, Polaroid. Professional editing tools, right in your browser.",
+  landing_heroDesc: "AI-powered color transfer from any reference photo — one tap to match the look you love. 12 film presets, pro editing tools. No download needed, works right in your browser.",
   landing_ctaEditor: "Open Editor",
   landing_ctaCamera: "Open Camera",
-  landing_ctaTry: "Try Kinolu Free",
+  landing_ctaTry: "Try Free",
+  landing_ctaSeeExamples: "See Examples",
   landing_ctaLearnMore: "Learn More",
+  landing_heroBadgeFree: "Free to use",
+  landing_heroBadgeInstall: "Add to Home Screen",
+  landing_heroBadgeAutoUpdate: "Always up to date",
   landing_featuresLabel: "Features",
   landing_featuresTitle: "Everything You Need",
   landing_feat1Title: "AI Transfer",

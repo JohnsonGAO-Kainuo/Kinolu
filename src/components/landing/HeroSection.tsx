@@ -24,16 +24,46 @@ export default function HeroSection() {
         <div className="flex flex-col sm:flex-row gap-3 mt-10 justify-center">
           <button
             onClick={() => router.push("/")}
-            className="px-10 py-3.5 bg-white text-black text-[12px] font-bold tracking-[3px] rounded-lg uppercase hover:bg-white/90 transition-colors"
+            className="cursor-pointer px-10 py-3.5 bg-white text-black text-[12px] font-bold tracking-[3px] rounded-lg uppercase hover:bg-white/90 transition-colors"
           >
             {t("landing_ctaTry")}
           </button>
           <button
-            onClick={() => router.push("/landing/features")}
-            className="px-8 py-3.5 border border-white/20 text-[12px] font-bold tracking-[3px] rounded-lg uppercase text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
+            onClick={() => {
+              const el = document.getElementById("showcase");
+              el ? el.scrollIntoView({ behavior: "smooth" }) : router.push("/landing/showcase");
+            }}
+            className="cursor-pointer px-8 py-3.5 border border-white/20 text-[12px] font-bold tracking-[3px] rounded-lg uppercase text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
           >
-            {t("landing_ctaLearnMore")}
+            {t("landing_ctaSeeExamples")}
           </button>
+        </div>
+
+        {/* PWA badge */}
+        <div className="mt-6 flex items-center justify-center gap-4 text-[11px] text-white/30">
+          <span className="flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            {t("landing_heroBadgeFree")}
+          </span>
+          <span className="w-px h-3 bg-white/15" />
+          <span className="flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="5" y="2" width="14" height="20" rx="2" />
+              <line x1="12" y1="18" x2="12" y2="18.01" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            {t("landing_heroBadgeInstall")}
+          </span>
+          <span className="w-px h-3 bg-white/15" />
+          <span className="flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M23 12a11 11 0 1 1-22 0 11 11 0 0 1 22 0Z" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            {t("landing_heroBadgeAutoUpdate")}
+          </span>
         </div>
       </div>
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
