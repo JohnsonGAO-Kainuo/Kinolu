@@ -40,6 +40,7 @@ function AuthorAvatar({ name, url, size = 28 }: { name: string; url?: string; si
 }
 
 type TabId = "works" | "discussion";
+type SortBy = "newest" | "likes";
 
 interface CommunitySectionProps {
   standalone?: boolean;
@@ -51,6 +52,7 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabId>("works");
+  const [sortBy, setSortBy] = useState<SortBy>("newest");
   const [posts, setPosts] = useState<Post[]>([]);
   const [likedSet, setLikedSet] = useState<Set<string>>(new Set());
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -63,8 +65,12 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
   const fileRef = useRef<HTMLInputElement>(null);
 
   /* Split posts by type: works = has image, discussion = text-only */
-  const workPosts = posts.filter((p) => !!p.image_url);
-  const discussionPosts = posts.filter((p) => !p.image_url);
+  const sortFn = (a: Post, b: Post) =>
+    sortBy === "likes"
+      ? b.likes_count - a.likes_count
+      : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  const workPosts = posts.filter((p) => !!p.image_url).sort(sortFn);
+  const discussionPosts = posts.filter((p) => !p.image_url).sort(sortFn);
 
   const loadPosts = useCallback(async () => {
     setLoadingPosts(true);
@@ -265,6 +271,27 @@ export default function CommunitySection({ standalone }: CommunitySectionProps) 
               className="w-full py-3 bg-white text-black text-[12px] font-bold tracking-[2px] uppercase rounded-lg disabled:opacity-30 hover:bg-white/90 transition-colors"
             >
               {publishing ? t("community_publishing") : t("community_publish")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sort toggle ── */}
+      {!showForm && !loadingPosts && (
+        <div className="flex justify-end mb-4">
+          <div className="flex items-center gap-2 text-[10px] tracking-[0.5px]">
+            <button
+              onClick={() => setSortBy("newest")}
+              className={`cursor-pointer transition-colors ${sortBy === "newest" ? "text-white/70 font-medium" : "text-white/25 hover:text-white/50"}`}
+            >
+              {t("community_sortNewest")}
+            </button>
+            <span className="text-white/15">·</span>
+            <button
+              onClick={() => setSortBy("likes")}
+              className={`cursor-pointer transition-colors ${sortBy === "likes" ? "text-white/70 font-medium" : "text-white/25 hover:text-white/50"}`}
+            >
+              {t("community_sortLikes")}
             </button>
           </div>
         </div>

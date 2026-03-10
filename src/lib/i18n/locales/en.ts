@@ -416,6 +416,8 @@ const en = {
   community_liked: "Liked",
   community_ago: "ago",
   community_justNow: "just now",
+  community_sortNewest: "Newest",
+  community_sortLikes: "Most Liked",
 
   /* ── Sidebar Community ── */
   sidebar_community: "Community",

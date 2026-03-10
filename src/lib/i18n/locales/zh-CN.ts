@@ -417,6 +417,8 @@ const zhCN: Record<TranslationKeys, string> = {
   community_liked: "已喜欢",
   community_ago: "前",
   community_justNow: "刚刚",
+  community_sortNewest: "最新",
+  community_sortLikes: "最多点赞",
 
   /* ── 侧边栏社区 ── */
   sidebar_community: "社区",

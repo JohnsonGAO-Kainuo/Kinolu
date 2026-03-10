@@ -418,6 +418,8 @@ const zhTW: Record<TranslationKeys, string> = {
   community_liked: "已喜歡",
   community_ago: "前",
   community_justNow: "剛剛",
+  community_sortNewest: "最新",
+  community_sortLikes: "最多讚",
 
   /* ── 側邊欄社群 ── */
   sidebar_community: "社群",
