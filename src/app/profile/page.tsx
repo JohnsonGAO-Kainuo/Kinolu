@@ -5,13 +5,69 @@ import { IconBack } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { user, profile, isPro, subscription, signOut, loading } = useAuth();
+  const { user, profile, isPro, subscription, signOut, loading, refreshProfile } = useAuth();
   const [portalLoading, setPortalLoading] = useState(false);
+
+  /* ── Profile edit state ── */
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = () => {
+    setEditName(profile?.display_name || "");
+    setEditing(true);
+  };
+
+  const saveProfile = async () => {
+    if (!user || !editName.trim()) return;
+    setSaving(true);
+    try {
+      const supabase = createClient();
+      await supabase.from("profiles").update({ display_name: editName.trim() }).eq("id", user.id);
+      await refreshProfile();
+      setEditing(false);
+    } catch (e) {
+      console.error("Save profile failed", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setAvatarUploading(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/avatar.${ext}`;
+
+      // Upload (upsert to overwrite previous)
+      const { error: uploadErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { cacheControl: "3600", upsert: true });
+      if (uploadErr) throw uploadErr;
+
+      // Get public URL
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatarUrl = `${data.publicUrl}?t=${Date.now()}`; // cache bust
+
+      // Update profile
+      await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", user.id);
+      await refreshProfile();
+    } catch (e) {
+      console.error("Avatar upload failed", e);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const openCustomerPortal = async () => {
     setPortalLoading(true);
@@ -67,22 +123,77 @@ export default function ProfilePage() {
         ) : user && profile ? (
           /* ── Logged in ── */
           <>
-            {/* Avatar */}
-            <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center">
-              <span className="text-[28px] font-bold text-white/60">
-                {(profile.display_name || profile.email || "U")
-                  .charAt(0)
-                  .toUpperCase()}
-              </span>
-            </div>
+            {/* Avatar — tap to change */}
+            <input ref={avatarRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+            <button
+              onClick={() => avatarRef.current?.click()}
+              className="cursor-pointer relative w-20 h-20 rounded-full bg-white/10 flex items-center justify-center overflow-hidden group"
+              disabled={avatarUploading}
+            >
+              {profile.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[28px] font-bold text-white/60">
+                  {(profile.display_name || profile.email || "U").charAt(0).toUpperCase()}
+                </span>
+              )}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                {avatarUploading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-5 h-5 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                )}
+              </div>
+            </button>
 
-            {/* Name + email */}
-            <div className="flex flex-col items-center gap-1">
-              <h2 className="text-[16px] font-semibold text-white/90">
-                {profile.display_name || profile.email?.split("@")[0]}
-              </h2>
-              <p className="text-[11px] text-white/40">{profile.email}</p>
-            </div>
+            {/* Name + email — editable */}
+            {editing ? (
+              <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder={t("profile_namePlaceholder" as any)}
+                  className="w-full bg-white/[0.05] border border-white/[0.12] rounded-lg px-4 py-2.5 text-[14px] text-white text-center placeholder-white/25 outline-none focus:border-white/25"
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === "Enter") saveProfile(); }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="cursor-pointer px-4 py-2 text-[11px] text-white/40 border border-white/10 rounded-lg hover:text-white/60 transition-colors"
+                  >
+                    {t("cancel")}
+                  </button>
+                  <button
+                    onClick={saveProfile}
+                    disabled={saving || !editName.trim()}
+                    className="cursor-pointer px-5 py-2 bg-white text-black text-[11px] font-bold rounded-lg disabled:opacity-30 hover:bg-white/90 transition-colors"
+                  >
+                    {saving ? t("loading") : t("save")}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  onClick={startEdit}
+                  className="cursor-pointer flex items-center gap-2 group"
+                >
+                  <h2 className="text-[16px] font-semibold text-white/90">
+                    {profile.display_name || profile.email?.split("@")[0]}
+                  </h2>
+                  <svg className="w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <p className="text-[11px] text-white/40">{profile.email}</p>
+              </div>
+            )}
 
             {/* Subscription info */}
             {isPro ? (

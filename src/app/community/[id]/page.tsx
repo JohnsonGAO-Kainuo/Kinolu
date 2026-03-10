@@ -175,17 +175,26 @@ export default function PostDetailPage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-5 py-6">
-        {/* Image */}
-        <div className="rounded-2xl overflow-hidden bg-white/5 mb-6">
-          <img src={post.image_url} alt={post.title} className="w-full max-h-[70vh] object-contain" />
-        </div>
+        {/* Image — only for work posts */}
+        {post.image_url && (
+          <div className="rounded-2xl overflow-hidden bg-white/5 mb-6">
+            <img src={post.image_url} alt={post.title} className="w-full max-h-[70vh] object-contain" />
+          </div>
+        )}
 
         {/* Post Info */}
         <h1 className="text-[22px] font-bold tracking-wide">{post.title}</h1>
         {post.description && (
           <p className="text-[13px] text-white/50 mt-2 leading-relaxed">{post.description}</p>
         )}
-        <div className="flex items-center gap-3 mt-4 text-[11px] text-white/30">
+        <div className="flex items-center gap-2.5 mt-4 text-[11px] text-white/30">
+          {post.author_avatar_url ? (
+            <img src={post.author_avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+          ) : (
+            <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold text-white/40">
+              {(post.author_name || "A").charAt(0).toUpperCase()}
+            </div>
+          )}
           <span>{post.author_name || "Anonymous"}</span>
           <span>·</span>
           <span>{timeAgo(post.created_at, t)}</span>
@@ -245,6 +254,13 @@ export default function PostDetailPage() {
                 <div key={c.id} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-[11px] text-white/40">
+                      {c.author_avatar_url ? (
+                        <img src={c.author_avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold text-white/40">
+                          {(c.author_name || "A").charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <span className="font-medium text-white/60">{c.author_name || "Anonymous"}</span>
                       <span>·</span>
                       <span>{timeAgo(c.created_at, t)}</span>

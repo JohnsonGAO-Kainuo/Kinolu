@@ -104,10 +104,14 @@ export default function LandingNav({ activeSection }: LandingNavProps) {
           {user ? (
             <button
               onClick={() => router.push("/profile")}
-              className="cursor-pointer w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-[11px] font-bold text-white/70 hover:bg-white/20 hover:border-white/30 transition-all"
+              className="cursor-pointer w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-[11px] font-bold text-white/70 hover:bg-white/20 hover:border-white/30 transition-all overflow-hidden"
               title={profile?.display_name || user.email || ""}
             >
-              {userInitial || "U"}
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                userInitial || "U"
+              )}
             </button>
           ) : (
             <button

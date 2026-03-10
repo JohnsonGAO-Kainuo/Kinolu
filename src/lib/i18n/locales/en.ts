@@ -228,6 +228,7 @@ const en = {
 
   /* ── Profile ── */
   profile_title: "Profile",
+  profile_namePlaceholder: "Enter your display name",
   profile_signInToSync: "Sign in",
   profile_signInDesc: "Sign in to manage your subscription and access Pro features",
   profile_signIn: "Sign In",
@@ -384,9 +385,15 @@ const en = {
   /* ── Community ── */
   community_title: "Community",
   community_desc: "Share your work, get inspired, and discuss with fellow creators.",
+  community_tabWorks: "Works",
+  community_tabDiscussion: "Discussion",
   community_createPost: "Share Your Work",
+  community_startDiscussion: "New Thread",
   community_noPostsYet: "No posts yet. Be the first to share!",
+  community_noDiscussionsYet: "No discussions yet. Start a conversation!",
   community_signInToPost: "Sign in to share your work",
+  community_discussionTitlePlaceholder: "What would you like to discuss?",
+  community_discussionDescPlaceholder: "Share your thoughts, ask a question, or start a conversation...",
   community_newPost: "New Post",
   community_postTitle: "Title",
   community_postTitlePlaceholder: "Give your work a title...",

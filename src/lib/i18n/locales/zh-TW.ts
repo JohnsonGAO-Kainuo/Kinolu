@@ -230,6 +230,7 @@ const zhTW: Record<TranslationKeys, string> = {
 
   /* ── 個人資料 ── */
   profile_title: "個人資料",
+  profile_namePlaceholder: "輸入你的顯示名稱",
   profile_signInToSync: "登入",
   profile_signInDesc: "登入以管理訂閱並解鎖 Pro 功能",
   profile_signIn: "登入",
@@ -386,9 +387,15 @@ const zhTW: Record<TranslationKeys, string> = {
   /* ── 社群 ── */
   community_title: "社群",
   community_desc: "分享作品，獲取靈感，與創作者交流。",
+  community_tabWorks: "作品",
+  community_tabDiscussion: "討論",
   community_createPost: "分享你的作品",
+  community_startDiscussion: "發起討論",
   community_noPostsYet: "暫無貼文，成為第一個分享的人！",
+  community_noDiscussionsYet: "還沒有討論，來開啟第一個話題！",
   community_signInToPost: "登入後即可分享",
+  community_discussionTitlePlaceholder: "你想討論什麼？",
+  community_discussionDescPlaceholder: "分享你的想法、提個問題或開啟一段對話...",
   community_newPost: "發佈新作品",
   community_postTitle: "標題",
   community_postTitlePlaceholder: "為你的作品起個標題...",

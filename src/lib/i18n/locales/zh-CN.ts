@@ -230,6 +230,7 @@ const zhCN: Record<TranslationKeys, string> = {
 
   /* ── 个人资料 ── */
   profile_title: "个人资料",
+  profile_namePlaceholder: "输入你的显示名称",
   profile_signInToSync: "登录",
   profile_signInDesc: "登录以管理订阅并解锁 Pro 功能",
   profile_signIn: "登录",
@@ -385,9 +386,15 @@ const zhCN: Record<TranslationKeys, string> = {
   /* ── 社区 ── */
   community_title: "社区",
   community_desc: "分享作品，获取灵感，与创作者交流。",
+  community_tabWorks: "作品",
+  community_tabDiscussion: "讨论",
   community_createPost: "分享你的作品",
+  community_startDiscussion: "发起讨论",
   community_noPostsYet: "暂无帖子，成为第一个分享的人！",
+  community_noDiscussionsYet: "还没有讨论，来开启第一个话题！",
   community_signInToPost: "登录后即可分享",
+  community_discussionTitlePlaceholder: "你想讨论什么？",
+  community_discussionDescPlaceholder: "分享你的想法、提个问题或开启一段对话...",
   community_newPost: "发布新作品",
   community_postTitle: "标题",
   community_postTitlePlaceholder: "为你的作品起个标题...",

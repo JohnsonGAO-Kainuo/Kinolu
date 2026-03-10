@@ -19,6 +19,7 @@ export interface Post {
   /* joined from profiles */
   author_name?: string;
   author_email?: string;
+  author_avatar_url?: string;
 }
 
 export interface Comment {
@@ -29,6 +30,7 @@ export interface Comment {
   created_at: string;
   /* joined from profiles */
   author_name?: string;
+  author_avatar_url?: string;
 }
 
 /* ─── Image Upload ─── */
@@ -63,7 +65,7 @@ export async function fetchPosts(
 
   const { data, error } = await sb
     .from("posts")
-    .select("*, profiles!posts_user_id_fkey(display_name)")
+    .select("*, profiles!posts_user_id_fkey(display_name, avatar_url)")
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -82,6 +84,7 @@ export async function fetchPosts(
       created_at: row.created_at as string,
       updated_at: row.updated_at as string,
       author_name: (profile?.display_name as string) || "Anonymous",
+      author_avatar_url: (profile?.avatar_url as string) || undefined,
     };
   });
 
@@ -92,7 +95,7 @@ export async function fetchPost(id: string): Promise<Post | null> {
   const sb = createClient();
   const { data, error } = await sb
     .from("posts")
-    .select("*, profiles!posts_user_id_fkey(display_name)")
+    .select("*, profiles!posts_user_id_fkey(display_name, avatar_url)")
     .eq("id", id)
     .single();
 
@@ -102,6 +105,7 @@ export async function fetchPost(id: string): Promise<Post | null> {
   return {
     ...data,
     author_name: (profile?.display_name as string) || "Anonymous",
+    author_avatar_url: (profile?.avatar_url as string) || undefined,
   } as Post;
 }
 
@@ -136,7 +140,7 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
   const sb = createClient();
   const { data, error } = await sb
     .from("comments")
-    .select("*, profiles!comments_user_id_fkey(display_name)")
+    .select("*, profiles!comments_user_id_fkey(display_name, avatar_url)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
 
@@ -151,6 +155,7 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
       content: row.content as string,
       created_at: row.created_at as string,
       author_name: (profile?.display_name as string) || "Anonymous",
+      author_avatar_url: (profile?.avatar_url as string) || undefined,
     };
   });
 }
