@@ -29,6 +29,9 @@ export default function LandingFooter() {
             <button onClick={() => router.push("/feedback")} className="cursor-pointer hover:text-white/60 transition-colors">
               {t("sidebar_feedback")}
             </button>
+            <a href="mailto:hello@kinolu.cam" className="hover:text-white/60 transition-colors">
+              hello@kinolu.cam
+            </a>
           </div>
         </div>
 

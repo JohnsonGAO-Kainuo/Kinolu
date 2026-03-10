@@ -300,7 +300,7 @@ const en = {
   privacy_analytics: "Analytics",
   privacy_analyticsDesc: "Kinolu does not currently use any analytics or tracking. If we add analytics in the future, we will update this policy.",
   privacy_contact: "Contact",
-  privacy_contactDesc: "For questions about privacy, please contact us at contact@kainuotech.com",
+  privacy_contactDesc: "For questions about privacy, please contact us at hello@kinolu.cam",
 
   /* ── Terms ── */
   terms_title: "Terms of Service",
@@ -312,7 +312,7 @@ const en = {
   terms_billing: "Billing & Subscriptions",
   terms_billingDesc: "Kinolu Pro subscriptions are billed through Stripe. Monthly and annual plans renew automatically unless canceled before the next billing cycle. Lifetime plans are a one-time purchase with no recurring charges.",
   terms_cancellation: "Cancellation & Refunds",
-  terms_cancellationDesc: "You may cancel your subscription at any time from Stripe's customer portal. Cancellation takes effect at the end of the current billing period. Refund requests may be submitted to contact@kainuotech.com within 7 days of purchase.",
+  terms_cancellationDesc: "You may cancel your subscription at any time from Stripe's customer portal. Cancellation takes effect at the end of the current billing period. Refund requests may be submitted to hello@kinolu.cam within 7 days of purchase.",
   terms_limitations: "Limitations",
   terms_limitationsDesc: "We are not liable for any loss of data or images processed through Kinolu. Always keep backups of your original photos.",
   terms_changes: "Changes",

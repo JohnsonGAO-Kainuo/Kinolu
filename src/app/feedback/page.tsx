@@ -67,7 +67,7 @@ export default function FeedbackPage() {
 
           <div className="mt-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
             <h3 className="text-[11px] font-semibold text-white/70 mb-2">{t("feedback_altContact")}</h3>
-            <p className="text-[11px] text-white/40">contact@kainuotech.com</p>
+            <a href="mailto:hello@kinolu.cam" className="text-[11px] text-white/40 underline hover:text-white/60 transition-colors">hello@kinolu.cam</a>
           </div>
         </div>
       </div>

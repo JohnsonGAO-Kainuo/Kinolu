@@ -302,7 +302,7 @@ const zhCN: Record<TranslationKeys, string> = {
   privacy_analytics: "分析",
   privacy_analyticsDesc: "Kinolu 目前不使用任何分析或跟踪工具。如果未来添加分析功能，我们会更新此政策。",
   privacy_contact: "联系我们",
-  privacy_contactDesc: "如有隐私方面的问题，请通过 contact@kainuotech.com 联系我们",
+  privacy_contactDesc: "如有隐私方面的问题，请通过 hello@kinolu.cam 联系我们",
 
   /* ── 服务条款 ── */
   terms_title: "服务条款",
@@ -314,7 +314,7 @@ const zhCN: Record<TranslationKeys, string> = {
   terms_billing: "计费与订阅",
   terms_billingDesc: "Kinolu Pro 订阅通过 Stripe 计费。月度和年度方案自动续订，除非在下一个计费周期前取消。终身方案为一次性购买，无后续费用。",
   terms_cancellation: "取消与退款",
-  terms_cancellationDesc: "你可以随时通过 Stripe 客户门户取消订阅。取消将在当前计费周期结束时生效。购买后7天内可发送退款请求至 contact@kainuotech.com。",
+  terms_cancellationDesc: "你可以随时通过 Stripe 客户门户取消订阅。取消将在当前计费周期结束时生效。购买后7天内可发送退款请求至 hello@kinolu.cam。",
   terms_limitations: "责任限制",
   terms_limitationsDesc: "对于通过 Kinolu 处理的任何数据或图片的丢失，我们不承担责任。请始终保留原始照片的备份。",
   terms_changes: "条款变更",
