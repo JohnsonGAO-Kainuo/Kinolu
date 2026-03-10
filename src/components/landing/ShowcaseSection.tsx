@@ -89,7 +89,7 @@ export default function ShowcaseSection({ standalone }: ShowcaseSectionProps) {
         <div className="flex-1 max-w-sm w-full group">
           <div className="rounded-2xl overflow-hidden aspect-[4/3] bg-white/[0.03] border-2 border-white/[0.15] hover:border-white/[0.25] transition-all relative ring-1 ring-white/[0.06] ring-offset-2 ring-offset-black">
             <img
-              src="/showcase/result.jpg"
+              src="/showcase/result.png"
               alt={t("landing_showcase_result")}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               loading="lazy"
