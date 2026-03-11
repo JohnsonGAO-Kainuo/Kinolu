@@ -120,7 +120,7 @@ export default function SharePageClient({ id }: { id: string }) {
       {/* Footer */}
       <footer className="border-t border-white/[0.06] py-8 px-5 mt-8">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-[10px] text-white/20">© 2026 Kainuo Tech</p>
+          <p className="text-[10px] text-white/20">© 2026 Kainuo Innovision Tech Co., Limited</p>
         </div>
       </footer>
     </div>

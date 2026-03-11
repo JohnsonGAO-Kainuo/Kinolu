@@ -130,6 +130,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
+      if (!error && typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+        (window as any).gtag("event", "sign_up", { method: "email" });
+        (window as any).gtag("event", "conversion", { send_to: "AW-18006123691", event_category: "engagement", event_label: "sign_up" });
+      }
       return { error: error?.message ?? null };
     },
     [supabase],
@@ -141,6 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       });
+      if (!error && typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+        (window as any).gtag("event", "login", { method: "email" });
+      }
       return { error: error?.message ?? null };
     },
     [supabase],

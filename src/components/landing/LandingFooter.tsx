@@ -52,7 +52,7 @@ export default function LandingFooter() {
           ))}
         </div>
 
-        <p className="text-[10px] text-white/20">&copy; 2026 Kainuo Tech</p>
+        <p className="text-[10px] text-white/20">&copy; 2026 Kainuo Innovision Tech Co., Limited</p>
       </div>
     </footer>
   );
