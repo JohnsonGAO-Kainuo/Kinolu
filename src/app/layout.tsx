@@ -132,16 +132,17 @@ export default function RootLayout({
           </AuthProvider>
         </I18nProvider>
 
-        {/* Google Ads Conversion Tracking (gtag.js) */}
+        {/* Google Analytics 4 + Google Ads Conversion Tracking (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-18006123691"
           strategy="afterInteractive"
         />
-        <Script id="google-ads-gtag" strategy="afterInteractive">
+        <Script id="google-gtag" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
+            gtag('config', 'G-CBGJR3DG21');
             gtag('config', 'AW-18006123691');
           `}
         </Script>
