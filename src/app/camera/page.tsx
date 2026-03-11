@@ -427,34 +427,30 @@ export default function CameraPage() {
     canvas.toBlob((blob) => { if (blob) { trackCameraCapture(); setCapturedUrl(URL.createObjectURL(blob)); } }, "image/jpeg", 0.95);
   }, []);
 
-  /** Capture with flash: pre-flash (metering) → main flash (capture) → off
+  /** Capture with flash using torch (continuous light).
    *
-   *  Real camera flash sequence:
-   *  1. Pre-flash pulse: quick on/off so camera auto-exposure can meter
-   *  2. Brief pause for AE to settle
-   *  3. Main flash on + capture frame
-   *  4. Flash off
+   *  Web cameras don't have a true flash strobe — only torch (continuous LED).
+   *  The key challenge: camera auto-exposure (AE) needs time to adjust to the
+   *  torch light before we capture, otherwise the image is overexposed or the
+   *  AE hasn't settled yet.
+   *
+   *  Strategy: turn torch on → wait for AE to stabilize → capture → torch off.
+   *  We skip the pre-flash pulse (it just confuses AE on most phones).
    */
   const capture = useCallback(() => {
     const mode = flashModeRef.current;
     const shouldFlash = torchAvailable && (mode === "on" || (mode === "auto" && brightnessRef.current <= 0.8));
 
     if (shouldFlash) {
-      // ① Pre-flash pulse for metering (50ms on → 80ms off)
+      // ① Turn torch on and wait 350ms for camera AE to fully adjust
+      //    (most phone cameras need 200-400ms to settle AE under new lighting)
       setTorch(true);
       setTimeout(() => {
-        setTorch(false);
-        setTimeout(() => {
-          // ② Main flash on
-          setTorch(true);
-          setTimeout(() => {
-            // ③ Capture after 120ms (camera AE has adjusted to flash)
-            captureFrame();
-            // ④ Brief hold then off (total flash visible ~200ms, feels natural)
-            setTimeout(() => setTorch(false), 80);
-          }, 120);
-        }, 80);
-      }, 50);
+        // ② AE should be stable now — capture the frame
+        captureFrame();
+        // ③ Keep torch on for 100ms after capture so the frame isn't mid-transition
+        setTimeout(() => setTorch(false), 100);
+      }, 350);
     } else {
       captureFrame();
     }
