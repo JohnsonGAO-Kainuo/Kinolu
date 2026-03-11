@@ -13,6 +13,7 @@ import {
 import { applyEdits, hasActiveEdits } from "@/lib/imageProcessor";
 import { workerApplyEdits, warmupWorker } from "@/lib/workerBridge";
 import { saveRefImage, listRefImages, deleteRefImage } from "@/lib/refStore";
+import { trackEditorOpen, trackColorTransfer, trackPresetApply, trackPhotoExport, trackPhotoUpload } from "@/lib/analytics";
 import { listLocalLuts, type LutEntry } from "@/lib/lutStore";
 import { getBuiltinMeta } from "@/lib/builtinLuts";
 import { ensureBuiltinLuts } from "@/lib/builtinLuts";
@@ -273,6 +274,7 @@ export default function EditorPage() {
 
   /* ── Warm up Web Worker + pre-load segmentation models ── */
   useEffect(() => {
+    trackEditorOpen();
     warmupWorker();
     // Pre-warm MediaPipe models (selfie segmenter + face detector) so first
     // transfer doesn't pay the ~300-500ms model download + init cost.
@@ -332,6 +334,7 @@ export default function EditorPage() {
     // First file → source image
     const file = arr[0];
     sourceFileRef.current = file;
+    trackPhotoUpload("source");
     if (sourceUrl) URL.revokeObjectURL(sourceUrl);
     const url = URL.createObjectURL(file); setSourceUrl(url);
     setProcessing(true);
@@ -362,6 +365,7 @@ export default function EditorPage() {
     const arr = Array.from(files);
     const isFirstRef = refImages.length === 0;
     refFilesRef.current = [...refFilesRef.current, ...arr];
+    trackPhotoUpload("reference");
     setRefImages((prev) => [...prev, ...arr.map((f) => URL.createObjectURL(f))]);
     if (isFirstRef) setActiveRefIdx(0);
     // Persist references to IndexedDB
@@ -479,6 +483,7 @@ export default function EditorPage() {
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setTransferUsedXY(true);
+      trackColorTransfer();
       // Transfer and preset are mutually exclusive — clear LUT state
       setActiveLutId("");
       setRenderTick((t) => t + 1);
@@ -619,6 +624,7 @@ export default function EditorPage() {
     const a = document.createElement("a"); a.href = objUrl;
     a.download = `kinolu_${Date.now()}.png`; a.click();
     URL.revokeObjectURL(objUrl);
+    trackPhotoExport("download");
     showToast(t("editor_imageSaved"));
   }, [getCurrentCanvasBlob, showToast]);
 
@@ -626,7 +632,7 @@ export default function EditorPage() {
     const blob = await getCurrentCanvasBlob(); if (!blob) return;
     const file = new File([blob], `kinolu_${Date.now()}.png`, { type: "image/png" });
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: "Kinolu" }); } catch { handleDownload(); }
+      try { await navigator.share({ files: [file], title: "Kinolu" }); trackPhotoExport("share"); } catch { handleDownload(); }
     } else { handleDownload(); }
   }, [getCurrentCanvasBlob, handleDownload]);
 
@@ -649,6 +655,7 @@ export default function EditorPage() {
     try {
       // Pass current canvas as thumbnail for the preset library
       await createPresetFromTransfer(sourceFileRef.current, blob, name, blob);
+      trackPhotoExport("save_preset");
       showToast(`Preset "${name}" saved`);
     } catch (err) { setErrorMsg(`${t("editor_saveFailed")} ${err}`); }
     finally { setSavingPreset(false); }
@@ -665,6 +672,7 @@ export default function EditorPage() {
       const a = document.createElement("a"); a.href = cubeUrl;
       a.download = `kinolu_${Date.now()}.cube`; a.click();
       URL.revokeObjectURL(cubeUrl);
+      trackPhotoExport("export_lut");
       showToast(t("editor_lutExported"));
     } catch (err) { setErrorMsg(`${t("editor_lutExportFailed")} ${err}`); }
     finally { setExportingLut(false); }
@@ -728,6 +736,7 @@ export default function EditorPage() {
       transferredImageData.current = data; baseImageData.current = data;
       setHasTransferred(true);
       setActiveLutId(lutId);
+      trackPresetApply(lutId);
       // Preset and transfer are mutually exclusive — clear transfer state
       setTransferUsedXY(false);
       setRenderTick((t) => t + 1);

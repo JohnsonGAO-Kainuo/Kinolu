@@ -12,6 +12,7 @@ import {
 } from "@/lib/lutStore";
 import { getBuiltinMeta } from "@/lib/builtinLuts";
 import { useAuth } from "@/components/AuthProvider";
+import { trackCameraOpen, trackCameraCapture } from "@/lib/analytics";
 
 /* ── Focal-length presets ── */
 const FOCAL_PRESETS = [
@@ -70,6 +71,7 @@ export default function CameraPage() {
   }, []);
 
   /* keep refs in sync */
+  useEffect(() => { trackCameraOpen(); }, []);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { brightnessRef.current = brightness; }, [brightness]);
   useEffect(() => { facingRef.current = facingMode; }, [facingMode]);
@@ -422,7 +424,7 @@ export default function CameraPage() {
       ctx.putImageData(imgData, 0, 0);
     }
 
-    canvas.toBlob((blob) => { if (blob) setCapturedUrl(URL.createObjectURL(blob)); }, "image/jpeg", 0.95);
+    canvas.toBlob((blob) => { if (blob) { trackCameraCapture(); setCapturedUrl(URL.createObjectURL(blob)); } }, "image/jpeg", 0.95);
   }, []);
 
   /** Capture with flash: pre-flash (metering) → main flash (capture) → off
