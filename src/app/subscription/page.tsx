@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { IconBack, IconCheck, IconCheckCircle, IconInfinity, IconMinus } from "@/components/icons";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/components/AuthProvider";
+import { trackPurchase } from "@/lib/analytics";
 
 type Plan = "monthly" | "annual" | "lifetime";
 
@@ -47,6 +48,7 @@ function SubscriptionContent() {
     for (let i = 0; i < maxAttempts; i++) {
       const freshProfile = await refreshProfile();
       if (freshProfile?.subscription_tier === "pro") {
+        trackPurchase(selectedPlan);
         setPaymentPending(false);
         pollingRef.current = false;
         return;

@@ -6,6 +6,7 @@ import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/components/AuthProvider";
+import { trackPurchase } from "@/lib/analytics";
 import { IconCheck, IconCheckCircle, IconInfinity, IconMinus } from "@/components/icons";
 
 type Plan = "monthly" | "annual" | "lifetime";

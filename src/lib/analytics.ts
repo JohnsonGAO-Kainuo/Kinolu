@@ -51,3 +51,19 @@ export function trackCameraOpen() {
 export function trackPhotoUpload(type: "source" | "reference") {
   getGtag()?.("event", "photo_upload", { event_category: "engagement", upload_type: type });
 }
+
+/** User successfully subscribed to Pro */
+export function trackPurchase(plan: "monthly" | "annual" | "lifetime") {
+  const value = plan === "monthly" ? 2.99 : plan === "annual" ? 29.99 : 49.99;
+  getGtag()?.("event", "purchase", {
+    currency: "USD",
+    value,
+    items: [{ item_id: `kinolu_pro_${plan}`, item_name: `Kinolu Pro ${plan}`, price: value, quantity: 1 }],
+  });
+  getGtag()?.("event", "conversion", {
+    send_to: AW_ID,
+    value,
+    currency: "USD",
+    event_label: "subscription_purchase",
+  });
+}

@@ -41,6 +41,19 @@ export async function transferImage(
   source: File,
   params: EditParams
 ): Promise<TransferResponse> {
+  // No backend configured: run client-side transfer directly (avoid /api 404 noise)
+  if (!API_BASE) {
+    return clientTransfer(
+      source,
+      reference,
+      params.color_strength,
+      params.tone_strength,
+      params.auto_xy,
+      params.skin_protect,
+      params.semantic_regions,
+    );
+  }
+
   // Try server first
   try {
     const fd = new FormData();
@@ -106,6 +119,11 @@ export async function transferImage(
 
 /* ─── Capabilities ─── */
 export async function getCapabilities(): Promise<Capabilities> {
+  if (!API_BASE) {
+    return {
+      methods: ["reinhard"],
+    };
+  }
   try {
     const res = await fetch(`${API_BASE}/api/capabilities`);
     if (!res.ok) throw new Error("Failed to fetch capabilities");
@@ -120,6 +138,7 @@ export async function getCapabilities(): Promise<Capabilities> {
 
 /* ─── Health ─── */
 export async function healthCheck(): Promise<boolean> {
+  if (!API_BASE) return false;
   try {
     const res = await fetch(`${API_BASE}/api/health`);
     return res.ok;
@@ -130,6 +149,7 @@ export async function healthCheck(): Promise<boolean> {
 
 /* ─── Presets ─── */
 export async function listPresets(): Promise<PresetItem[]> {
+  if (!API_BASE) return [];
   try {
     const res = await fetch(`${API_BASE}/api/presets`);
     if (!res.ok) throw new Error("Failed to list presets");

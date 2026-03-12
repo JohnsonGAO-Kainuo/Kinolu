@@ -130,7 +130,9 @@
 
 ### 📕 小红书文案（中文）
 
-**标题：** 因为喜欢摄影，自己做了一个色彩迁移工具
+**标题：** 因为喜欢摄影，自己做了一个调色工具
+
+> **配图建议：** 第一条帖子建议发图片，6-9 张。封面用效果反差最大的 Before→After 对比拼图。
 
 **正文：**
 
@@ -142,13 +144,15 @@
 
 这就是 Kinolu，一个在线的色彩迁移和调色工具。
 
-用法很直接：上传你的照片，再上传一张你想要的色调参考（电影截图、胶片照、别人的成片都行），算法会自动完成色彩迁移。也内置了 12 个经典胶片预设，富士 Provia、Velvia、Superia，柯达 Portra、Gold、Ektar，还有宝丽来，可以直接用。
+用法很直接：上传你的照片，再上传一张你想要的色调参考（电影截图、胶片照、别人的成片都行），算法会自动完成色彩迁移。也内置了 12 个经典胶片预设，富士 Provia、Velvia、Superia，柯达 Portra、Gold、Ektar，还有宝丽来，可以直接用。后续还会继续加更多的胶片预设进去。
 
 技术上是基于 LAB 色彩空间的统计匹配算法，加上了语义分割（区分人物、天空、植被，不同区域用不同迁移强度）、电影感色调增强、以及一套皮肤保护机制——调完色之后人脸不会偏色。
 
-不需要下载 app，浏览器打开 kinolu.cam 就能用。iPhone、安卓、电脑都支持，可以直接添加到主屏幕当 app 用。所有图像处理都在本地完成，照片不会上传到服务器。
+不需要下载 app，浏览器打开 kinolu.cam 就能用。iPhone、安卓、电脑都支持。安卓和电脑浏览器会直接提示安装，iPhone 的话点底部分享按钮选「添加到主屏幕」就行，装好后像普通 app 一样从桌面打开，自动更新。所有图像处理都在本地完成，照片不会上传到服务器。
 
-做这个的初衷就是想让调色这件事门槛低一点，不用每次都去研究 Lightroom 的一堆参数。如果你也喜欢摄影但不想在调色上花太多时间，可以试试。
+做这个的出发点主要是面向喜欢摄影、但不想花大量时间去学专业修图软件的人。很多摄影爱好者对画面构图和拍摄本身很有想法，但调色这块确实需要比较专业的色彩知识，门槛不低。Kinolu 想做的就是把这个门槛降下来，让你能快速得到自己想要的色调效果。
+
+目前还在持续迭代中，色彩迁移的质量和整体体验还有不少可以优化的地方。如果你试用之后有任何反馈，非常欢迎告诉我，后续会根据大家的意见继续改进。
 
 → kinolu.cam
 
@@ -156,27 +160,48 @@
 
 ---
 
-### 🐦 X (Twitter) 文案（英文）
+### 🐦 X (Twitter) 文案（英文） — Thread 格式
 
-First post here — been lurking for a while.
+> **发布方式：** 发第 1 条后，依次回复自己，形成 Thread。
+> **第 1 条带 4 张图：** 选 2 组效果最好的 Before→After 对比（4 张图刚好）。
 
-I'm into photography, and one thing that always frustrated me was color grading. I'd see a movie still or someone's photo with a tone I loved, and I could never figure out how to recreate it. Most of the time I was just guessing with sliders.
+**1/5** [附 4 张图]
 
-So I built a tool called **Kinolu** that does color transfer — you give it a reference photo and your photo, and it matches the color grade automatically.
+I like photography but always sucked at color grading — just guessing with sliders.
 
-It uses LAB color space statistical matching, with semantic segmentation (it treats skin, sky, vegetation differently), cinematic tone enhancement, and a skin protection system so faces don't shift to unnatural colors after grading.
+So I built Kinolu. Give it a reference photo (movie still, film shot, whatever) and your photo, it matches the color grade automatically.
 
-There are also 12 built-in film presets — Fuji Provia, Velvia, Superia, Kodak Portra, Gold, Ektar, Polaroid.
+https://www.kinolu.cam/?utm_source=twitter&utm_medium=social&utm_campaign=launch
 
-A few things worth mentioning:
-- Runs entirely in the browser, no app to download. Works on iPhone, Android, desktop.
-- You can add it to your home screen — it's a PWA, so it works like a native app.
-- All processing happens locally. Your photos never leave your device.
-- Works offline too.
+**2/5**
 
-I made this because I wanted something between an Instagram filter and spending an hour in Lightroom. Something where you could point at a reference and say "make it look like that."
+How it works: LAB color space statistical matching + semantic segmentation. It detects skin, sky, vegetation and applies different transfer intensities to each region.
 
-Free to try → **kinolu.cam**
+Has a 3-layer skin protection system — faces don't turn blue when you go full cold cinematic.
+
+**3/5**
+
+12 built-in film presets — Fuji Provia, Velvia, Superia, Kodak Portra, Gold, Ektar, Polaroid. More coming.
+
+You can also export any color transfer result as a .cube 3D LUT file.
+
+**4/5**
+
+Runs entirely in the browser. No app to download. iPhone, Android, desktop.
+
+All processing happens on your device — photos never leave it. Tap share → "Add to Home Screen" and it works like a native app. Works offline too.
+
+**5/5**
+
+Built this for people who enjoy photography but don't want to spend hours learning pro editing software. You know how to frame a good shot — you just want the colors right.
+
+Still a work in progress. Feedback welcome, will keep iterating.
+
+https://www.kinolu.cam/?utm_source=twitter&utm_medium=social&utm_campaign=launch
+
+---
+
+> **Threads 文案：** 直接把上面 5 条合并发一条即可（Threads 支持 500 字符，格式更自由）。内容一样，不用另写。
 
 ---
 

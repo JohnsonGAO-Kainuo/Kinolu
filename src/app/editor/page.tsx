@@ -188,7 +188,7 @@ export default function EditorPage() {
           ctx.drawImage(img, 0, 0, w, h);
           resolve(ctx.getImageData(0, 0, w, h));
         };
-        img.onerror = reject;
+        img.onerror = () => reject(new Error("Failed to load image"));
         img.src = url;
       }),
     [isMobile]
@@ -338,11 +338,21 @@ export default function EditorPage() {
     if (sourceUrl) URL.revokeObjectURL(sourceUrl);
     const url = URL.createObjectURL(file); setSourceUrl(url);
     setProcessing(true);
-    const data = await loadImageToData(url);
-    setProcessing(false);
-    sourceImageData.current = data; baseImageData.current = data;
-    transferredImageData.current = null; setHasTransferred(false);
-    setRenderTick((t) => t + 1);
+    try {
+      const data = await loadImageToData(url);
+      sourceImageData.current = data; baseImageData.current = data;
+      transferredImageData.current = null; setHasTransferred(false);
+      setRenderTick((t) => t + 1);
+    } catch (err) {
+      setErrorMsg(`${t("editor_transferFailed")}: ${err}`);
+      setTimeout(() => setErrorMsg(null), 5000);
+      URL.revokeObjectURL(url);
+      setSourceUrl("");
+      sourceFileRef.current = null;
+      return;
+    } finally {
+      setProcessing(false);
+    }
 
     // If multiple files selected → rest become batch queue (Pro only)
     if (arr.length > 1) {
@@ -399,18 +409,27 @@ export default function EditorPage() {
     sourceFileRef.current = new File([blob], fileName, { type: blob.type || "image/jpeg" });
     setSourceUrl(url);
     setProcessing(true);
-    const data = await loadImageToData(url);
-    setProcessing(false);
-    sourceImageData.current = data; baseImageData.current = data;
-    transferredImageData.current = null; setHasTransferred(false);
-    setRenderTick((t) => t + 1);
+    try {
+      const data = await loadImageToData(url);
+      sourceImageData.current = data; baseImageData.current = data;
+      transferredImageData.current = null; setHasTransferred(false);
+      setRenderTick((t) => t + 1);
+    } catch (err) {
+      setErrorMsg(`${t("editor_transferFailed")}: ${err}`);
+      setTimeout(() => setErrorMsg(null), 5000);
+      setSourceUrl("");
+      sourceFileRef.current = null;
+      return;
+    } finally {
+      setProcessing(false);
+    }
     const sp = sessionStorage.getItem("kinolu_capture_preset_id") || "";
     if (sp) {
       setActiveLutId(sp);
       void runApplyPreset(sp);
       sessionStorage.removeItem("kinolu_capture_preset_id");
     }
-  }, [loadImageToData, runApplyPreset]);
+  }, [loadImageToData, runApplyPreset, t]);
 
   useEffect(() => {
     const qp = new URLSearchParams(window.location.search).get("preset") || "";
