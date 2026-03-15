@@ -133,17 +133,33 @@ export default function RootLayout({
         </I18nProvider>
 
         {/* Google Analytics 4 + Google Ads Conversion Tracking (gtag.js) */}
+        {/* Skipped entirely when localStorage.kinolu_internal === '1' */}
+        <Script id="google-gtag-loader" strategy="afterInteractive">
+          {`
+            try {
+              if (localStorage.getItem('kinolu_internal') === '1') {
+                window.__kinolu_no_ga = true;
+              }
+            } catch(e) {}
+          `}
+        </Script>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-18006123691"
           strategy="afterInteractive"
+          {...(typeof window !== "undefined" ? {} : {})}
         />
         <Script id="google-gtag" strategy="afterInteractive">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-CBGJR3DG21');
-            gtag('config', 'AW-18006123691');
+            if (!window.__kinolu_no_ga) {
+              window["ga-disable-G-NP4HE17LV6"] = true;
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-CBGJR3DG21');
+              gtag('config', 'AW-18006123691');
+            } else {
+              window.gtag = function() {};
+            }
           `}
         </Script>
 
